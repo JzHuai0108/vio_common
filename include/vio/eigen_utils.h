@@ -225,6 +225,35 @@ template<class T>
       return vb.block<3,1>(1,0);
   }
 
+  // assume the multiplied quaternion has entries in the [w,x,y,z] order
+  template<class Scalar>
+  Eigen::Matrix<Scalar, 4, 4> leftQuaternionProductMatrix(
+          const Eigen::Quaternion<Scalar>& quat)
+  {
+      Eigen::Matrix<Scalar,4,4> Ql;
+      Eigen::Matrix<Scalar, 3, 1> qv =quat.vec();
+      Ql.template bottomRightCorner<3,3>() = Eigen::Matrix<Scalar,3,3>::Identity()*quat.w() + skew3d(qv);
+
+      Ql.template topRightCorner<1,3>() = - qv.transpose();
+      Ql.template bottomLeftCorner<3,1>() = qv;
+      Ql(0,0) = quat.w();
+      return Ql;
+  }
+
+  // assume the multiplied quaternion has entries in the [w,x,y,z] order
+  template<class Scalar>
+  Eigen::Matrix<Scalar, 4, 4> rightQuaternionProductMatrix(
+          const Eigen::Quaternion<Scalar>& quat)
+  {
+      Eigen::Matrix<Scalar,4,4> Qr;
+      Eigen::Matrix<Scalar, 3, 1> qv =quat.vec();
+      Qr.template bottomRightCorner<3,3>() = Eigen::Matrix<Scalar,3,3>::Identity()*quat.w() - skew3d(qv);
+
+      Qr.template topRightCorner<1,3>() = - qv.transpose();
+      Qr.template bottomLeftCorner<3,1>() = qv;
+      Qr(0,0) = quat.w();
+      return Qr;
+  }
 
 Eigen::Vector3d rotro2eu(Eigen::Matrix3d R);
 //eul defined in "n": rotate "n" to obtain "b"
