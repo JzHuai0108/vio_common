@@ -74,6 +74,7 @@ interpolateMat_8u(const cv::Mat & mat, const Vector2f & uv)
       + (wx1*wy0)*val10 + (wx1*wy1)*val11;
 }
 */
+
 Vector2d
 project2d(const Vector3d& v)
 {

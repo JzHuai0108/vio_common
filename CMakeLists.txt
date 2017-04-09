@@ -59,7 +59,9 @@ src/ImuGrabber.cpp
 src/GPSGrabber.cpp
 src/CsvReader.cpp
 src/FrameGrabber.cpp
-src/eigen_utils.cpp)
+src/eigen_utils.cpp
+include/vio/PointStatistics.h
+)
 
 IF(USE_GPSTK)
   ADD_DEFINITIONS(-DHAVE_GPSTK)
@@ -94,9 +96,8 @@ TARGET_LINK_LIBRARIES(test_gps_grabber ${PROJECT_NAME})
 ################################################################################
 # Create the vio_commonConfig.cmake file for other cmake projects.
 IF(NOT USE_ROS)
-  GET_TARGET_PROPERTY( FULL_LIBRARY_NAME ${PROJECT_NAME} LOCATION )
-  SET(vio_common_LIBRARIES ${FULL_LIBRARY_NAME} )
-  SET(vio_common_LIBRARY_DIR ${PROJECT_BINARY_DIR} )
+  SET(vio_common_LIBRARIES ${PROJECT_SOURCE_DIR}/lib/libvio_common.so)
+  SET(vio_common_LIBRARY_DIR ${PROJECT_SOURCE_DIR}/lib)
   SET(vio_common_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include")
   CONFIGURE_FILE( ${CMAKE_CURRENT_SOURCE_DIR}/vio_commonConfig.cmake.in
       ${CMAKE_CURRENT_BINARY_DIR}/vio_commonConfig.cmake @ONLY IMMEDIATE )
