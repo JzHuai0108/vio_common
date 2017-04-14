@@ -68,7 +68,7 @@ public:
     };
 
     IMUGrabber(const std::string file, IMUFileType ft, double sample_interval=0.01);
-
+    //note the last entry of the last imu measurement segment is kept in the new segment
     bool getObservation(double tk);
     void print(const std::string message="");
     Eigen::Matrix<double,7,1> transMat;     //temporary IMU reading container which also holds p(k)-1 IMU data
