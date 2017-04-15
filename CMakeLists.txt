@@ -61,6 +61,8 @@ src/CsvReader.cpp
 src/FrameGrabber.cpp
 src/eigen_utils.cpp
 include/vio/PointStatistics.h
+include/vio/IMUErrorModel.h
+include/vio/IMUErrorModel.cpp
 )
 
 IF(USE_GPSTK)
@@ -92,6 +94,9 @@ TARGET_LINK_LIBRARIES(test_csv_reader ${PROJECT_NAME})
 
 ADD_EXECUTABLE(test_gps_grabber test/testgpsgrabber.cpp)
 TARGET_LINK_LIBRARIES(test_gps_grabber ${PROJECT_NAME})
+
+ADD_EXECUTABLE(test_time_grabber test/testtimegrabber.cpp)
+TARGET_LINK_LIBRARIES(test_time_grabber ${PROJECT_NAME})
 
 ################################################################################
 # Create the vio_commonConfig.cmake file for other cmake projects.

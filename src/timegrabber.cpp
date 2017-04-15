@@ -47,7 +47,7 @@ TimeGrabber::TimeGrabber():
         string tempStr;
         double precursor(-1);
         if(last_line_index>line_number){
-            cerr<<"Retracing to read timestamps is unsupported!"<<endl;
+            cerr<<"Reading previous timestamps is unsupported!"<<endl;
             return -1;
         }
         if(last_line_index==line_number)
@@ -67,14 +67,14 @@ TimeGrabber::TimeGrabber():
         last_line_time=precursor;
         return last_line_time;
     }
-    //extract time and return left image filename, tailored for Malaga urban dataset
+    //extract time from a text file tailored for Malaga urban dataset
     // in this function frame_number is 0 for the first two lines in the /*_IMAGE.txt file
 double TimeGrabber::extractTimestamp(int frame_number)
 {
     string tempStr;
     double precursor(-1);
     if(last_line_index>frame_number){
-        cerr<<"Retracing to read timestamps is unsupported!"<<endl;
+        cerr<<"Read previous timestamps is unsupported!"<<endl;
         return -1;
     }
     if(last_line_index==frame_number)
