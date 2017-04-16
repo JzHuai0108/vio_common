@@ -52,18 +52,18 @@ CsvReader::CsvReader(const std::string file, const OUTPUT_FILE_TYPE fileType, do
     std::string tempStr;
     getline(stream,tempStr); //remove header part
 
-switch(fileType){
+    switch(fileType){
     case OKVIS_OUTPUT_FILE:
-    pat_= new OkvisOutputPattern();
-    transMat = Eigen::Matrix<double, 19, 1>::Zero();
-    measurement = Eigen::Matrix<double, 19, 1>::Zero();
-    break;    
+        pat_= new OkvisOutputPattern();
+        transMat = Eigen::Matrix<double, 19, 1>::Zero();
+        measurement = Eigen::Matrix<double, 19, 1>::Zero();
+        break;
     default:
-    std::cerr<<"File type not supported by CsvReader "<<std::endl;
-    break;
-}
-transMat[0]=-1;
-measurement[0]=-1;
+        std::cerr<<"File type not supported by CsvReader "<<std::endl;
+        break;
+    }
+    transMat[0]=-1;
+    measurement[0]=-1;
     
 }
 CsvReader::~CsvReader()
