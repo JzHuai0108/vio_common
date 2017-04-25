@@ -7,7 +7,7 @@ SET(CMAKE_VERBOSE_MAKEFILE OFF)
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/CMakeModules/")
 
 SET(USE_ROS False) # Set False if you want to build this package without Catkin
-SET(USE_GPSTK True) # set true if you can provide gpstk library and set its include and lib path accordingly, see below
+SET(USE_GPSTK false) # set true if you can provide gpstk library and set its include and lib path accordingly, see below
 
 # Set build flags. Set IS_ARM on odroid board as environment variable
 SET(CMAKE_CXX_FLAGS "-Wall -D_LINUX -D_REENTRANT -march=native -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unknown-pragmas")

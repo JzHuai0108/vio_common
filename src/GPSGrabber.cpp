@@ -263,6 +263,25 @@ int gpstk_example1()
     cout<<"Calculated civil time "<< setprecision(6)<< civtime3 <<" and civil time second " << civtime3.second<<endl;
     return 0;
 }
+#else
+std::istream& GPSGrabber::RtklibPosPatternTOWNED::read(std::istream & is)
+{
+    assert(false);
+    return is;
+}
+
+std::istream& GPSGrabber::RtklibPosPatternUTCECEF::read(std::istream & is)
+{
+    assert(false);
+    return is;
+}
+void testReadTOWECEF(){
+}
+
+int gpstk_example1()
+{
+    return 0;
+}
 #endif
 
 

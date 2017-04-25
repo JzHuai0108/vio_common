@@ -73,7 +73,7 @@ CsvReader::~CsvReader()
     pat_=NULL;
 }
 
-CsvReader::OkvisOutputPattern::OkvisOutputPattern():pq_SC_({0,0,0,0,0,0,0}){
+CsvReader::OkvisOutputPattern::OkvisOutputPattern():pq_SC_{0,0,0,0,0,0,0}{
 
 }
 
