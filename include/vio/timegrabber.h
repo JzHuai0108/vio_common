@@ -12,16 +12,16 @@ class TimeGrabber
 {
 public:
     TimeGrabber();
-    TimeGrabber(const std::string time_file_name);
+    TimeGrabber(const std::string time_file_name, int headerLines=0);
     TimeGrabber & operator=(const TimeGrabber &)=delete;
     TimeGrabber(const TimeGrabber&)=delete;
     ~TimeGrabber();
-    bool init(const std::string time_file_name);
+    bool init(const std::string time_file_name, int headerLines=0);
 
     // this reading function only works for KITTI timestamp files
     double readTimestamp(int line_number);
 
-    double extractTimestamp(int frame_number);
+    double extractTimestamp(int frame_number, bool isMalagaDataset=true);
 
     std::string time_file;
     std::ifstream time_stream;

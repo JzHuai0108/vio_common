@@ -1,15 +1,8 @@
 
 #include "vio/timegrabber.h"
 #include "vio/eigen_utils.h"
+#include <sstream>
 
-//#include <gpstk-2.5.linux.x86_64/SystemTime.hpp>
-//#include <gpstk-2.5.linux.x86_64/CommonTime.hpp>
-//#include <gpstk-2.5.linux.x86_64/CivilTime.hpp>
-//#include <gpstk-2.5.linux.x86_64/YDSTime.hpp>
-//#include <gpstk-2.5.linux.x86_64/GPSWeekSecond.hpp>
-//#include <gpstk-2.5.linux.x86_64/Position.hpp>
-
-//using namespace gpstk;
 using namespace std;
 
 namespace vio{
@@ -17,19 +10,25 @@ namespace vio{
 TimeGrabber::TimeGrabber():
         last_line_index(-1), last_line_time(-1){
     }
-    TimeGrabber::TimeGrabber(const string time_file_name):time_file(time_file_name),
+    TimeGrabber::TimeGrabber(const string time_file_name, int headerLines):time_file(time_file_name),
         time_stream(time_file_name.c_str()),
         last_line_index(-1), last_line_time(-1){
         if(!time_stream.is_open())
         {
              std::cout << "Error opening timestamp file!"<<endl;
         }
+        else
+        {
+            std::string tempStr;
+            for(int jack=0; jack<headerLines; ++jack)
+               getline(time_stream, tempStr);   
+        }
     }
    
     TimeGrabber::~TimeGrabber(){
         time_stream.close();
     }
-    bool TimeGrabber::init(const string time_file_name){
+    bool TimeGrabber::init(const string time_file_name, int headerLines){
         time_file=time_file_name;
         time_stream.open(time_file_name.c_str());
         last_line_index=-1;
@@ -38,7 +37,13 @@ TimeGrabber::TimeGrabber():
         {
                  std::cout << "Error opening timestamp file!"<<endl;
                  return false;
+        }else
+        {
+            std::string tempStr;
+            for(int jack=0; jack<headerLines; ++jack)
+               getline(time_stream, tempStr);   
         }
+
         return true;
     }
     // this reading function only works for KITTI timestamp files
@@ -67,9 +72,19 @@ TimeGrabber::TimeGrabber():
         last_line_time=precursor;
         return last_line_time;
     }
-    //extract time from a text file tailored for Malaga urban dataset
-    // in this function frame_number is 0 for the first two lines in the /*_IMAGE.txt file
-double TimeGrabber::extractTimestamp(int frame_number)
+
+    //extract time from a text file 
+    // for malaga dataset whose timestamps are in /*_IMAGE.txt file,
+    // every two lines are the left and right image names, typically with the same timestamp, e.g., 
+    // img_CAMERA1_1261228749.918590_left.jpg
+    // img_CAMERA1_1261228749.918590_right.jpg
+    // img_CAMERA1_1261228749.968589_left.jpg
+    // img_CAMERA1_1261228749.968589_right.jpg
+    // Thus, frame number is 0 for the first two lines in the /*_IMAGE.txt file
+
+    // for indexed time file, each line is frame number, time in millisec
+
+double TimeGrabber::extractTimestamp(int frame_number, bool isMalagaDataset)
 {
     string tempStr;
     double precursor(-1);
@@ -85,9 +100,19 @@ double TimeGrabber::extractTimestamp(int frame_number)
         getline(time_stream, tempStr);
         if(time_stream.fail())
             break;
-        last_left_image_name=tempStr;
-        getline(time_stream, tempStr);       //also read in the right image name
-        precursor=atof(tempStr.substr(12, 17).c_str());
+        if(isMalagaDataset){
+          last_left_image_name=tempStr;
+          getline(time_stream, tempStr);       //read in the right image name
+          precursor=atof(tempStr.substr(12, 17).c_str());
+        }else{//frame index and timestamp in millisec
+            std::istringstream iss(tempStr);
+            int frameIndex(-1); 
+            double timestamp(-1);
+            iss>>frameIndex>> timestamp;
+            timestamp*= 0.001;
+            if(last_line_index+1!=frameIndex)
+                std::cerr<<"Warn: potential error in frame indexing index "<< last_line_index+1<<" with line content "<< tempStr<< std::endl;
+        }
         ++last_line_index;
     }
     if(last_line_index<frame_number)
@@ -98,4 +123,5 @@ double TimeGrabber::extractTimestamp(int frame_number)
     last_line_time=precursor;
     return last_line_time;
 }
+
 }

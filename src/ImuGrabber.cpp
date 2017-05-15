@@ -95,6 +95,27 @@ std::istream & operator>>(std::istream &is, IMUGrabber::PlainTextPattern &rhs)
     return is;
 }
 
+std::ostream& operator << (std::ostream &os, const IMUGrabber::IndexedPlainTextPattern & rhs)
+{
+    os<< rhs.index<< rhs.GPS_TOW<<' '<<
+         rhs.awxyz[0]<<' '<<rhs.awxyz[1]<<' '<<rhs.awxyz[2]<<' '<<
+         rhs.awxyz[3]<<' '<<rhs.awxyz[4]<<' '<<rhs.awxyz[5];
+    return os;
+}
+
+std::istream & operator>>(std::istream &is, IMUGrabber::IndexedPlainTextPattern &rhs)
+{
+    is>>rhs.index>> rhs.GPS_TOW>>rhs.awxyz[0]>>rhs.awxyz[1]>>rhs.awxyz[2]>>
+            rhs.awxyz[3]>>rhs.awxyz[4]>>rhs.awxyz[5];
+    rhs.awxyz[0]*= rhs.linearAccelerationUnit;
+    rhs.awxyz[1]*= rhs.linearAccelerationUnit;
+    rhs.awxyz[2]*= rhs.linearAccelerationUnit;
+    rhs.awxyz[3]*= rhs.angularRateUnit;
+    rhs.awxyz[4]*= rhs.angularRateUnit;
+    rhs.awxyz[5]*= rhs.angularRateUnit;
+    return is;
+}
+
 std::ostream& operator << (std::ostream &os, const IMUGrabber::SensorStreamCSVPattern & rhs)
 {
     os<< rhs.timestamp<<' ';
@@ -170,6 +191,14 @@ bool IMUGrabber::getObservation(double tk)
                 for (int j=1; j<transMat.rows(); ++j)
                     transMat[j]=pat.awxyz[j-1];
             }
+            else if(file_type==IndexedPlainText)
+            {
+                IMUGrabber::IndexedPlainTextPattern pat;
+                line_str>>pat;
+                transMat[0]=pat.GPS_TOW;
+                for (int j=1; j<transMat.rows(); ++j)
+                    transMat[j]=pat.awxyz[j-1];
+            }
             else if(file_type == SensorStreamCSV)
             {
                 IMUGrabber::SensorStreamCSVPattern pat;
@@ -232,6 +261,14 @@ bool IMUGrabber::getObservation(double tk)
             else if(file_type==PlainText)
             {
                 IMUGrabber::PlainTextPattern pat;
+                line_str>>pat;
+                transMat[0]=pat.GPS_TOW;
+                for (int j=1; j<transMat.rows(); ++j)
+                    transMat[j]=pat.awxyz[j-1];
+            }
+            else if(file_type==IndexedPlainText)
+            {
+                IMUGrabber::IndexedPlainTextPattern pat;
                 line_str>>pat;
                 transMat[0]=pat.GPS_TOW;
                 for (int j=1; j<transMat.rows(); ++j)

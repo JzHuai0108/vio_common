@@ -33,7 +33,7 @@ class CSFMDataPattern{
 void loadCSFMOutput(std::string csfmFile, std::vector<std::pair<double, Eigen::Vector3d> > & vTimeAndPose);
 void saveCSFMOutput(std::string csfmFile, const std::vector<std::pair<double, Eigen::Vector3d> > & vTimeAndPose);
 
-enum IMUFileType {MicroStrainCSV=0, PlainText, SensorStreamCSV};
+enum IMUFileType {MicroStrainCSV=0, PlainText, SensorStreamCSV, IndexedPlainText};
 class IMUGrabber:DataGrabber{
 public:
 
@@ -58,6 +58,16 @@ public:
         double awxyz[6];
     };
 
+    struct IndexedPlainTextPattern{
+        int index;
+        double GPS_TOW; // timestamp not necessarily of GPS
+        double awxyz[6];
+        const double linearAccelerationUnit;
+        const double angularRateUnit;
+        IndexedPlainTextPattern():linearAccelerationUnit(2*9.80665/32768),
+            angularRateUnit(2000*M_PI/ (180*32768)){}
+    };
+
     // sensorstream app in android phones
     struct SensorStreamCSVPattern{
         double timestamp;
@@ -79,6 +89,8 @@ std::ostream& operator << (std::ostream &os, const IMUGrabber::MicroStrainCSVPat
 std::istream & operator>>(std::istream &is, IMUGrabber::MicroStrainCSVPattern &rhs);
 std::ostream& operator << (std::ostream &os, const IMUGrabber::PlainTextPattern & rhs);
 std::istream & operator>>(std::istream &is, IMUGrabber::PlainTextPattern &rhs);
+std::ostream& operator << (std::ostream &os, const IMUGrabber::IndexedPlainTextPattern & rhs);
+std::istream & operator>>(std::istream &is, IMUGrabber::IndexedPlainTextPattern &rhs);
 std::ostream& operator << (std::ostream &os, const IMUGrabber::SensorStreamCSVPattern & rhs);
 std::istream & operator>>(std::istream &is, IMUGrabber::SensorStreamCSVPattern &rhs);
 
