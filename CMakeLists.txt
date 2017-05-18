@@ -98,6 +98,9 @@ TARGET_LINK_LIBRARIES(test_gps_grabber ${PROJECT_NAME})
 ADD_EXECUTABLE(test_time_grabber test/testtimegrabber.cpp)
 TARGET_LINK_LIBRARIES(test_time_grabber ${PROJECT_NAME})
 
+ADD_EXECUTABLE(testeigeninverse test/testeigeninverse.cpp)
+TARGET_LINK_LIBRARIES(testeigeninverse ${PROJECT_NAME})
+
 ################################################################################
 # Create the vio_commonConfig.cmake file for other cmake projects.
 IF(NOT USE_ROS)
