@@ -107,6 +107,7 @@ std::istream & operator>>(std::istream &is, IMUGrabber::IndexedPlainTextPattern 
 {
     is>>rhs.index>> rhs.GPS_TOW>>rhs.awxyz[0]>>rhs.awxyz[1]>>rhs.awxyz[2]>>
             rhs.awxyz[3]>>rhs.awxyz[4]>>rhs.awxyz[5];
+    rhs.GPS_TOW*= 0.001;
     rhs.awxyz[0]*= rhs.linearAccelerationUnit;
     rhs.awxyz[1]*= rhs.linearAccelerationUnit;
     rhs.awxyz[2]*= rhs.linearAccelerationUnit;

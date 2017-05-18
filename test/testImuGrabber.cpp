@@ -4,6 +4,15 @@
 int main()
 {
     using namespace vio;
+    std::string mImuFile0("../test/IndexedImu.txt");
+    IMUGrabber mIG0(mImuFile0, IndexedPlainText,0.014);
+
+    mIG0.getObservation(0);
+    mIG0.print("get observation 0");
+    mIG0.getObservation(505.418);
+    mIG0.print("get observation 505.418");
+
+
     std::string mImuFile("../test/testimugrabber.csv");
     IMUGrabber mIG(mImuFile, SensorStreamCSV,0.005);
 

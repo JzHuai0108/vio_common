@@ -87,7 +87,7 @@ TimeGrabber::TimeGrabber():
 double TimeGrabber::extractTimestamp(int frame_number, bool isMalagaDataset)
 {
     string tempStr;
-    double precursor(-1);
+    double timestamp(-1);
     if(last_line_index>frame_number){
         cerr<<"Read previous timestamps is unsupported!"<<endl;
         return -1;
@@ -103,15 +103,14 @@ double TimeGrabber::extractTimestamp(int frame_number, bool isMalagaDataset)
         if(isMalagaDataset){
           last_left_image_name=tempStr;
           getline(time_stream, tempStr);       //read in the right image name
-          precursor=atof(tempStr.substr(12, 17).c_str());
+          timestamp= -1;
+          timestamp=atof(tempStr.substr(12, 17).c_str());
         }else{//frame index and timestamp in millisec
             std::istringstream iss(tempStr);
             int frameIndex(-1); 
-            double timestamp(-1);
+            timestamp =-1;
             iss>>frameIndex>> timestamp;
-            timestamp*= 0.001;
-            if(last_line_index+1!=frameIndex)
-                std::cerr<<"Warn: potential error in frame indexing index "<< last_line_index+1<<" with line content "<< tempStr<< std::endl;
+            timestamp*= 0.001;           
         }
         ++last_line_index;
     }
@@ -120,7 +119,7 @@ double TimeGrabber::extractTimestamp(int frame_number, bool isMalagaDataset)
         cerr<<"Failed to find this line in time file!"<<endl;
         return -1;
     }
-    last_line_time=precursor;
+    last_line_time=timestamp;
     return last_line_time;
 }
 

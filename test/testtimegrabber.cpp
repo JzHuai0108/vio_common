@@ -15,6 +15,14 @@ void testTimeGrabber(std::string timeFile)
 
 }
 int main(){
+
+    vio::TimeGrabber tg("../test/dilili_video_timestamps.txt", 1);
+
+    double timestamp = tg.extractTimestamp(50, false);
+    std::cout<< "image index timestamp at 1 "<< timestamp <<std::endl;
+
+    timestamp = tg.extractTimestamp(100, false);
+    std::cout<< "image index timestamp at 100 "<< timestamp <<std::endl;
 	testTimeGrabber("../test/times_kitti_seq00.txt");
 	return 0;
 }
