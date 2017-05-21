@@ -9,7 +9,7 @@ int main()
 
     mIG0.getObservation(0);
     mIG0.print("get observation 0");
-    mIG0.getObservation(505.418);
+    mIG0.getObservation(505.417);
     mIG0.print("get observation 505.418");
 
 
