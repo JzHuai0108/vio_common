@@ -24,7 +24,17 @@ ENDIF()
 SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -fsee -fomit-frame-pointer -fno-signed-zeros -fno-math-errno -funroll-loops")
 
 # Add plain cmake packages 
-FIND_PACKAGE(OpenCV REQUIRED)
+set(USE_SYSTEM_OPENCV false)
+IF(USE_SYSTEM_OPENCV)
+  find_package(OpenCV REQUIRED)
+ELSE()
+  SET(OpenCV_INCLUDE_DIRS /usr/local/include)
+  SET(OPENCV_LIBRARY_DIR /usr/local/lib)
+  set(OpenCV_LIBS opencv_core opencv_features2d opencv_flann opencv_gpu
+               opencv_nonfree opencv_highgui opencv_imgproc opencv_calib3d)
+  link_directories(${OPENCV_LIBRARY_DIR})
+ENDIF()
+message ("opencv include dir " ${OpenCV_INCLUDE_DIRS})
 FIND_PACKAGE(Eigen REQUIRED)
 
 # Include dirs
