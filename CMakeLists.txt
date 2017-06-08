@@ -31,7 +31,7 @@ ELSE()
   SET(OpenCV_INCLUDE_DIRS /usr/local/include)
   SET(OPENCV_LIBRARY_DIR /usr/local/lib)
   set(OpenCV_LIBS opencv_core opencv_features2d opencv_flann opencv_gpu
-               opencv_nonfree opencv_highgui opencv_imgproc opencv_calib3d)
+               opencv_highgui opencv_imgproc opencv_calib3d)
   link_directories(${OPENCV_LIBRARY_DIR})
 ENDIF()
 message ("opencv include dir " ${OpenCV_INCLUDE_DIRS})
