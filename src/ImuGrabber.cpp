@@ -299,11 +299,12 @@ bool IMUGrabber::getObservation(double tk)
                 break;
             measurement.push_back(transMat);
         }
-        if(transMat[0]>tk)
-            is_measurement_good=true;
-        else
-            is_measurement_good=false; //this can heppen when the timestamp goes beyond those in the imu file.
     }
+    if(transMat[0]>tk)
+        is_measurement_good=true;
+    else
+        is_measurement_good=false; //this can heppen when the timestamp goes beyond those in the imu file.
+
     tkm1=tk;
     return is_measurement_good;
 }
