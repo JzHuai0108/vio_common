@@ -116,7 +116,7 @@ double TimeGrabber::extractTimestamp(int frame_number, bool isMalagaDataset)
     }
     if(last_line_index<frame_number)
     {
-        cerr<<"Failed to find "<<line_number<<"th line in time file!"<<endl;
+        cerr<<"Failed to find "<<frame_number<<"th line in time file!"<<endl;
         return -1;
     }
     last_line_time=timestamp;
