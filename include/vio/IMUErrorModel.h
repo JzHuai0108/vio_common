@@ -60,4 +60,5 @@ public:
     void dwa_B_dbgbaSTS(Eigen::Matrix<Scalar, 6, 27+6> & output);
 };
 
+#include "implementation/IMUErrorModel.h"
 #endif

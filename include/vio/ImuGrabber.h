@@ -82,7 +82,7 @@ public:
     bool getObservation(double tk);
     void print(const std::string message="");
     Eigen::Matrix<double,7,1> transMat;     //temporary IMU reading container which also holds p(k)-1 IMU data
-    std::vector<Eigen::Matrix<double, 7,1> > measurement;                            //IMU readings from t(p(k)-1) to t(p(k+1)-1)
+    std::vector<Eigen::Matrix<double, 7,1> > measurement;                            //IMU readings from t(p(k)-1) to t(p(k+1)-1), double timestamp, accel xyz m/s^2, gyro xyz rad/sec 
     IMUFileType file_type;
 };
 std::ostream& operator << (std::ostream &os, const IMUGrabber::MicroStrainCSVPattern & rhs);
@@ -117,6 +117,7 @@ mnNumFields(numFields), measurement(numFields, -1)
     // quaternion from sensor to world frame[xyzw], velocity of sensor in world frame, accelerometer biases, and gyro biases
 
 };
+
 
 void loadKITTIPoses(std::string file, std::vector<std::pair<double, Eigen::Matrix<double,3,4> > > & vTimeAndPose);
 void computeKITTIRf2s();

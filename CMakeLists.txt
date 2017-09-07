@@ -24,16 +24,7 @@ ENDIF()
 SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -fsee -fomit-frame-pointer -fno-signed-zeros -fno-math-errno -funroll-loops")
 
 # Add plain cmake packages 
-set(USE_SYSTEM_OPENCV false)
-IF(USE_SYSTEM_OPENCV)
-  find_package(OpenCV REQUIRED)
-ELSE()
-  SET(OpenCV_INCLUDE_DIRS /usr/local/include)
-  SET(OPENCV_LIBRARY_DIR /usr/local/lib)
-  set(OpenCV_LIBS opencv_core opencv_features2d opencv_flann opencv_gpu
-               opencv_highgui opencv_imgproc opencv_calib3d)
-  link_directories(${OPENCV_LIBRARY_DIR})
-ENDIF()
+find_package(OpenCV REQUIRED)
 message ("opencv include dir " ${OpenCV_INCLUDE_DIRS})
 FIND_PACKAGE(Eigen REQUIRED)
 
@@ -72,14 +63,13 @@ src/FrameGrabber.cpp
 src/eigen_utils.cpp
 include/vio/PointStatistics.h
 include/vio/IMUErrorModel.h
-include/vio/IMUErrorModel.cpp
 )
 
 IF(USE_GPSTK)
   ADD_DEFINITIONS(-DHAVE_GPSTK)
-  SET(GPSTK_INCLUDE_DIRS $ENV{HOME}/ScaViSLAM/svslocal/include)
+  SET(GPSTK_INCLUDE_DIRS $ENV{HOME}/workspace/local_install/gpstk/include)
   INCLUDE_DIRECTORIES(${GPSTK_INCLUDE_DIRS})
-  SET(GPSTK_LIB $ENV{HOME}/ScaViSLAM/svslocal/lib/libgpstk.so)
+  SET(GPSTK_LIB $ENV{HOME}/workspace/local_install/gpstk/lib/libgpstk.so)
 ENDIF()
 
 # Create library
