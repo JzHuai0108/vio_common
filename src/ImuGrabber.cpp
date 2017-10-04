@@ -232,6 +232,8 @@ bool IMUGrabber::getObservation(double tk)
         if(tk< transMat[0])
         {
             tkm1=tk;
+            std::cerr<<"Try to obtain inertial measurements until "<<std::setprecision(12)<<tk<<" which is however before the latest retrieved entry of time "<< transMat[0]<<std::endl;
+            std::cerr<<"from the file stream. A possible cause is a gap in the inertial data which can be filled by linear interpolation."<< std::endl;
             is_measurement_good = false;
             return is_measurement_good;
         }

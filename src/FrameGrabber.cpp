@@ -47,14 +47,20 @@ bool FrameGrabber::grabFrame(cv::Mat & left_img, double & tk)
         assert(mCapture.get(CV_CAP_PROP_POS_FRAMES) == mnCurrentId);
         time_frame= mCapture.get(CV_CAP_PROP_POS_MSEC)/1000.0;
         mCapture.read(left_img);
-
-        while(left_img.empty()){ // this happens when a frame is missed
+   
+        while(left_img.empty()){ // this happens when a frame is missing or at the end of video file
             ++mnCurrentId;
-            if(mnCurrentId > mnFinishId){
-                left_img.release();
+            if(mnCurrentId > mnFinishId){                
                 return false;
             }
-            assert(mCapture.get(CV_CAP_PROP_POS_FRAMES) == mnCurrentId);
+            int videoFrameId = mCapture.get(CV_CAP_PROP_POS_FRAMES);
+            if(videoFrameId != mnCurrentId)
+            {
+              std::cerr <<"Expected frame id "<< mnCurrentId <<" and actual one in video "<<videoFrameId <<" differ. "<<std::endl;
+              std::cerr <<"Likely reached end of video file. Note mnFinishId "<<mnFinishId<< std::endl;
+              return false;
+            }
+           
             time_frame= mCapture.get(CV_CAP_PROP_POS_MSEC)/1000.0;
             mCapture.read(left_img);
         }
