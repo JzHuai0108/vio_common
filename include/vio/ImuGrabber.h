@@ -36,7 +36,7 @@ void saveCSFMOutput(std::string csfmFile, const std::vector<std::pair<double, Ei
 enum IMUFileType {MicroStrainCSV=0, PlainText, SensorStreamCSV, IndexedPlainText};
 class IMUGrabber:DataGrabber{
 public:
-
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     struct MicroStrainCSVPattern{
         int GPS_TFlags;
         int GPS_Week;
@@ -70,6 +70,7 @@ public:
 
     // sensorstream app in android phones
     struct SensorStreamCSVPattern{
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
         double timestamp;
         static const int accelerometerIndex =3;
         static const int gyroIndex =4;
