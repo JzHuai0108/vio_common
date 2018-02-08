@@ -97,11 +97,15 @@ std::istream & operator>>(std::istream &is, IMUGrabber::SensorStreamCSVPattern &
 
 class StatesGrabber:DataGrabber{
 public:
-    StatesGrabber(const std::string file, int numFields, int removeHeaderLines=1, double sample_interval=0.01):DataGrabber(file, sample_interval), 
-mnNumFields(numFields), measurement(numFields, -1)
+    StatesGrabber(const std::string file, int numFields, int removeHeaderLines=1,
+                  double sample_interval=0.01, const char _delimiter=' '):
+        DataGrabber(file, sample_interval),
+        mnNumFields(numFields),
+        measurement(numFields, -1),
+        delimiter(_delimiter)
     {
         std::string tempStr;
-	for(int jack=0; jack< removeHeaderLines; ++jack)
+        for(int jack=0; jack< removeHeaderLines; ++jack)
             getline(stream, tempStr);//remove explanatary lines
     }
   
@@ -116,7 +120,7 @@ mnNumFields(numFields), measurement(numFields, -1)
     std::vector<double> measurement;
     // E.g., states at t(k): t(k), position of sensor in world frame,
     // quaternion from sensor to world frame[xyzw], velocity of sensor in world frame, accelerometer biases, and gyro biases
-
+    const char delimiter;
 };
 
 
