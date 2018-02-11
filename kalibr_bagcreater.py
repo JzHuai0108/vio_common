@@ -247,7 +247,9 @@ def main():
         raise Exception('Invalid/Empty video file and image folder')
     buffertime = 5 #sec
     #write imu data
-    if parsed.imu is None:
+    if parsed.imu is None and parsed.folder is None:
+        print "Neither a folder nor any imu file is provided. Rosbag will have only visual data"
+    elif parsed.imu is None:
         imufiles = getImuCsvFiles(parsed.folder)
         for imufile in imufiles:
             topic = os.path.splitext(os.path.basename(imufile))[0]
