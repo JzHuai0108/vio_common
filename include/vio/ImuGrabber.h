@@ -35,7 +35,7 @@ void loadCSFMOutput(std::string csfmFile, std::vector<std::pair<double, Eigen::V
 void saveCSFMOutput(std::string csfmFile, const std::vector<std::pair<double, Eigen::Vector3d> > & vTimeAndPose);
 
 // double timestamp, accel xyz m/s^2, gyro xyz rad/sec
-typedef std::vector<Eigen::Matrix<double, 7, 1>, Eigen::aligned_allocator<Eigen::Matrix<double, 7, 1> > > RawImuMeasurement;
+typedef std::vector<Eigen::Matrix<double, 7, 1>, Eigen::aligned_allocator<Eigen::Matrix<double, 7, 1> > > RawImuMeasurementVector;
 
 enum IMUFileType {MicroStrainCSV=0, PlainText, SensorStreamCSV, IndexedPlainText};
 class IMUGrabber:DataGrabber{
@@ -87,7 +87,7 @@ public:
     bool getObservation(double tk);
     void print(const std::string message="");
     Eigen::Matrix<double,7,1> transMat;     //temporary IMU reading container which also holds p(k)-1 IMU data
-    RawImuMeasurement measurement;                            //IMU readings from t(p(k)-1) to t(p(k+1)-1)
+    RawImuMeasurementVector measurement;                            //IMU readings from t(p(k)-1) to t(p(k+1)-1)
     IMUFileType file_type;
 };
 std::ostream& operator << (std::ostream &os, const IMUGrabber::MicroStrainCSVPattern & rhs);
