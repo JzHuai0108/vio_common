@@ -197,7 +197,7 @@ def playAVideo(videoFilename):
     cv2.destroyAllWindows()
 
 
-def writeVideoToRosBag(bag, videoFilename, video_from_to, video_time_offset=0.0, frame_timestamps=list()):
+def writeVideoToRosBag(bag, videoFilename, video_from_to, video_time_offset=0.0, frame_timestamps=None):
     """return video time range in imu clock"""
     max_height = 640
     cap = cv2.VideoCapture(videoFilename)
@@ -209,6 +209,8 @@ def writeVideoToRosBag(bag, videoFilename, video_from_to, video_time_offset=0.0,
     literalvideofromto = list()
     framesinvideo = cap.get(cv2.CAP_PROP_FRAME_COUNT)
     print('#Frames {} in the video {}'.format(framesinvideo, videoFilename))
+    if frame_timestamps is None:
+        frame_timestamps = list()
     if len(frame_timestamps) > 0:
         if len(frame_timestamps) != framesinvideo:
             raise Exception("Number of frames in the video disagrees with the length of the provided timestamps".
