@@ -22,7 +22,8 @@ import math
 def parseArgs():
     #setup the argument list
     parser = argparse.ArgumentParser(
-        description='Extract a ROS bag containing a image and imu topics.')
+        description='create a ROS bag containing image and imu topics '
+                    'from either image sequences or a video and inertial data.')
     parser.add_argument('--folder',  metavar='folder', nargs='?',
                         help='Data folder')
     parser.add_argument('--output-bag', metavar='output_bag',
