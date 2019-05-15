@@ -13,25 +13,37 @@ import numpy as np
 import csv
 import math
 
+# case 1 create a rosbag from a folder as specified by the kalibr format
+# https://github.com/ethz-asl/kalibr/wiki/bag-format
 #structure
 # dataset/cam0/TIMESTAMP.png
 # dataset/camN/TIMESTAMP.png
 # dataset/imu.csv
-# or specify the full path to video and imu files, and optionally the video frame timestamp file
+
+# case 2 create a rosbag from a video, a IMU file, and a video time file
+# the saved bag will use the IMU clock to timestamp the messages
 
 def parseArgs():
     #setup the argument list
     parser = argparse.ArgumentParser(
         description='create a ROS bag containing image and imu topics '
                     'from either image sequences or a video and inertial data.')
+    # case 1 arguments used by the kalibr to create a rosbag from a folder
     parser.add_argument('--folder',  metavar='folder', nargs='?',
-                        help='Data folder')
+                        help='Data folder whose content is structured as '
+                             'specified at\nhttps://github.com/ethz-asl/kalibr/wiki/bag-format')
     parser.add_argument('--output-bag', metavar='output_bag',
                         default="output.bag", help='ROS bag file %(default)s')
+    
+    # case 2 arguments to create a rosbag from a video, a IMU file,
+    # and a video time file 
     parser.add_argument('--video',  metavar='video_file',
                         nargs='?', help='Video filename')
     parser.add_argument('--imu',  metavar='imu_file', nargs='?',
-                        help='Imu filename')
+                        help='Imu filename. Except for the optional header,'
+                             ' each line format\n'
+                             'time[sec], gx[rad/s], gy[rad/s], gz[rad/s],'
+                             ' ax[m/s^2], ay[m/s^2], az[m/s^2]')
     parser.add_argument('--video-time-offset',  metavar='video_time_offset',
                         type=float, default=0.0,
                         help='The time of the first video frame based on the'
@@ -43,18 +55,19 @@ def parseArgs():
                              ' time [s] based on the video clock.')
     parser.add_argument('--video-time-file', metavar='video_time_file',
                         default='', nargs='?',
-                        help='The csv file containing timestamps of video frames(default: %(default)s)',
+                        help='The csv file containing timestamps of every '
+                             'video frames in IMU clock(default: %(default)s).'
+                             ' Except for the header, each row has the '
+                             'timestamp in sec as its first component',
                         required=False)
 
-    #print help if no argument is specified
     if len(sys.argv)<2:
-        msg = 'Example usage 1: {} --folder dataset-dir --output-bag awsome.bag\n'.format(sys.argv[0])
-        msg += 'Example usage 2: {} --video video_and_frame_timestamps/IMG_2805.MOV ' \
-               '--imu video_and_frame_timestamps/_var_mobile_Containers_Data_Application_' \
-               '9FF61EBA-773E-48AC-A661-AC5C39B20566_Documents_raw_accel_gyro.csv --video-time-file ' \
-               'video_and_frame_timestamps/_var_mobile_Containers_Data_Application_9FF61EBA' \
-               '-773E-48AC-A661-AC5C39B20566_Documents_movie_metadata.csv ' \
-               '--output-bag video_and_frame_timestamps/IMG_2805.bag\n '.format(sys.argv[0])
+        msg = 'Example usage 1: {} --folder dataset-dir ' \
+              '--output-bag awsome.bag\n'.format(sys.argv[0])
+        msg += 'Example usage 2: {} --video dataset_dir/IMG_2805.MOV ' \
+               '--imu dataset_dir/raw_accel_gyro.csv --video-time-file ' \
+               'dataset_dir/movie_metadata.csv ' \
+               '--output-bag dataset_dir/IMG_2805.bag\n '.format(sys.argv[0])
 
         print(msg)
         parser.print_help()
@@ -241,7 +254,7 @@ def writeVideoToRosBag(bag, videoFilename, video_from_to, video_time_offset=0.0,
             print(message)
             break
 
-        time_frame= cap.get(cv2.CAP_PROP_POS_MSEC)/1000.0
+        time_frame = cap.get(cv2.CAP_PROP_POS_MSEC)/1000.0
         time_frame_offset = time_frame + video_time_offset
         # print('currentFrameId {} and timestamp in video {:.9f}'.format(mnCurrentId, time_frame))
         ret, frame = cap.read()
