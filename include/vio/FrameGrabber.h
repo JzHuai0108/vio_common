@@ -32,6 +32,15 @@ class FrameGrabber {
   ~FrameGrabber() {}
 
   /**
+   * @brief FrameGrabber::assignTimeToVideoFrame
+   * @param frame_id 0 based index of the frame in a video
+   * @param videoTimeSec the time stored in the video, usually estimated from
+   * the frame rate
+   * @return the assigned timestamp for frame_id
+   */
+  double assignTimeToVideoFrame(int frame_id, double videoTimeSec);
+
+  /**
    * @brief Get next frame and its timestamp
    * @param frame grabbed frame
    * @param tk timestamp of the grabbed frame
@@ -40,7 +49,9 @@ class FrameGrabber {
   int getCurrentId() {
     return mnCurrentId - 1;
   }  // because it's incremented once a frame is obtained
+
   // queryIndex is zero based, currently only supports video not image sequences
+  // DEPRECATED
   bool grabFrameByIndex(const int queryIndex, cv::Mat &left_img, double &tk);
 
  protected:

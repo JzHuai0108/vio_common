@@ -85,4 +85,35 @@ int countHeaderLines(std::istream* stream) {
   return count;
 }
 
+double nanoIntToSecDouble(const int64_t timeNanos) {
+  int64_t scale = 1000000000;
+  int32_t integral = (int)(timeNanos / scale);
+  int32_t fraction = (int)(timeNanos % scale);
+  return integral + fraction / (double)scale;
+}
+
+/**
+ * @brief isVideoFile
+ * @param datasetPath
+ * @return true if the datasetPath is an video file, false otherwise
+ */
+bool isVideoFile(const std::string& datasetPath) {
+  // datasetPath contains .mp4, .MP4
+  size_t len = datasetPath.length();
+  if (len < 5) {
+    return false;
+  }
+  if (datasetPath[len - 4] == '.' || datasetPath[len - 5] == '.') {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool isTimeInNanos(double dn) {
+  double integral;
+  double fractional = std::modf(dn, &integral);
+  return fractional < 1e-9;
+}
+
 }  // namespace vio

@@ -1,34 +1,39 @@
+#include <gtest/gtest.h>
 #include "vio/timegrabber.h"
-void testTimeGrabber(std::string timeFile) {
+
+const double tol = 1e-8;
+TEST(TimeGrabber, PlainTextKITTI) {
+  std::string timeFile =
+      "/home/jhuai/docker_documents/vins_ws/src/vio_common/test/"
+      "times_kitti_seq00.txt";
   vio::TimeGrabber tg(timeFile);
-  double timestamp = tg.readTimestamp(0);
-  std::cout << "expected timestamp for 0 frame 0 and timestamp read from file "
-            << timestamp << std::endl;
+  double timestamp = tg.readTimestamp(-1);
+
+  ASSERT_NEAR(timestamp, -1, tol);
+
+  timestamp = tg.readTimestamp(0);
+  ASSERT_NEAR(timestamp, 0, tol);
+
   timestamp = tg.readTimestamp(1799);
-  std::cout << "expected timestamp for 1799 frame 1.864921e+02 and timestamp "
-               "read from file "
-            << timestamp << std::endl;
+  ASSERT_NEAR(timestamp, 1.864921e+02, tol);
+
   timestamp = tg.readTimestamp(1800);
-  std::cout << "expected timestamp for 1800 frame 1.865959e+02 and timestamp "
-               "read from file "
-            << timestamp << std::endl;
+  ASSERT_NEAR(timestamp, 1.865959e+02, tol);
+
   timestamp = tg.readTimestamp(4540);
-  std::cout << "expected timestamp for 4540 frame 4.705816e+02 and timestamp "
-               "read from file "
-            << timestamp << std::endl;
+  ASSERT_NEAR(timestamp, 4.705816e+02, tol);
+
   timestamp = tg.readTimestamp(4541);
-  std::cout
-      << "expected timestamp for 4541 frame NULL and timestamp read from file "
-      << timestamp << std::endl;
+  ASSERT_NEAR(timestamp, -1, tol);
 }
-int main() {
-  vio::TimeGrabber tg("../test/dilili_video_timestamps.txt");
 
+TEST(TimeGrabber, DILILI) {
+  vio::TimeGrabber tg(
+      "/home/jhuai/docker_documents/vins_ws/src/vio_common/test/"
+      "dilili_video_timestamps.txt");
   double timestamp = tg.extractTimestamp(50, false);
-  std::cout << "image index timestamp at 1 " << timestamp << std::endl;
-
+  ASSERT_NEAR(timestamp, 507.895, tol);
   timestamp = tg.extractTimestamp(100, false);
   std::cout << "image index timestamp at 100 " << timestamp << std::endl;
-  testTimeGrabber("../test/times_kitti_seq00.txt");
-  return 0;
+  ASSERT_NEAR(timestamp, 510.891, tol);
 }

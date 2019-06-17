@@ -30,7 +30,25 @@ TEST(countHeaderLines, ReadStringStream) {
   double val1, val2;
   char delimiter;
   ss >> val1 >> delimiter >> val2;
-  std::cout << "val1 " << val1 << " val2 " << val2 << std::endl;
+
   ASSERT_EQ(val1, 213189.943);
   ASSERT_EQ(val2, 43289);
+}
+
+TEST(nanoIntToSecDouble, LargeNumber) {
+  double time = vio::nanoIntToSecDouble(2138791718739417839);
+  ASSERT_NEAR(time, 2138791718.739417839, 1e-9);
+}
+
+TEST(isVideoFile, AllSorts) {
+  ASSERT_TRUE(vio::isVideoFile("afsad.mp4"));
+  ASSERT_TRUE(vio::isVideoFile("/afsad/adfs/sd.MP4"));
+  ASSERT_FALSE(vio::isVideoFile("afsad/MP34/"));
+  ASSERT_FALSE(vio::isVideoFile("afsad/MP34"));
+}
+
+TEST(isTimeInNanos, Number) {
+  ASSERT_TRUE(vio::isTimeInNanos(312.0000000006));
+  ASSERT_TRUE(vio::isTimeInNanos(3120000000006));
+  ASSERT_FALSE(vio::isTimeInNanos(312.000000002));
 }

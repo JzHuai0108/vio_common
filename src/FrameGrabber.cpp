@@ -6,16 +6,6 @@ using namespace std;
 
 namespace vio {
 
-/**
- * @brief isVideoFile
- * @param datasetPath
- * @return true if the datasetPath is an video file, false otherwise
- */
-static bool isVideoFile(const std::string& datasetPath) {
-  // datasetPath contains .mp4, .MP4
-  return true;
-}
-
 FrameGrabber::FrameGrabber(const std::string visualDataPath,
                            const std::string frameTimeFile,
                            const int startFrameIndex,
@@ -60,6 +50,23 @@ FrameGrabber::FrameGrabber(const std::string visualDataPath,
   }
 }
 
+/**
+ * @brief FrameGrabber::assignTimeToVideoFrame
+ * @param frame_id 0 based index of the frame in a video
+ * @param videoTime the time stored in the video, usually estimated from the
+ * frame rate
+ * @return
+ */
+double FrameGrabber::assignTimeToVideoFrame(int frame_id, double videoTimeSec) {
+  double time_frame;
+  if (mTG.isTimeAvailable()) {
+    time_frame = mTG.readTimestamp(frame_id);
+  } else {
+    time_frame = videoTimeSec;
+  }
+  return time_frame;
+}
+
 bool FrameGrabber::grabFrame(cv::Mat& left_img, double& tk) {
   double time_frame(-1);  // timestamp of current frame
   double time_pair[2] = {-1,
@@ -72,7 +79,8 @@ bool FrameGrabber::grabFrame(cv::Mat& left_img, double& tk) {
   if (experim == CrowdSourcedData) {
     cv::Mat dst;
     assert(mCapture.get(CV_CAP_PROP_POS_FRAMES) == mnCurrentId);
-    time_frame = mCapture.get(CV_CAP_PROP_POS_MSEC) / 1000.0;
+    double videoTimeSec = mCapture.get(CV_CAP_PROP_POS_MSEC) / 1000.0;
+    time_frame = assignTimeToVideoFrame(mnCurrentId, videoTimeSec);
     mCapture.read(left_img);
 
     while (left_img.empty()) {  // this happens when a frame is missing or at
@@ -90,8 +98,8 @@ bool FrameGrabber::grabFrame(cv::Mat& left_img, double& tk) {
                   << mnFinishId << std::endl;
         return false;
       }
-
-      time_frame = mCapture.get(CV_CAP_PROP_POS_MSEC) / 1000.0;
+      double videoTimeSec = mCapture.get(CV_CAP_PROP_POS_MSEC) / 1000.0;
+      time_frame = assignTimeToVideoFrame(mnCurrentId, videoTimeSec);
       mCapture.read(left_img);
     }
 
@@ -153,7 +161,7 @@ bool FrameGrabber::grabFrame(cv::Mat& left_img, double& tk) {
   ++mnCurrentId;
   return true;
 }
-// queryIndex is zero based
+
 bool FrameGrabber::grabFrameByIndex(const int queryIndex, cv::Mat& left_img,
                                     double& tk) {
   double time_frame(-1);  // timestamp of current frame

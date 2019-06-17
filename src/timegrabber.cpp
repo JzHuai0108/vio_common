@@ -8,14 +8,16 @@ using namespace std;
 
 namespace vio {
 
-TimeGrabber::TimeGrabber() : last_line_index(-1), last_line_time(-1) {}
+TimeGrabber::TimeGrabber()
+    : last_line_index(-1), last_line_time(-1), isTimeFormatSet(false) {}
 TimeGrabber::TimeGrabber(const string time_file_name)
     : time_file(time_file_name),
       time_stream(time_file_name.c_str()),
       last_line_index(-1),
-      last_line_time(-1) {
+      last_line_time(-1),
+      isTimeFormatSet(false) {
   if (!time_stream.is_open()) {
-    std::cout << "Error opening timestamp file!" << endl;
+    std::cout << "Error opening timestamp file " << time_file_name << std::endl;
   } else {
     std::string tempStr;
     int headerLines = countHeaderLines(time_file_name);
@@ -35,7 +37,7 @@ bool TimeGrabber::init(const string time_file_name) {
   last_line_index = -1;
   last_line_time = -1;
   if (!time_stream.is_open()) {
-    std::cout << "Error opening timestamp file!" << endl;
+    std::cout << "Error opening timestamp file " << time_file_name << std::endl;
     return false;
   } else {
     std::string tempStr;
@@ -46,7 +48,6 @@ bool TimeGrabber::init(const string time_file_name) {
   return true;
 }
 
-// this reading function only works for KITTI timestamp files
 double TimeGrabber::readTimestamp(int line_number) {
   string tempStr;
   double precursor(-1);
@@ -56,7 +57,24 @@ double TimeGrabber::readTimestamp(int line_number) {
   }
   if (last_line_index == line_number) return last_line_time;
   while (last_line_index < line_number) {
-    time_stream >> precursor;
+    if (!isTimeFormatSet) {
+      time_stream >> precursor;
+      isTimeInNanos = vio::isTimeInNanos(precursor);
+      if (isTimeInNanos) {
+        int64_t timeNanos = (int64_t)precursor;
+        precursor = vio::nanoIntToSecDouble(timeNanos);
+      }
+      isTimeFormatSet = true;
+    } else {
+      if (isTimeInNanos) {
+        int64_t timeNanos;
+        time_stream >> timeNanos;
+        precursor = vio::nanoIntToSecDouble(timeNanos);
+      } else {
+        time_stream >> precursor;
+      }
+    }
+
     if (time_stream.fail()) break;
     getline(time_stream, tempStr);  // remove the remaining part, this works
                                     // even when it is empty

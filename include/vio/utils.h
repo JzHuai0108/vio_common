@@ -18,5 +18,11 @@ int countHeaderLines(const std::string& filename);
  * @return
  */
 int countHeaderLines(std::istream* stream);
+
+double nanoIntToSecDouble(const int64_t timeNanos);
+
+bool isVideoFile(const std::string& datasetPath);
+
+bool isTimeInNanos(double dn);
 }  // namespace vio
 #endif
