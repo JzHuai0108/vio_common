@@ -110,8 +110,7 @@ class IMUGrabber : DataGrabber {
     double gyro_accel[6];
   };
 
-  IMUGrabber(const std::string file, IMUFileType ft,
-             double sample_interval = 0.01);
+  IMUGrabber(const std::string file, IMUFileType ft);
   // note the last entry of the last imu measurement segment is kept in the new
   // segment
   bool getObservation(double tk);
@@ -146,9 +145,8 @@ std::istream &operator>>(std::istream &is, IMUGrabber::KalibrCsvPattern &rhs);
 class StatesGrabber : DataGrabber {
  public:
   StatesGrabber(const std::string file, int numFields,
-                int removeHeaderLines = 1, double sample_interval = 0.01,
-                const char _delimiter = ' ')
-      : DataGrabber(file, sample_interval),
+                int removeHeaderLines = 1, const char _delimiter = ' ')
+      : DataGrabber(file),
         mnNumFields(numFields),
         measurement(numFields, -1),
         delimiter(_delimiter) {

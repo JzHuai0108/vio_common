@@ -164,9 +164,8 @@ std::istream &operator>>(std::istream &is, IMUGrabber::KalibrCsvPattern &rhs) {
   return is;
 }
 
-IMUGrabber::IMUGrabber(const std::string file, IMUFileType ft,
-                       double sample_interval)
-    : DataGrabber(file, sample_interval), file_type(ft) {
+IMUGrabber::IMUGrabber(const std::string file, IMUFileType ft)
+    : DataGrabber(file), file_type(ft) {
   int header_lines = countHeaderLines(file);
   std::string tempStr;
   for (int i = 0; i < header_lines; ++i)

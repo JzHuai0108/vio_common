@@ -9,13 +9,12 @@ namespace vio {
 
 class DataGrabber {
  public:
-  DataGrabber(const std::string file, double interval)
+  DataGrabber(const std::string file)
       : reinit_data(true),
         is_measurement_good(false),
         file(file),
         stream(file.c_str()),
-        tkm1(-1),
-        interval(interval) {
+        tkm1(-1) {
     if (!stream.is_open())
       std::cerr << "Cannot open file at " << file << "." << std::endl;
   }
@@ -43,8 +42,6 @@ class DataGrabber {
   std::string file;          // sensor data file name
   std::ifstream stream;      // sensor data stream
   double tkm1;               // t(k-1), timestamp of last frame
-  const double interval;     // maximum allowed difference between retrieved and
-                             // expected timestamp
 };
 }  // namespace vio
 #endif  // IMU_GRABBER_H
