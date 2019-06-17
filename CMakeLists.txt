@@ -2,12 +2,19 @@ SET(PROJECT_NAME vio_common)
 PROJECT(${PROJECT_NAME})
 CMAKE_MINIMUM_REQUIRED (VERSION 2.8.3)
 
-SET(CMAKE_BUILD_TYPE Release) # Release, RelWithDebInfo
+IF(NOT CMAKE_BUILD_TYPE)
+  SET(CMAKE_BUILD_TYPE Release)
+ENDIF()
+
 SET(CMAKE_VERBOSE_MAKEFILE OFF)
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/CMakeModules/")
 
-SET(USE_ROS False) # Set False if you want to build this package without Catkin
-SET(USE_GPSTK false) # set true if you can provide gpstk library and set its include and lib path accordingly, see below
+OPTION(USE_ROS "Build this package with catkin?" OFF)
+SET(USE_GPSTK_MSG "Build the package with the gpstk library. If true, "
+    "the GPSTK_INCLUDE_DIRS and GPSTK_LIB need to be provided.\nEg."
+    "-DGPSTK_INCLUDE_DIRS /workspace/gpstk/include -DGPSTK_LIB "
+    "/workspace/gpstk/lib/libgpstk.so")
+OPTION(USE_GPSTK "${USE_GPSTK_MSG}" OFF)
 
 # Set build flags. Set IS_ARM on odroid board as environment variable
 SET(CMAKE_CXX_FLAGS "-Wall -D_LINUX -D_REENTRANT -march=native -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unknown-pragmas")
@@ -35,7 +42,7 @@ LIST(APPEND vio_common_INCLUDE_DIR
   ${OpenCV_INCLUDE_DIRS}
 )
 
-IF(USE_ROS)
+IF(${USE_ROS})
   FIND_PACKAGE(catkin REQUIRED COMPONENTS roscpp cmake_modules)
   LIST(APPEND vio_common_INCLUDE_DIR ${catkin_INCLUDE_DIRS})
   catkin_package(
@@ -65,11 +72,9 @@ include/vio/PointStatistics.h
 include/vio/IMUErrorModel.h
 )
 
-IF(USE_GPSTK)
+IF(${USE_GPSTK})
   ADD_DEFINITIONS(-DHAVE_GPSTK)
-  SET(GPSTK_INCLUDE_DIRS $ENV{HOME}/workspace/local_install/gpstk/include)
   LIST(APPEND vio_common_INCLUDE_DIR ${GPSTK_INCLUDE_DIRS})
-  SET(GPSTK_LIB $ENV{HOME}/workspace/local_install/gpstk/lib/libgpstk.so)
 ENDIF()
 
 # Create library
@@ -78,11 +83,11 @@ ADD_LIBRARY(${PROJECT_NAME} SHARED ${SOURCEFILES})
 TARGET_LINK_LIBRARIES(${PROJECT_NAME}
   ${OpenCV_LIBS})
 
-IF(USE_ROS)
+IF(${USE_ROS})
   TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${catkin_LIBRARIES})
 ENDIF()
 
-IF(USE_GPSTK)
+IF(${USE_GPSTK})
   TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${GPSTK_LIB})
 ENDIF()
 
@@ -102,9 +107,14 @@ TARGET_LINK_LIBRARIES(test_time_grabber ${PROJECT_NAME})
 ADD_EXECUTABLE(testeigeninverse test/testeigeninverse.cpp)
 TARGET_LINK_LIBRARIES(testeigeninverse ${PROJECT_NAME})
 
+find_package(GTest REQUIRED)
+include_directories(${GTEST_INCLUDE_DIRS})
+add_executable(runTests test/test_main.cpp)
+target_link_libraries(runTests ${PROJECT_NAME} ${GTEST_LIBRARIES} glog pthread)
+
 ################################################################################
 # Create the vio_commonConfig.cmake file for other cmake projects.
-IF(NOT USE_ROS)
+IF(NOT ${USE_ROS})
   # Export package for use from the build tree
   EXPORT( PACKAGE vio_common )
 

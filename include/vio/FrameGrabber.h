@@ -1,62 +1,75 @@
 #ifndef FRAMEGRABBER_H
 #define FRAMEGRABBER_H
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
 #include "opencv2/core/core.hpp"
 #include "opencv2/highgui/highgui.hpp"
-#include "vio/timegrabber.h" //for timegrabber
-namespace vio{
-class FrameGrabber{
-public:
-    /**
-     * @param video filename of the video
-     * @param startFrameIndex 0 based starting frame index within the video
-     * @param finishFrameIndex 0 based finishing frame index within the video, if not set, then the whole video is processed
-     */
-    FrameGrabber(const std::string video, const int startFrameIndex, const int finishFrameIndex = -1);
+#include "vio/timegrabber.h"  //for timegrabber
+namespace vio {
+class FrameGrabber {
+ public:
+  /**
+   * @brief FrameGrabber
+   * @param visualDataPath: either the full path of a video or
+   *    the dir containing the left and right image sequence without slash
+   * @param frameTimeFile file containing the timestamps of every frames
+   *    in the video or every images in the dir. If empty, the timestamps
+   *    will be assigned empirically using video frame rate
+   * @param startFrameIndex 0 based starting frame index within the video or
+   *    the image dir
+   * @param finishFrameIndex 0 based finishing frame index within the video
+   *    or the image dir. If not given, the whole video or the image
+   *    sequence is processed
+   */
+  FrameGrabber(const std::string visualDataPath,
+               const std::string frameTimeFile, const int startFrameIndex,
+               const int finishFrameIndex = -1);
 
-    /**
-     * @param imageFolder the directory that contains the left and right image seq without slash
-     * @param timeFile file that contains the timestamps of all images in the folder
-     * @param startFrameIndex 0 based starting frame index within the image directory
-     * @param finishFrameIndex 0 based finishing frame index within the image directory, if not set, then the whole video is processed
-     */
-    FrameGrabber(const std::string imageFolder, const std::string timeFile,
-                 const int startFrameIndex, const int finishFrameIndex = -1);
+  FrameGrabber(const FrameGrabber &) = delete;
+  FrameGrabber &operator=(const FrameGrabber &) = delete;
+  ~FrameGrabber() {}
 
-    FrameGrabber(const FrameGrabber &)=delete;
-    FrameGrabber & operator=(const FrameGrabber &)=delete;
-    ~FrameGrabber(){}
+  /**
+   * @brief Get next frame and its timestamp
+   * @param frame grabbed frame
+   * @param tk timestamp of the grabbed frame
+   */
+  bool grabFrame(cv::Mat &frame, double &tk);
+  int getCurrentId() {
+    return mnCurrentId - 1;
+  }  // because it's incremented once a frame is obtained
+  // queryIndex is zero based, currently only supports video not image sequences
+  bool grabFrameByIndex(const int queryIndex, cv::Mat &left_img, double &tk);
 
-    /**
-     * @brief Get next frame and its timestamp
-     * @param frame grabbed frame
-     * @param tk timestamp of the grabbed frame
-     */
-    bool grabFrame(cv::Mat & frame, double & tk);
-    int getCurrentId(){return mnCurrentId - 1;} //because it's incremented once a frame is obtained
-    //queryIndex is zero based, currently only supports video not image sequences
-    bool grabFrameByIndex(const int queryIndex, cv::Mat & left_img, double & tk);
-protected:
-    bool is_measurement_good;         //does the measurement fit our requirements?
-    std::string mVideoFile;
-    cv::VideoCapture mCapture;
+ protected:
+  bool is_measurement_good;  // does the measurement fit our requirements?
+  std::string mVideoFile;
+  cv::VideoCapture mCapture;
 
-    std::string mImageFolder;
-    std::string mTimestampFile;
+  std::string mImageFolder;
+  std::string mTimestampFile;
 
-    TimeGrabber mTG;
-    double mTk; // tk, timestamp of the current frame, i.e., the last grabbed frame
+  TimeGrabber mTG;
+  // tk, timestamp of the current frame, i.e., the last grabbed frame
+  double mTk;
 
-    const int mnStartId; /// 0 based starting frame index within the video or the image directory
-    int mnFinishId; /// 0 based finishing frame index within the video or the image directory
-    int mnCurrentId; /// current frame index 0 based starting frame index within the video or the image directory
-    int mnDownScale;
-    bool mbRGB; ///if color, RGB or BGR
-    enum DatasetType {KITTIOdoSeq=0, Tsukuba, MalagaUrbanExtract6, CrowdSourcedData };
-    DatasetType experim;
+  const int mnStartId;  /// 0 based starting frame index within the video or the
+                        /// image directory
+  int mnFinishId;   /// 0 based finishing frame index within the video or the
+                    /// image directory
+  int mnCurrentId;  /// current frame index 0 based starting frame index within
+                    /// the video or the image directory
+  int mnDownScale;
+  bool mbRGB;  /// if color, RGB or BGR
+  enum DatasetType {
+    KITTIOdoSeq = 0,
+    Tsukuba,
+    MalagaUrbanExtract6,
+    CrowdSourcedData
+  };
+  DatasetType experim;
 };
-}
-#endif // FRAMEGRABBER_H
+}  // namespace vio
+#endif  // FRAMEGRABBER_H
