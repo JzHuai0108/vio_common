@@ -23,6 +23,9 @@ import math
 # case 2 create a rosbag from a video, a IMU file, and a video time file
 # the saved bag will use the IMU clock to timestamp the messages
 
+SECOND_TO_NANOS = 1000000000
+MAX_VIDEO_FRAME_HEIGHT = 640  # For a frame in a video, if min(rows, cols) > this val, it will be half sampled.
+
 def parseArgs():
     #setup the argument list
     parser = argparse.ArgumentParser(
@@ -32,7 +35,7 @@ def parseArgs():
     parser.add_argument('--folder',  metavar='folder', nargs='?',
                         help='Data folder whose content is structured as '
                              'specified at\nhttps://github.com/ethz-asl/kalibr/wiki/bag-format')
-    parser.add_argument('--output-bag', metavar='output_bag',
+    parser.add_argument('--output_bag',
                         default="output.bag", help='ROS bag file %(default)s')
     
     # case 2 arguments to create a rosbag from a video, a IMU file,
@@ -44,16 +47,16 @@ def parseArgs():
                              ' each line format\n'
                              'time[sec], gx[rad/s], gy[rad/s], gz[rad/s],'
                              ' ax[m/s^2], ay[m/s^2], az[m/s^2]')
-    parser.add_argument('--video-time-offset',  metavar='video_time_offset',
+    parser.add_argument('--video_time_offset',
                         type=float, default=0.0,
                         help='The time of the first video frame based on the'
                              ' Imu clock (default: %(default)s)',
                         required=False)
-    parser.add_argument('--video-from-to', metavar='video_from_to', type=float,
+    parser.add_argument('--video_from_to', type=float,
                         nargs=2,
                         help='Use the video frames starting from up to this'
                              ' time [s] based on the video clock.')
-    parser.add_argument('--video-time-file', metavar='video_time_file',
+    parser.add_argument('--video_time_file',
                         default='', nargs='?',
                         help='The csv file containing timestamps of every '
                              'video frames in IMU clock(default: %(default)s).'
@@ -62,12 +65,20 @@ def parseArgs():
                         required=False)
 
     if len(sys.argv)<2:
-        msg = 'Example usage 1: {} --folder dataset-dir ' \
-              '--output-bag awsome.bag\n'.format(sys.argv[0])
+        msg = 'Example usage 1: {} --folder dataset_dir ' \
+              '--output_bag awsome.bag\n'.format(sys.argv[0])
         msg += 'Example usage 2: {} --video dataset_dir/IMG_2805.MOV ' \
-               '--imu dataset_dir/raw_accel_gyro.csv --video-time-file ' \
+               '--imu dataset_dir/gyro_accel.csv --video_time_file ' \
                'dataset_dir/movie_metadata.csv ' \
-               '--output-bag dataset_dir/IMG_2805.bag\n '.format(sys.argv[0])
+               '--output_bag dataset_dir/IMG_2805.bag\n'.format(sys.argv[0])
+        msg += 'Example usage 3: {} --video dataset_dir/IMG_2805.MOV ' \
+               '--imu dataset_dir/gyro_accel.csv --video_time_file ' \
+               'dataset_dir/frame_timestamps.txt ' \
+               '--output_bag dataset_dir/IMG_2805.bag\n '.format(sys.argv[0])
+        msg += ('For the latter two cases, the number of entries in the '
+                'video_time_file excluding its header lines has to be the '
+                'same as the number of frames in the video.\nOtherwise, '
+                'exception will be thrown')
 
         print(msg)
         parser.print_help()
@@ -129,30 +140,34 @@ def loadImageToRosMsg(filename):
     return rosimage, timestamp
 
 def parse_time(timestamp_str):
-    '''convert a timestamp string of unit sec possibly containing dot to a rospy time'''
-    index = timestamp_str.find('.')
+    """
+    convert a timestamp string to a rospy time
+    if a dot is in the string, the string is taken as an int in nanosecs
+    otherwise, taken as an float in secs
+    :param timestamp_str:
+    :return:
+    """
+
+
     secs = 0
     nsecs = 0
-    if index == -1:
-        secs = int(timestamp_str)
-    elif index == 0:
-        nsecs = int(float(timestamp_str[index:])*1000000000)
-    elif index == len(timestamp_str) - 1:
-        secs = int(timestamp_str[:index])
+    if '.' in timestamp_str:
+        index = timestamp_str.find('.')
+        if index == 0:
+            nsecs = int(float(timestamp_str[index:]) * SECOND_TO_NANOS)
+        elif index == len(timestamp_str) - 1:
+            secs = int(timestamp_str[:index])
+        else:
+            secs = int(timestamp_str[:index])
+            nsecs = int(float(timestamp_str[index:]) * SECOND_TO_NANOS)
+        return secs, nsecs
     else:
-        secs = int(timestamp_str[:index])
-        nsecs = int(float(timestamp_str[index:]) * 1000000000)
-    return secs, nsecs
+        return int(timestamp_str[0:-9]), int(timestamp_str[-9:])
+
 
 def createImuMessge(timestamp_str, omega, alpha):
-
-    if '.' in timestamp_str:
-        secs, nsecs = parse_time(timestamp_str)
-        timestamp = rospy.Time(secs, nsecs)
-    else:
-        timestamp_nsecs = timestamp_str
-        timestamp = rospy.Time(int(timestamp_nsecs[0:-9]), int(timestamp_nsecs[-9:]))
-    
+    secs, nsecs = parse_time(timestamp_str)
+    timestamp = rospy.Time(secs, nsecs)
     rosimu = Imu()
     rosimu.header.stamp = timestamp
     rosimu.angular_velocity.x = float(omega[0])
@@ -165,7 +180,6 @@ def createImuMessge(timestamp_str, omega, alpha):
     return rosimu, timestamp
 
 def playAVideo(videoFilename):
-    max_height = 500
     cap = cv2.VideoCapture(videoFilename)
     rate = cap.get(cv2.CAP_PROP_FPS)
     print "video frame rate", rate
@@ -196,8 +210,8 @@ def playAVideo(videoFilename):
         
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         h,w = gray.shape[:2]
-        if h>max_height:
-            gray = cv2.pyrDown(gray,dstsize = (w/2,h/2))
+        if h > MAX_VIDEO_FRAME_HEIGHT:
+            gray = cv2.pyrDown(gray, dstsize = (w/2,h/2))
 
         cv2.imshow('frame',gray)
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -213,7 +227,6 @@ def playAVideo(videoFilename):
 
 def writeVideoToRosBag(bag, videoFilename, video_from_to, video_time_offset=0.0, frame_timestamps=None):
     """return video time range in imu clock"""
-    max_height = 640
     cap = cv2.VideoCapture(videoFilename)
     rate = cap.get(cv2.CAP_PROP_FPS);
     print "video frame rate", rate
@@ -261,13 +274,15 @@ def writeVideoToRosBag(bag, videoFilename, video_from_to, video_time_offset=0.0,
         if frame is None:
             print 'Empty frame, break the video stream'
             break  
-        
-        image_np = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        h,w = image_np.shape[:2]
-        if h>max_height:
-            image_np = cv2.pyrDown(image_np,dstsize = (w/2,h/2))
 
-        cv2.imshow('frame',image_np)
+        image_np = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        h, w = image_np.shape[:2]
+
+        if h > MAX_VIDEO_FRAME_HEIGHT:
+            image_np = cv2.pyrDown(image_np,dstsize = (w/2,h/2))
+        if w < h:
+            image_np = cv2.rotate(image_np, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        cv2.imshow('frame', image_np)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
@@ -294,7 +309,7 @@ def writeVideoToRosBag(bag, videoFilename, video_from_to, video_time_offset=0.0,
     print('Saved {} out of {} video frames as image messages to the rosbag'.format(framecount, framesinvideo))
     return literalvideofromto
 
-def loadtimestampsfromcsv(video_time_file):
+def loadtimestamps(video_time_file):
     '''Except for the header, each row has the timestamp in sec as its first component'''
     frame_rostimes = list()
     with open(video_time_file, 'rb') as csvfile:
@@ -324,7 +339,7 @@ def main():
             print 'video_from_to:', parsed.video_from_to
         frame_timestamps = list()
         if parsed.video_time_file:
-            frame_timestamps = loadtimestampsfromcsv(parsed.video_time_file)
+            frame_timestamps = loadtimestamps(parsed.video_time_file)
             print('Loaded {} timestamps for frames'.format(len(frame_timestamps)))
         videotimerange = writeVideoToRosBag(bag, parsed.video, parsed.video_from_to,
                                             video_time_offset=parsed.video_time_offset,

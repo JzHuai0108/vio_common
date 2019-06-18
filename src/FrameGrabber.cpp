@@ -35,8 +35,11 @@ FrameGrabber::FrameGrabber(const std::string visualDataPath,
 
     int width = mCapture.get(CV_CAP_PROP_FRAME_WIDTH),
         height = mCapture.get(CV_CAP_PROP_FRAME_HEIGHT);
-    mnDownScale = getDownScale(width, height, 1280);
-    std::cout << "Reading in video " << mVideoFile << std::endl;
+    mnDownScale = getDownScale(width, height, 1000);
+
+    std::cout << "Reading in video " << mVideoFile << " prop_frame_width "
+              << width << " prop_frame_height " << height << " mnDownScale "
+              << mnDownScale << std::endl;
     std::cout << "start and finish index " << startFrameIndex << " "
               << finishFrameIndex << std::endl;
   } else {
@@ -67,6 +70,12 @@ double FrameGrabber::assignTimeToVideoFrame(int frame_id, double videoTimeSec) {
   return time_frame;
 }
 
+static void rotateIfNeeded(cv::Mat* src) {
+  if (src->cols < src->rows) {
+    cv::rotate(*src, *src, cv::ROTATE_90_COUNTERCLOCKWISE);
+  }
+}
+
 bool FrameGrabber::grabFrame(cv::Mat& left_img, double& tk) {
   double time_frame(-1);  // timestamp of current frame
   double time_pair[2] = {-1,
@@ -82,6 +91,7 @@ bool FrameGrabber::grabFrame(cv::Mat& left_img, double& tk) {
     double videoTimeSec = mCapture.get(CV_CAP_PROP_POS_MSEC) / 1000.0;
     time_frame = assignTimeToVideoFrame(mnCurrentId, videoTimeSec);
     mCapture.read(left_img);
+    rotateIfNeeded(&left_img);
 
     while (left_img.empty()) {  // this happens when a frame is missing or at
                                 // the end of video file
@@ -101,6 +111,7 @@ bool FrameGrabber::grabFrame(cv::Mat& left_img, double& tk) {
       double videoTimeSec = mCapture.get(CV_CAP_PROP_POS_MSEC) / 1000.0;
       time_frame = assignTimeToVideoFrame(mnCurrentId, videoTimeSec);
       mCapture.read(left_img);
+      rotateIfNeeded(&left_img);
     }
 
     if (mnDownScale > 1) {

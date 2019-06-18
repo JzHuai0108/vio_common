@@ -75,7 +75,9 @@ double TimeGrabber::readTimestamp(int line_number) {
       }
     }
 
-    if (time_stream.fail()) break;
+    if (time_stream.fail()) {
+      break;
+    }
     getline(time_stream, tempStr);  // remove the remaining part, this works
                                     // even when it is empty
     ++last_line_index;

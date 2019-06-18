@@ -92,9 +92,6 @@ IF(${USE_GPSTK})
 ENDIF()
 
 # Tests
-ADD_EXECUTABLE(test_imu_grabber test/testImuGrabber.cpp)
-TARGET_LINK_LIBRARIES(test_imu_grabber ${PROJECT_NAME})
-
 ADD_EXECUTABLE(test_csv_reader test/testcsvreader.cpp)
 TARGET_LINK_LIBRARIES(test_csv_reader ${PROJECT_NAME})
 
@@ -110,6 +107,7 @@ add_executable(runTests test/test_main.cpp
     test/testtimegrabber.cpp
     test/testutils.cpp
     test/testframegrabber.cpp
+    test/testImuGrabber.cpp
     )
 target_link_libraries(runTests ${PROJECT_NAME} ${GTEST_LIBRARIES} glog pthread)
 

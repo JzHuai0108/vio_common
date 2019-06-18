@@ -37,3 +37,18 @@ TEST(TimeGrabber, DILILI) {
   std::cout << "image index timestamp at 100 " << timestamp << std::endl;
   ASSERT_NEAR(timestamp, 510.891, tol);
 }
+
+TEST(TimeGrabber, HonorMarsLogger) {
+  vio::TimeGrabber tg(
+      "/home/jhuai/Desktop/temp_android/2019_06_16_12_19_40_honor10/"
+      "frame_timestamps.txt");
+  double timestamp = tg.readTimestamp(-1);
+
+  ASSERT_NEAR(timestamp, -1, tol);
+
+  timestamp = tg.readTimestamp(0);
+  ASSERT_NEAR(timestamp, 1896318.620700000, tol);
+
+  timestamp = tg.readTimestamp(1799);
+  ASSERT_NEAR(timestamp, 1896378.707300000, tol);
+}

@@ -115,8 +115,13 @@ class IMUGrabber : DataGrabber {
   // segment
   bool getObservation(double tk);
   void print(const std::string message = "");
+
+  RawImuMeasurementVector getMeasurement() { return measurement; }
+
+ private:
   Eigen::Matrix<double, 7, 1> transMat;  // temporary IMU reading container
                                          // which also holds p(k)-1 IMU data
+
   RawImuMeasurementVector
       measurement;  // IMU readings from t(p(k)-1) to t(p(k+1)-1)
   IMUFileType file_type;

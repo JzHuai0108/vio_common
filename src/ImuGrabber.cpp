@@ -180,9 +180,11 @@ void IMUGrabber::print(const std::string message) {
               << item.tail<6>().transpose() << std::endl;
   }
 }
+
 // get next bundle of imu observations given t(k), for the first frame
 // startIndex, no measurement should be returned
-// assume the starting time is larger than the first epoch of imu data
+// grab IMU data until its timestamp is greater than tk, upon return,
+// measurement should span epochs [t(p(k)-1) to t(p(k+1)-1))
 bool IMUGrabber::getObservation(double tk) {
   int lineNum = 0;  // how many lines have been read in
   string tempStr;
@@ -245,7 +247,6 @@ bool IMUGrabber::getObservation(double tk) {
       measurement.push_back(transMat);
     }
     if (transMat[0] > tk) reinit_data = false;
-
   } else {
     if (tk < transMat[0]) {
       tkm1 = tk;

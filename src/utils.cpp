@@ -36,13 +36,21 @@ int getDownScale(int w, int h, int maxEdge) {
 
 bool isHeaderLine(const std::string& line) {
   int index = 0;
-  for (auto it = line.begin(); it < line.end(); ++it, ++index) {
-    if (*it == ' ' || *it == ',') break;
+  if (line.empty()) {
+    return true;
   }
-  const char* p = line.substr(0, index).c_str();
+
+  for (auto it = line.begin(); it < line.end(); ++it, ++index) {
+    if (*it == ' ' || *it == ',') {
+      break;
+    }
+  }
+  std::string stable_sub = line.substr(0, index);
+  const char* p = stable_sub.c_str();
 
   char* end;
   double val = std::strtod(p, &end);
+
   if (val == 0 && end == p) {  // no conversion
     return true;
   } else if (val == HUGE_VAL || val == HUGE_VALF || val == HUGE_VALL) {
@@ -111,6 +119,9 @@ bool isVideoFile(const std::string& datasetPath) {
 }
 
 bool isTimeInNanos(double dn) {
+  if (std::fabs(dn) < 1e-8) {
+    return false;
+  }
   double integral;
   double fractional = std::modf(dn, &integral);
   return fractional < 1e-9;
