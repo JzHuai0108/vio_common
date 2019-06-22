@@ -1,4 +1,8 @@
 #include "vio/utils.h"
+
+#include <sys/stat.h>
+#include <sys/types.h>
+
 #include <cmath>
 
 #include <algorithm>  // transform
@@ -125,6 +129,24 @@ bool isTimeInNanos(double dn) {
   double integral;
   double fractional = std::modf(dn, &integral);
   return fractional < 1e-9;
+}
+
+bool pathExist(const std::string& name) {
+  struct stat buffer;
+  return (stat(name.c_str(), &buffer) == 0);
+}
+
+// https://stackoverflow.com/questions/18100097/portable-way-to-check-if-directory-exists-windows-linux-c
+bool dirExist(const std::string& pathname) {
+  struct stat info;
+
+  if (stat(pathname.c_str(), &info) != 0) {
+    return false;  //  printf("cannot access %s\n", pathname);
+  } else if (info.st_mode & S_IFDIR) {  // S_ISDIR() doesn't exist on my windows
+    return true;  // printf("%s is a directory\n", pathname);
+  } else {
+    return false;  // printf("%s is no directory\n", pathname);
+  }
 }
 
 }  // namespace vio

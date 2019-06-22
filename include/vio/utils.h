@@ -24,5 +24,10 @@ double nanoIntToSecDouble(const int64_t timeNanos);
 bool isVideoFile(const std::string& datasetPath);
 
 bool isTimeInNanos(double dn);
+
+bool pathExist(const std::string& name);
+
+bool dirExist(const std::string& name);
+
 }  // namespace vio
 #endif

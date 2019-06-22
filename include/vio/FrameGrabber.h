@@ -30,7 +30,7 @@ class FrameGrabber {
   FrameGrabber(const FrameGrabber &) = delete;
   FrameGrabber &operator=(const FrameGrabber &) = delete;
   ~FrameGrabber() {}
-
+  bool is_open();
   /**
    * @brief FrameGrabber::assignTimeToVideoFrame
    * @param frame_id 0 based index of the frame in a video

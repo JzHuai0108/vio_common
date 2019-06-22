@@ -32,7 +32,6 @@ FrameGrabber::FrameGrabber(const std::string visualDataPath,
       mnFinishId = std::min(mnFinishId,
                             (int)(mCapture.get(CV_CAP_PROP_FRAME_COUNT) - 1));
     }
-
     int width = mCapture.get(CV_CAP_PROP_FRAME_WIDTH),
         height = mCapture.get(CV_CAP_PROP_FRAME_HEIGHT);
     mnDownScale = getDownScale(width, height, 1000);
@@ -40,17 +39,21 @@ FrameGrabber::FrameGrabber(const std::string visualDataPath,
     std::cout << "Reading in video " << mVideoFile << " prop_frame_width "
               << width << " prop_frame_height " << height << " mnDownScale "
               << mnDownScale << std::endl;
-    std::cout << "start and finish index " << startFrameIndex << " "
-              << finishFrameIndex << std::endl;
   } else {
     mImageFolder = visualDataPath;
     mnDownScale = 1;
     experim = Tsukuba;
-
     std::cout << "Reading in images in folder " << mImageFolder << std::endl;
-    std::cout << "start and finish index " << startFrameIndex << " "
-              << finishFrameIndex << std::endl;
   }
+
+  std::cout << "start and finish index " << startFrameIndex << " "
+            << finishFrameIndex << std::endl;
+}
+
+bool FrameGrabber::is_open() {
+  // TODO(jhuai): check videoCapture is OK or image dir is not empty
+  // check time file grabber is OK
+  return true;
 }
 
 /**

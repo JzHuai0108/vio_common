@@ -52,3 +52,23 @@ TEST(isTimeInNanos, Number) {
   ASSERT_TRUE(vio::isTimeInNanos(3120000000006));
   ASSERT_FALSE(vio::isTimeInNanos(312.000000002));
 }
+
+TEST(FileSystem, fileExist) {
+  ASSERT_FALSE(vio::pathExist(""));
+  ASSERT_TRUE(
+      vio::pathExist("/home/jhuai/docker_documents/msckf2_ws/src/vio_common/"
+                     "test/testutils.cpp"));
+  ASSERT_TRUE(vio::pathExist(
+      "/home/jhuai/docker_documents/msckf2_ws/src/vio_common/test"));
+  ASSERT_TRUE(vio::pathExist(
+      "/home/jhuai/docker_documents/msckf2_ws/src/vio_common/test/"));
+
+  ASSERT_FALSE(vio::dirExist(""));
+  ASSERT_FALSE(
+      vio::dirExist("/home/jhuai/docker_documents/msckf2_ws/src/vio_common/"
+                    "test/testutils.cpp"));
+  ASSERT_TRUE(vio::dirExist(
+      "/home/jhuai/docker_documents/msckf2_ws/src/vio_common/test"));
+  ASSERT_TRUE(vio::dirExist(
+      "/home/jhuai/docker_documents/msckf2_ws/src/vio_common/test/"));
+}
