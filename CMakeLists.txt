@@ -98,9 +98,6 @@ TARGET_LINK_LIBRARIES(test_csv_reader ${PROJECT_NAME})
 ADD_EXECUTABLE(test_gps_grabber test/testgpsgrabber.cpp)
 TARGET_LINK_LIBRARIES(test_gps_grabber ${PROJECT_NAME})
 
-ADD_EXECUTABLE(testeigeninverse test/testeigeninverse.cpp)
-TARGET_LINK_LIBRARIES(testeigeninverse ${PROJECT_NAME})
-
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
 add_executable(runTests test/test_main.cpp
@@ -108,6 +105,7 @@ add_executable(runTests test/test_main.cpp
     test/testutils.cpp
     test/testframegrabber.cpp
     test/testImuGrabber.cpp
+    test/testeigenutils.cpp
     )
 target_link_libraries(runTests ${PROJECT_NAME} ${GTEST_LIBRARIES} glog pthread)
 
