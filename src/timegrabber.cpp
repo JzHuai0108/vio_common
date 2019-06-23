@@ -10,22 +10,7 @@ namespace vio {
 
 TimeGrabber::TimeGrabber()
     : last_line_index(-1), last_line_time(-1), isTimeFormatSet(false) {}
-TimeGrabber::TimeGrabber(const string time_file_name)
-    : time_file(time_file_name),
-      time_stream(time_file_name.c_str()),
-      last_line_index(-1),
-      last_line_time(-1),
-      isTimeFormatSet(false) {
-  if (!time_stream.is_open()) {
-    std::cout << "Error opening timestamp file " << time_file_name << std::endl;
-  } else {
-    std::string tempStr;
-    int headerLines = countHeaderLines(time_file_name);
-    for (int jack = 0; jack < headerLines; ++jack) {
-      getline(time_stream, tempStr);
-    }
-  }
-}
+TimeGrabber::TimeGrabber(const string time_file_name) { init(time_file_name); }
 
 TimeGrabber::~TimeGrabber() { time_stream.close(); }
 
@@ -36,8 +21,11 @@ bool TimeGrabber::init(const string time_file_name) {
   time_stream.open(time_file_name.c_str());
   last_line_index = -1;
   last_line_time = -1;
+  isTimeFormatSet = false;
   if (!time_stream.is_open()) {
-    std::cout << "Error opening timestamp file " << time_file_name << std::endl;
+    std::cout << "Failed to open timestamp file:" << time_file_name << ".\n"
+              << " This is OK if the time file is not provided intentionally."
+              << std::endl;
     return false;
   } else {
     std::string tempStr;
