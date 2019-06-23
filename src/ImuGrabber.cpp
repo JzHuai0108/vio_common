@@ -12,6 +12,7 @@ std::istream &CSFMDataPattern::read(std::istream &is) {
       qxyzw[2] >> qxyzw[3];
   return is;
 }
+
 std::ostream &CSFMDataPattern::print(std::ostream &os) const {
   char delim = ' ';
   os << std::setprecision(12) << timestamp << delim << txyz[0] << delim
@@ -164,13 +165,36 @@ std::istream &operator>>(std::istream &is, IMUGrabber::KalibrCsvPattern &rhs) {
   return is;
 }
 
-IMUGrabber::IMUGrabber(const std::string file, IMUFileType ft)
-    : DataGrabber(file), file_type(ft) {
+IMUFileType tellImuFileType(const std::string &filename) {
+  std::vector<bool> res;
+  locateSubstring(filename, ImuFileSignitures, &res);
+  int index = 0;
+  for (const bool val : res) {
+    if (val) {
+      return static_cast<IMUFileType>(index);
+    }
+    ++index;
+  }
+  return UnknownFileType;
+}
+
+IMUGrabber::IMUGrabber(const std::string &filename)
+    : DataGrabber(filename), file_type(tellImuFileType(filename)) {
+  init();
+}
+
+IMUGrabber::IMUGrabber(const std::string &filename, IMUFileType ft)
+    : DataGrabber(filename), file_type(ft) {
+  init();
+}
+
+void IMUGrabber::init() {
   int header_lines = countHeaderLines(file);
   std::string tempStr;
   for (int i = 0; i < header_lines; ++i)
     getline(stream, tempStr);  // remove explanatory header
-  std::cout << "Reading in imu file " << file << std::endl;
+  std::cout << "Reading in imu file " << file << " as type " << file_type
+            << std::endl;
 }
 
 void IMUGrabber::print(const std::string message) {

@@ -2,6 +2,7 @@
 #define UTILS_H
 
 #include <string>
+#include <vector>
 
 namespace vio {
 bool to_bool(std::string str);
@@ -28,6 +29,12 @@ bool isTimeInNanos(double dn);
 bool pathExist(const std::string& name);
 
 bool dirExist(const std::string& name);
+
+void displayArgs(const int argc, char** argv);
+
+void locateSubstring(const std::string& test_str,
+                     const std::vector<std::string>& subs,
+                     std::vector<bool>* found);
 
 }  // namespace vio
 #endif

@@ -48,8 +48,14 @@ enum IMUFileType {
   PlainText,
   SensorStreamCSV,
   IndexedPlainText,
-  KalibrCsv
+  KalibrCsv,
+  UnknownFileType,
 };
+
+// empirical signitures for each imu file type
+const std::vector<std::string> ImuFileSignitures{"Data Log", "", "mystream", "",
+                                                 "gyro_accel"};
+IMUFileType tellImuFileType(const std::string &filename);
 
 class IMUGrabber : DataGrabber {
  public:
@@ -110,7 +116,12 @@ class IMUGrabber : DataGrabber {
     double gyro_accel[6];
   };
 
-  IMUGrabber(const std::string file, IMUFileType ft);
+  IMUGrabber(const std::string &file);
+
+  IMUGrabber(const std::string &file, IMUFileType ft);
+
+  void init();
+
   // note the last entry of the last imu measurement segment is kept in the new
   // segment
   bool getObservation(double tk);

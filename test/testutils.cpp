@@ -72,3 +72,14 @@ TEST(FileSystem, fileExist) {
   ASSERT_TRUE(vio::dirExist(
       "/home/jhuai/docker_documents/msckf2_ws/src/vio_common/test/"));
 }
+
+TEST(String, locateSubstring) {
+  std::string a = "what is this";
+  std::vector<std::string> vec{"si", "", "what", " "};
+  std::vector<bool> res;
+  vio::locateSubstring(a, vec, &res);
+  ASSERT_FALSE(res[0]);
+  ASSERT_FALSE(res[1]);
+  ASSERT_TRUE(res[2]);
+  ASSERT_TRUE(res[3]);
+}

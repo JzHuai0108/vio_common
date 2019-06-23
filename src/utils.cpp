@@ -149,4 +149,23 @@ bool dirExist(const std::string& pathname) {
   }
 }
 
+void displayArgs(const int argc, char** argv) {
+  std::cout << argc << " args:\n";
+  for (int i = 0; i < argc; ++i) {
+    std::cout << i << " " << argv[i] << std::endl;
+  }
+  std::cout << std::endl;
+}
+
+void locateSubstring(const std::string& test_str,
+                     const std::vector<std::string>& subs,
+                     std::vector<bool>* found) {
+  found->resize(subs.size());
+  int i = 0;
+  for (const std::string str : subs) {
+    found->at(i) = !(str.empty() || (test_str.find(str) == std::string::npos));
+    ++i;
+  }
+}
+
 }  // namespace vio
