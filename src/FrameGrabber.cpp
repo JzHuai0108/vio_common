@@ -51,9 +51,11 @@ FrameGrabber::FrameGrabber(const std::string visualDataPath,
 }
 
 bool FrameGrabber::is_open() {
-  // TODO(jhuai): check videoCapture is OK or image dir is not empty
-  // check time file grabber is OK
-  return true;
+  if (mImageFolder.empty()) {
+    return mCapture.isOpened();
+  } else {
+    return dirExist(mImageFolder);
+  }
 }
 
 /**
