@@ -24,7 +24,7 @@ bool TimeGrabber::init(const string time_file_name) {
   isTimeFormatSet = false;
   if (!time_stream.is_open()) {
     std::cout << "Failed to open timestamp file:" << time_file_name << ".\n"
-              << " This is OK if the time file is not provided intentionally."
+              << "This is OK if the time file is not provided intentionally."
               << std::endl;
     return false;
   } else {
