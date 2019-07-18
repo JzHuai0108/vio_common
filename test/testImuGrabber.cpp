@@ -5,9 +5,10 @@ const double tol = 1e-8;
 
 TEST(IMUGrabber, TwoTypes) {
   using namespace vio;
-  std::string mImuFile0(
-      "/home/jhuai/docker_documents/vins_ws/src/vio_common/test/"
-      "IndexedImu.txt");
+  std::string file_path = __FILE__;
+  std::string vio_common_test_dir =
+      file_path.substr(0, file_path.find_last_of("/\\"));
+  std::string mImuFile0(vio_common_test_dir + "/IndexedImu.txt");
   IMUGrabber mIG0(mImuFile0, IndexedPlainText);
 
   mIG0.getObservation(0);
@@ -20,9 +21,7 @@ TEST(IMUGrabber, TwoTypes) {
   ASSERT_NEAR(measurement.back()[0], 505.403, tol);
   ASSERT_NEAR(measurement.back()[1], -0.617105477905, tol);
 
-  std::string mImuFile(
-      "/home/jhuai/docker_documents/vins_ws/src/vio_common/test/"
-      "testimugrabber.csv");
+  std::string mImuFile(vio_common_test_dir + "/testimugrabber.csv");
   IMUGrabber mIG(mImuFile, SensorStreamCSV);
 
   mIG.getObservation(0);
@@ -52,9 +51,10 @@ TEST(IMUGrabber, TwoTypes) {
 }
 
 TEST(IMUGrabber, KalibrCsv) {
-  std::string filename =
-      "/home/jhuai/Desktop/temp_android/2019_06_16_12_03_45_phab2/"
-      "gyro_accel.csv";
+  std::string file_path = __FILE__;
+  std::string vio_common_test_dir =
+      file_path.substr(0, file_path.find_last_of("/\\"));
+  std::string filename = vio_common_test_dir + "/gyro_accel.csv";
   vio::IMUGrabber grabber(filename, vio::IMUFileType::KalibrCsv);
   grabber.getObservation(0);
 
@@ -85,10 +85,10 @@ TEST(IMUGrabber, KalibrCsv) {
   ASSERT_NEAR(measurement.back()[0], 675014.000892253, tol);
   ASSERT_NEAR(measurement.back()[6], -0.021194458, tol);
 
-  grabber.getObservation(675656.575165029);
+  grabber.getObservation(675018.577222439);
   measurement = grabber.getMeasurement();
   ASSERT_NEAR(measurement.front()[0], 675014.000892253, tol);
   ASSERT_NEAR(measurement.front()[1], -0.47584534, tol);
-  ASSERT_NEAR(measurement.back()[0], 675656.475165029, tol);
-  ASSERT_NEAR(measurement.back()[1], -0.90560913, tol);
+  ASSERT_NEAR(measurement.back()[0], 675018.477222439, tol);
+  ASSERT_NEAR(measurement.back()[1], -2.6174622, tol);
 }

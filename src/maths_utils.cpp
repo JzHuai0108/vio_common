@@ -7,13 +7,9 @@
 //#include <visiontools/accessor_macros.h>
 //#include <visiontools/abstract_camera.h>
 
-namespace vio
-{
-using namespace Eigen;
-using namespace std;
-
-//TODO: implement proper interpolation!!
-//Input: disparity map at level 0, uv_pyr, location at pyramid level level
+namespace vio {
+// TODO: implement proper interpolation!!
+// Input: disparity map at level 0, uv_pyr, location at pyramid level level
 // return: disparity for uv_pyr at pyramid level
 /*double
 interpolateDisparity(const cv::Mat & disp,
@@ -21,7 +17,7 @@ interpolateDisparity(const cv::Mat & disp,
                      int level)
 {
   double inv_factor = VisionTools::pyrFromZero_d(1.,level);
-  return disp.at<float>(uv_pyr[1]<<level,uv_pyr[0]<<level)*inv_factor;  
+  return disp.at<float>(uv_pyr[1]<<level,uv_pyr[0]<<level)*inv_factor;
 }
 double
 interpolateDisparity(const cv::Mat & disp,
@@ -33,7 +29,7 @@ interpolateDisparity(const cv::Mat & disp,
 }
 
 float
-interpolateMat_32f(const cv::Mat & mat, const Vector2f & uv)
+interpolateMat_32f(const cv::Mat & mat, const Eigen::Vector2f & uv)
 {
   assert(mat.type()==CV_32F);
   float x = floor(uv[0]);
@@ -54,7 +50,7 @@ interpolateMat_32f(const cv::Mat & mat, const Vector2f & uv)
 }
 
 float
-interpolateMat_8u(const cv::Mat & mat, const Vector2f & uv)
+interpolateMat_8u(const cv::Mat & mat, const Eigen::Vector2f & uv)
 {
   assert(mat.type()==CV_8U);
   float x = floor(uv[0]);
@@ -75,59 +71,46 @@ interpolateMat_8u(const cv::Mat & mat, const Vector2f & uv)
 }
 */
 
-Vector2d
-project2d(const Vector3d& v)
-{
-  Vector2d res;
-  res(0) = v(0)/v(2);
-  res(1) = v(1)/v(2);
+Eigen::Vector2d project2d(const Eigen::Vector3d& v) {
+  Eigen::Vector2d res;
+  res(0) = v(0) / v(2);
+  res(1) = v(1) / v(2);
   return res;
 }
 
-Vector2f
-project2f(const Vector3f& v)
-{
-  Vector2f res;
-  res(0) = v(0)/v(2);
-  res(1) = v(1)/v(2);
+Eigen::Vector2f project2f(const Eigen::Vector3f& v) {
+  Eigen::Vector2f res;
+  res(0) = v(0) / v(2);
+  res(1) = v(1) / v(2);
   return res;
 }
 
-Vector3d
-project3d(const Vector4d& v)
-{
-  Vector3d res;
-  res(0) = v(0)/v(3);
-  res(1) = v(1)/v(3);
-  res(2) = v(2)/v(3);
+Eigen::Vector3d project3d(const Eigen::Vector4d& v) {
+  Eigen::Vector3d res;
+  res(0) = v(0) / v(3);
+  res(1) = v(1) / v(3);
+  res(2) = v(2) / v(3);
   return res;
 }
 
-Vector3d
-unproject2d(const Vector2d& v)
-{
-  Vector3d res;
+Eigen::Vector3d unproject2d(const Eigen::Vector2d& v) {
+  Eigen::Vector3d res;
   res(0) = v(0);
   res(1) = v(1);
   res(2) = 1;
   return res;
 }
 
-
-Vector3f
-unproject2f(const Vector2f& v)
-{
-  Vector3f res;
+Eigen::Vector3f unproject2f(const Eigen::Vector2f& v) {
+  Eigen::Vector3f res;
   res(0) = v(0);
   res(1) = v(1);
   res(2) = 1.f;
   return res;
 }
 
-Vector4d
-unproject3d(const Vector3d& v)
-{
-  Vector4d res;
+Eigen::Vector4d unproject3d(const Eigen::Vector3d& v) {
+  Eigen::Vector4d res;
   res(0) = v(0);
   res(1) = v(1);
   res(2) = v(2);
@@ -135,18 +118,15 @@ unproject3d(const Vector3d& v)
   return res;
 }
 
-double
-norm_max(const VectorXd & v)
-{
+double norm_max(const Eigen::VectorXd& v) {
   double max = -1;
-  for (int i=0; i<v.size(); i++)
-  {
-    double abs = fabs(v[i]);
-    if(abs>max){
+  for (int i = 0; i < v.size(); i++) {
+    double abs = std::fabs(v[i]);
+    if (abs > max) {
       max = abs;
     }
   }
   return max;
 }
 
-}
+}  // namespace vio

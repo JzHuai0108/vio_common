@@ -55,22 +55,18 @@ TEST(isTimeInNanos, Number) {
 
 TEST(FileSystem, fileExist) {
   ASSERT_FALSE(vio::pathExist(""));
-  ASSERT_TRUE(
-      vio::pathExist("/home/jhuai/docker_documents/msckf2_ws/src/vio_common/"
-                     "test/testutils.cpp"));
-  ASSERT_TRUE(vio::pathExist(
-      "/home/jhuai/docker_documents/msckf2_ws/src/vio_common/test"));
-  ASSERT_TRUE(vio::pathExist(
-      "/home/jhuai/docker_documents/msckf2_ws/src/vio_common/test/"));
+  std::string file_path = __FILE__;
+  std::string vio_common_test_dir =
+      file_path.substr(0, file_path.find_last_of("/\\"));
+
+  EXPECT_TRUE(vio::pathExist(vio_common_test_dir + "/testutils.cpp"));
+  EXPECT_TRUE(vio::pathExist(vio_common_test_dir));
+  EXPECT_TRUE(vio::pathExist(vio_common_test_dir + "/"));
 
   ASSERT_FALSE(vio::dirExist(""));
-  ASSERT_FALSE(
-      vio::dirExist("/home/jhuai/docker_documents/msckf2_ws/src/vio_common/"
-                    "test/testutils.cpp"));
-  ASSERT_TRUE(vio::dirExist(
-      "/home/jhuai/docker_documents/msckf2_ws/src/vio_common/test"));
-  ASSERT_TRUE(vio::dirExist(
-      "/home/jhuai/docker_documents/msckf2_ws/src/vio_common/test/"));
+  ASSERT_FALSE(vio::dirExist(vio_common_test_dir + "/testutils.cpp"));
+  EXPECT_TRUE(vio::dirExist(vio_common_test_dir));
+  EXPECT_TRUE(vio::dirExist(vio_common_test_dir + "/"));
 }
 
 TEST(String, locateSubstring) {

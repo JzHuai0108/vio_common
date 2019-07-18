@@ -4,8 +4,6 @@
 
 namespace vio {
 
-using namespace Eigen;
-using namespace std;
 Eigen::Vector3d rotro2eu(Eigen::Matrix3d R) {
   Eigen::Vector3d euler;
   euler[0] = atan2(R(2, 1), R(2, 2));

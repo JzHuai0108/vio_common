@@ -20,7 +20,6 @@ void playVideoOnConsole(const std::string videoFile,
 
 TEST(FrameGrabber, ReadVideoWithTimeFileHonor) {
   std::string videoFile =
-      //      "/home/jhuai/Desktop/temp_android/VID_20190618_015206.mp4";
       "/home/jhuai/Desktop/temp_android/2019_06_16_12_19_40_honor10/movie.mp4";
   std::string timeFile =
       "/home/jhuai/Desktop/temp_android/2019_06_16_12_19_40_honor10/"
