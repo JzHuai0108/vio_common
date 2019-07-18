@@ -8,7 +8,7 @@ TEST(IMUGrabber, TwoTypes) {
   std::string file_path = __FILE__;
   std::string vio_common_test_dir =
       file_path.substr(0, file_path.find_last_of("/\\"));
-  std::string mImuFile0(vio_common_test_dir + "/IndexedImu.txt");
+  std::string mImuFile0(vio_common_test_dir + "/data/indexed_imu.txt");
   IMUGrabber mIG0(mImuFile0, IndexedPlainText);
 
   mIG0.getObservation(0);
@@ -21,7 +21,7 @@ TEST(IMUGrabber, TwoTypes) {
   ASSERT_NEAR(measurement.back()[0], 505.403, tol);
   ASSERT_NEAR(measurement.back()[1], -0.617105477905, tol);
 
-  std::string mImuFile(vio_common_test_dir + "/testimugrabber.csv");
+  std::string mImuFile(vio_common_test_dir + "/data/sensorstream.csv");
   IMUGrabber mIG(mImuFile, SensorStreamCSV);
 
   mIG.getObservation(0);
@@ -54,7 +54,7 @@ TEST(IMUGrabber, KalibrCsv) {
   std::string file_path = __FILE__;
   std::string vio_common_test_dir =
       file_path.substr(0, file_path.find_last_of("/\\"));
-  std::string filename = vio_common_test_dir + "/gyro_accel.csv";
+  std::string filename = vio_common_test_dir + "/data/mars_gyro_accel.csv";
   vio::IMUGrabber grabber(filename, vio::IMUFileType::KalibrCsv);
   grabber.getObservation(0);
 

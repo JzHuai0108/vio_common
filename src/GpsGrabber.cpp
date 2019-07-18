@@ -1,5 +1,5 @@
 
-#include "vio/GPSGrabber.h"
+#include "vio/GpsGrabber.h"
 #include "vio/eigen_utils.h"
 
 #ifdef HAVE_GPSTK

@@ -7,7 +7,7 @@ import scipy.sparse as sps
 def visualizematrix(filename):
   if not os.path.isfile(filename):
     print('Unable to open %s' % filename )
-    filename = 'test/hessian_0.txt'
+    filename = 'test/hessian.txt'
   A = np.loadtxt(filename)
   M = sps.csr_matrix(A)
   plt.spy(M)

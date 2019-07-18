@@ -7,7 +7,7 @@ IF(NOT CMAKE_BUILD_TYPE)
 ENDIF()
 
 SET(CMAKE_VERBOSE_MAKEFILE OFF)
-SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/CMakeModules/")
+SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake_modules/")
 
 OPTION(USE_ROS "Build this package with catkin?" OFF)
 SET(USE_GPSTK_MSG "Build the package with the gpstk library. If true, "
@@ -59,17 +59,17 @@ ENDIF()
 
 # Set Sourcefiles
 LIST(APPEND SOURCEFILES 
-src/rand_sampler.cpp
+src/Sample.cpp
 src/utils.cpp
-src/timegrabber.cpp
+src/TimeGrabber.cpp
 src/maths_utils.cpp
 src/ImuGrabber.cpp
-src/GPSGrabber.cpp
+src/GpsGrabber.cpp
 src/CsvReader.cpp
 src/FrameGrabber.cpp
 src/eigen_utils.cpp
 include/vio/PointStatistics.h
-include/vio/IMUErrorModel.h
+include/vio/ImuErrorModel.h
 )
 
 IF(${USE_GPSTK})
@@ -92,22 +92,22 @@ IF(${USE_GPSTK})
 ENDIF()
 
 # Tests
-ADD_EXECUTABLE(test_csv_reader test/testcsvreader.cpp)
+ADD_EXECUTABLE(test_csv_reader test/test_csv_reader.cpp)
 TARGET_LINK_LIBRARIES(test_csv_reader ${PROJECT_NAME})
 
-ADD_EXECUTABLE(test_gps_grabber test/testgpsgrabber.cpp)
+ADD_EXECUTABLE(test_gps_grabber test/test_gps_grabber.cpp)
 TARGET_LINK_LIBRARIES(test_gps_grabber ${PROJECT_NAME})
 
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
-add_executable(runTests test/test_main.cpp
-    test/testtimegrabber.cpp
-    test/testutils.cpp
-    test/testframegrabber.cpp
-    test/testImuGrabber.cpp
-    test/testeigenutils.cpp
+add_executable(vio_common_test test/test_main.cpp
+    test/test_time_grabber.cpp
+    test/test_utils.cpp
+    test/test_frame_grabber.cpp
+    test/test_imu_grabber.cpp
+    test/test_eigen_utils.cpp
     )
-target_link_libraries(runTests ${PROJECT_NAME} ${GTEST_LIBRARIES} glog pthread)
+target_link_libraries(vio_common_test ${PROJECT_NAME} ${GTEST_LIBRARIES} glog pthread)
 
 ################################################################################
 # Create the vio_commonConfig.cmake file for other cmake projects.

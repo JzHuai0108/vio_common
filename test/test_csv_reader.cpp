@@ -1,7 +1,7 @@
 #include "vio/CsvReader.h"
 
 int main() {
-  const std::string okvisFile = "../test/OkvisOutput.csv";
+  const std::string okvisFile = "../test/okvis_output.csv";
 
   std::vector<Eigen::Matrix<double, 19, 1>,
               Eigen::aligned_allocator<Eigen::Matrix<double, 19, 1> > >

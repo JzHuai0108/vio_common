@@ -59,12 +59,12 @@ TEST(FileSystem, fileExist) {
   std::string vio_common_test_dir =
       file_path.substr(0, file_path.find_last_of("/\\"));
 
-  EXPECT_TRUE(vio::pathExist(vio_common_test_dir + "/testutils.cpp"));
+  EXPECT_TRUE(vio::pathExist(vio_common_test_dir + "/test_utils.cpp"));
   EXPECT_TRUE(vio::pathExist(vio_common_test_dir));
   EXPECT_TRUE(vio::pathExist(vio_common_test_dir + "/"));
 
   ASSERT_FALSE(vio::dirExist(""));
-  ASSERT_FALSE(vio::dirExist(vio_common_test_dir + "/testutils.cpp"));
+  ASSERT_FALSE(vio::dirExist(vio_common_test_dir + "/test_utils.cpp"));
   EXPECT_TRUE(vio::dirExist(vio_common_test_dir));
   EXPECT_TRUE(vio::dirExist(vio_common_test_dir + "/"));
 }

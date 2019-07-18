@@ -6,7 +6,7 @@
 
 #include "opencv2/core/core.hpp"
 #include "opencv2/highgui/highgui.hpp"
-#include "vio/timegrabber.h"  //for timegrabber
+#include "vio/TimeGrabber.h"  //for timegrabber
 namespace vio {
 class FrameGrabber {
  public:
