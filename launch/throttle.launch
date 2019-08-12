@@ -1,0 +1,20 @@
+<launch>
+  <!--Save the frames from a topic of a rosbag into another rosbag
+   at a reduced frame rate-->
+  <param name="/use_sim_time" value="false" />
+  <arg name="input_bag" default=""/>
+  <arg name="output_bag" default=""/>
+  <arg name="output_frame_rate" default="4.0"/>
+  <arg name="input_image_topic" default="/cam0/image_raw"/>
+  <arg name="output_image_topic" default="$(arg input_image_topic)_throttle"/>
+
+  <node name="throttle" type="throttle" pkg="topic_tools" output="screen" 
+  args="messages $(arg input_image_topic) $(arg output_frame_rate)" />
+
+  <node name="record" type="record" pkg="rosbag" output="screen" 
+  args="$(arg output_image_topic) --output-name=$(arg output_bag)" />
+
+  <node name="play" type="play" pkg="rosbag" required="true"
+  args="$(arg input_bag)" />
+
+</launch>

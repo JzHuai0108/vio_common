@@ -100,6 +100,10 @@ TARGET_LINK_LIBRARIES(test_gps_grabber ${PROJECT_NAME})
 
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
+
+add_executable(video2image app/video2images_kalibr.cpp )
+target_link_libraries(video2image ${OpenCV_LIBS})
+
 add_executable(vio_common_test test/test_main.cpp
     test/test_time_grabber.cpp
     test/test_utils.cpp

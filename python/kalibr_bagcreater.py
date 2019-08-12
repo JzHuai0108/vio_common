@@ -24,7 +24,6 @@ import math
 # the saved bag will use the IMU clock to timestamp the messages
 
 SECOND_TO_NANOS = 1000000000
-MAX_VIDEO_FRAME_HEIGHT = 640  # For a frame in a video, if min(rows, cols) > this val, it will be half sampled.
 
 def parseArgs():
     #setup the argument list
@@ -55,13 +54,18 @@ def parseArgs():
     parser.add_argument('--video_from_to', type=float,
                         nargs=2,
                         help='Use the video frames starting from up to this'
-                             ' time [s] based on the video clock.')
+                             ' time [s] relative to the video beginning.')
     parser.add_argument('--video_time_file',
                         default='', nargs='?',
                         help='The csv file containing timestamps of every '
                              'video frames in IMU clock(default: %(default)s).'
                              ' Except for the header, each row has the '
                              'timestamp in sec as its first component',
+                        required=False)
+    parser.add_argument('--max_video_frame_height',
+                        type=int, default=480,
+                        help='For a video frame, if min(rows, cols) > this val, '
+                             'it will be half sampled. (default: %(default)s)',
                         required=False)
 
     if len(sys.argv)<2:
@@ -94,7 +98,7 @@ def getImageFilesFromDir(dir):
     if os.path.exists(dir):
         for path, names, files in os.walk(dir):
             for f in files:
-                if os.path.splitext(f)[1] in ['.bmp', '.png', '.jpg']:
+                if os.path.splitext(f)[1] in ['.bmp', '.png', '.jpg', '.pnm']:
                     image_files.append( os.path.join( path, f ) )
                     timestamps.append(os.path.splitext(f)[0]) 
     #sort by timestamp
@@ -210,9 +214,7 @@ def playAVideo(videoFilename):
         
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         h,w = gray.shape[:2]
-        if h > MAX_VIDEO_FRAME_HEIGHT:
-            gray = cv2.pyrDown(gray, dstsize = (w/2,h/2))
-
+        
         cv2.imshow('frame',gray)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
@@ -225,8 +227,12 @@ def playAVideo(videoFilename):
     cv2.destroyAllWindows()
 
 
-def writeVideoToRosBag(bag, videoFilename, video_from_to, video_time_offset=0.0, frame_timestamps=None):
-    """return video time range in imu clock"""
+def writeVideoToRosBag(bag, videoFilename, video_from_to,
+                       video_time_offset=0.0, frame_timestamps=None,
+                       max_video_frame_height=100000000):
+    """return estimated rough video time range in imu clock
+       video_time_offset + frame_time_in_video(0 based) ~= frame_time_in_imu
+    """
     cap = cv2.VideoCapture(videoFilename)
     rate = cap.get(cv2.CAP_PROP_FPS);
     print "video frame rate", rate
@@ -240,8 +246,10 @@ def writeVideoToRosBag(bag, videoFilename, video_from_to, video_time_offset=0.0,
         frame_timestamps = list()
     if len(frame_timestamps) > 0:
         if len(frame_timestamps) != framesinvideo:
-            raise Exception("Number of frames in the video disagrees with the length of the provided timestamps".
-                            format(framesinvideo, len(frame_timestamps)))
+            raise Exception(
+                ("Number of frames in the video {} disagrees with the length of"
+                " the provided timestamps {}").format(
+                    framesinvideo, len(frame_timestamps)))
     if mnFinishId == -1:
         mnFinishId = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)-1)
     else:
@@ -278,7 +286,7 @@ def writeVideoToRosBag(bag, videoFilename, video_from_to, video_time_offset=0.0,
         image_np = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         h, w = image_np.shape[:2]
 
-        if h > MAX_VIDEO_FRAME_HEIGHT:
+        if min(w, h) > max_video_frame_height:
             image_np = cv2.pyrDown(image_np,dstsize = (w/2,h/2))
         if w < h:
             image_np = cv2.rotate(image_np, cv2.ROTATE_90_COUNTERCLOCKWISE)
@@ -328,23 +336,33 @@ def is_float(element_str):
     except ValueError:
         return False
 
+def check_file_exists(filename):
+    """sanity check"""
+    if not os.path.exists(filename):
+        raise OSError("{} does not exist".format(filename))
+
 #create the bag
 def main():
     parsed = parseArgs()
     
     bag = rosbag.Bag(parsed.output_bag, 'w')
+    videotimerange = None # time range of video frames in IMU clock
     if not parsed.video is None:
+        check_file_exists(parsed.video)
         print 'given video time offset', parsed.video_time_offset
         if parsed.video_from_to:
             print 'video_from_to:', parsed.video_from_to
+        video_time_offset = parsed.video_time_offset
         frame_timestamps = list()
         if parsed.video_time_file:
             frame_timestamps = loadtimestamps(parsed.video_time_file)
             print('Loaded {} timestamps for frames'.format(len(frame_timestamps)))
+            video_time_offset = frame_timestamps[0].to_sec()
         videotimerange = writeVideoToRosBag(bag, parsed.video, parsed.video_from_to,
-                                            video_time_offset=parsed.video_time_offset,
-                                            frame_timestamps=frame_timestamps)
-
+                                            video_time_offset,
+                                            frame_timestamps=frame_timestamps,
+                                            max_video_frame_height=parsed.max_video_frame_height)
+        
     elif not parsed.folder is None:
         #write images
         camfolders = getCamFoldersFromDir(parsed.folder)
@@ -373,7 +391,7 @@ def main():
     else:
         imufile = parsed.imu
         topic = 'imu0'
-
+        check_file_exists(parsed.imu)
         with open(imufile, 'rb') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             headers = next(reader, None)
@@ -386,7 +404,7 @@ def main():
                 timestampinsec = timestamp.to_sec()
                 rowcount += 1
                 # check the below conditions when video and imu use different clocks and their lengths differ much
-                if abs(parsed.video_time_offset) > 1e-8 and videotimerange and \
+                if videotimerange and \
                         (timestampinsec < videotimerange[0] - MARGIN_TIME or
                          timestampinsec > videotimerange[1] + MARGIN_TIME):
                     continue
