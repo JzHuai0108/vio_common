@@ -3,7 +3,7 @@
 
 '''
 This module tests methods from folder_helper
-To run tests, $python3 -m pytest
+To run tests, $python -m pytest
 '''
 from __future__ import print_function
 
@@ -14,12 +14,16 @@ import rospy
 import kalibr_bagcreater
 
 def test_loadtimestamps():
-    time_file = "/home/jhuai/Desktop/temp_android/2019_06_16_12_03_45_phab2/frame_timestamps.txt"
+    file_path = os.path.abspath(__file__)
+    src_dir = os.path.dirname(file_path)
+    assert src_dir.endswith("test")
+
+    time_file = os.path.join(src_dir, "data/frame_timestamps.txt")
     timestamps = kalibr_bagcreater.loadtimestamps(time_file)
-    assert timestamps[0] == rospy.Time(675013, 982384000)
-    assert timestamps[-1] == rospy.Time(675656, 506415000)
-    time_file = "/home/jhuai/Desktop/temp_android/2019_06_16_12_03_45_phab2/movie_metadata.csv"
+    assert timestamps[0] == rospy.Time(464681, 846889000)
+    assert timestamps[-1] == rospy.Time(464682, 180889000)
+    time_file = os.path.join(src_dir, "data/movie_metadata.csv")
     timestamps = kalibr_bagcreater.loadtimestamps(time_file)
-    assert timestamps[0] == rospy.Time(675014, 15769968)
-    assert timestamps[-1] == rospy.Time(675656, 506415968)
+    assert timestamps[0] == rospy.Time(464681, 846889000)
+    assert timestamps[-1] == rospy.Time(464682, 180889000)
 

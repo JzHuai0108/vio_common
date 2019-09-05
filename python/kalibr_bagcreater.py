@@ -13,6 +13,8 @@ import numpy as np
 import csv
 import math
 
+import utility_functions
+
 # case 1 create a rosbag from a folder as specified by the kalibr format
 # https://github.com/ethz-asl/kalibr/wiki/bag-format
 #structure
@@ -23,7 +25,6 @@ import math
 # case 2 create a rosbag from a video, a IMU file, and a video time file
 # the saved bag will use the IMU clock to timestamp the messages
 
-SECOND_TO_NANOS = 1000000000
 
 def parseArgs():
     #setup the argument list
@@ -44,7 +45,7 @@ def parseArgs():
     parser.add_argument('--imu',  metavar='imu_file', nargs='?',
                         help='Imu filename. Except for the optional header,'
                              ' each line format\n'
-                             'time[sec], gx[rad/s], gy[rad/s], gz[rad/s],'
+                             'time[sec or nanosec], gx[rad/s], gy[rad/s], gz[rad/s],'
                              ' ax[m/s^2], ay[m/s^2], az[m/s^2]')
     parser.add_argument('--video_time_offset',
                         type=float, default=0.0,
@@ -143,34 +144,9 @@ def loadImageToRosMsg(filename):
     
     return rosimage, timestamp
 
-def parse_time(timestamp_str):
-    """
-    convert a timestamp string to a rospy time
-    if a dot is in the string, the string is taken as an int in nanosecs
-    otherwise, taken as an float in secs
-    :param timestamp_str:
-    :return:
-    """
-
-
-    secs = 0
-    nsecs = 0
-    if '.' in timestamp_str:
-        index = timestamp_str.find('.')
-        if index == 0:
-            nsecs = int(float(timestamp_str[index:]) * SECOND_TO_NANOS)
-        elif index == len(timestamp_str) - 1:
-            secs = int(timestamp_str[:index])
-        else:
-            secs = int(timestamp_str[:index])
-            nsecs = int(float(timestamp_str[index:]) * SECOND_TO_NANOS)
-        return secs, nsecs
-    else:
-        return int(timestamp_str[0:-9]), int(timestamp_str[-9:])
-
 
 def createImuMessge(timestamp_str, omega, alpha):
-    secs, nsecs = parse_time(timestamp_str)
+    secs, nsecs = utility_functions.parse_time(timestamp_str)
     timestamp = rospy.Time(secs, nsecs)
     rosimu = Imu()
     rosimu.header.stamp = timestamp
@@ -324,7 +300,7 @@ def loadtimestamps(video_time_file):
         reader = csv.reader(csvfile, delimiter=',')
         next(reader, None) # headers
         for row in reader:
-            secs, nsecs = parse_time(row[0])
+            secs, nsecs = utility_functions.parse_time(row[0])
             frame_rostimes.append(rospy.Time(secs, nsecs))
     return frame_rostimes
 
