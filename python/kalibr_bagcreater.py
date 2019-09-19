@@ -72,6 +72,8 @@ def parseArgs():
     if len(sys.argv)<2:
         msg = 'Example usage 1: {} --folder dataset_dir ' \
               '--output_bag awsome.bag\n'.format(sys.argv[0])
+        msg = 'Example usage 1.1: {} --folder /data_dir/export/ --imu gyro_accel.csv ' \
+              '--output_bag awsome.bag\n'.format(sys.argv[0])
         msg += 'Example usage 2: {} --video dataset_dir/IMG_2805.MOV ' \
                '--imu dataset_dir/gyro_accel.csv --video_time_file ' \
                'dataset_dir/movie_metadata.csv ' \
