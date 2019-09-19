@@ -1,3 +1,4 @@
+import json
 import numpy as np
 
 SECOND_TO_MILLIS = 1000
@@ -125,3 +126,22 @@ def normalize_quat_str(val_str_list):
     for j in range(4):
         strlist.append("{}".format(q4_normalized[j]))
     return strlist
+
+
+def read_pose_from_json(pose_json):
+    """
+
+    :param pose_json:
+    :return:
+    """
+    with open(pose_json, 'r') as load_f:
+        load_dict = json.load(load_f)
+        x = float(load_dict['translation']['x'])
+        y = float(load_dict['translation']['y'])
+        z = float(load_dict['translation']['z'])
+        q_x = float(load_dict['rotation']['i'])
+        q_y = float(load_dict['rotation']['j'])
+        q_z = float(load_dict['rotation']['k'])
+        q_w = float(load_dict['rotation']['w'])
+        pose = [x, y, z, q_x, q_y, q_z, q_w]
+        return pose

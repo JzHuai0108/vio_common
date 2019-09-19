@@ -348,6 +348,7 @@ def main():
             for image_filename in image_files:
                 image_msg, timestamp = loadImageToRosMsg(image_filename)
                 bag.write("/{0}/image_raw".format(camfolder), image_msg, timestamp)
+            print("Saved #images {} of {} to bag".format(len(image_files), camfolder))
     else:
         raise Exception('Invalid/Empty video file and image folder')
 
