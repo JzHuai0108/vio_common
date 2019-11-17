@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import argparse
+import os
 import sys
 
 import utility_functions
@@ -9,7 +10,7 @@ def parseArgs():
     parser = argparse.ArgumentParser(
         description='Convert a pose file to standard format.')
     # case 1 arguments used by the kalibr to create a rosbag from a folder
-    parser.add_argument('--infile',
+    parser.add_argument('infile',
                         help='A file containing rows of states, each state including '
                              'time, position and quaternion.\n'
                              'Time may be in secs or nanosecs, may at index 1 or 2.'
@@ -23,7 +24,10 @@ def parseArgs():
                              " from the input data as either 's' or 'ns'. (default: %(default)s)")
 
     parser.add_argument('--outfile',
-                        default="infile.out", help='ROS bag file (default: %(default)s)')
+                        default="",
+                        help='output converted pose file. If not specified, '
+                             '$(infile_path)/$(infile_name)_canon.$(infile_ext) '
+                             'will be used as output filename.')
 
     parser.add_argument('--output_format',
                         default="TUM_RGBD",
@@ -50,7 +54,7 @@ def convert_pose_format(infile, outfile, in_time_unit=None, in_quat_order="xyzw"
         read_next = True
         line = None
         while read_next:
-            line = stream.readline()
+            line = stream.readline().rstrip('\n')
             read_next = utility_functions.is_header_line(line)
             if not read_next and len(lines) < max_lines:
                 lines.append(line)
@@ -62,10 +66,16 @@ def convert_pose_format(infile, outfile, in_time_unit=None, in_quat_order="xyzw"
 
         if in_time_unit is not None:
             time_unit = in_time_unit
-        print("The determined time index {} time unit {} and position index {}".format(
+        print("The determined time index {} time unit {} and translation start index {}".format(
             time_index, time_unit, r_index))
     q_index = r_index + 3
 
+    # set default outfile
+    if not outfile:
+        in_dir = os.path.dirname(infile)
+        in_base = os.path.basename(infile)
+        in_name, in_ext = os.path.splitext(in_base)
+        outfile = os.path.join(in_dir, in_name + "_canon" + in_ext)
     # load infile and write outfile
     with open(outfile, "w") as ostream:
         with open(infile, "rb") as istream:
@@ -102,6 +112,7 @@ def convert_pose_format(infile, outfile, in_time_unit=None, in_quat_order="xyzw"
                     ostream.write("{}{}\n".format(output_delimiter, quat[0]))
                 else:
                     raise ValueError("Unsupported input quaternion order {}!".format(in_quat_order))
+            print("Successfully converted {}\ninto pose file: {}".format(infile, outfile))
 
 def main():
     parsed = parseArgs()

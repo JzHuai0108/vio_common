@@ -77,7 +77,7 @@ def decide_time_index_and_unit(lines, delimiter):
         raise ValueError("Not enough lines to determine time index")
     value_rows = []
     for line in lines:
-        rags = line.split(delimiter)
+        rags = line.rstrip(delimiter).split(delimiter)
         value = [float(rag) for rag in rags]
         value_rows.append(value)
     value_array = np.array(value_rows)
