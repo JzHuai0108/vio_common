@@ -32,7 +32,6 @@ SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -fsee -fomit-frame-pointer -
 
 # Add plain cmake packages 
 find_package(OpenCV REQUIRED)
-message ("opencv include dir " ${OpenCV_INCLUDE_DIRS})
 FIND_PACKAGE(Eigen REQUIRED)
 
 # Include dirs

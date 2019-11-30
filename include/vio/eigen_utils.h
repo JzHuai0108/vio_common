@@ -336,7 +336,7 @@ void reparameterizeNumericalJacobian(const Eigen::Matrix3d &Ri,
                                      const Eigen::Vector3d &pj,
                                      Eigen::Vector3d &abrhoj,
                                      Eigen::Matrix<double, 3, 9> &jacobian);
-void testReparameterize();
+
 
 /**
  * @brief extract blocks from matrix A
@@ -379,8 +379,6 @@ extractBlocks(
   }
   return res;
 }
-
-void testExtractBlocks();
 
 // this is adapted from vee of so3 in sophus
 Eigen::Vector3d unskew3d(const Eigen::Matrix3d &Omega);
