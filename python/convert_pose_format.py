@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# This script should work with both python2 and python3.
 import argparse
 import os
 import sys
