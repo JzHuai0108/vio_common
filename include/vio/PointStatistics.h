@@ -41,7 +41,7 @@ struct PointStatistics
       double deviation=0;
       for(int i=0; i<2; ++i)
           for(int j=0; j<2; ++j)
-              deviation+=abs(num_points_grid3x3(i,j)/num_matched_points[0]-1/9.0);
+              deviation+=fabs(num_points_grid3x3(i,j)/num_matched_points[0]-1/9.0);
       return deviation<3/9.0;
   }
  

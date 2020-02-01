@@ -91,16 +91,16 @@ bool GPSGrabber::getObservation(double tk) {
       for (int j = 1; j < 4; ++j) transMat[j] = pat_->xyz_ecef[j - 1];
       for (int j = 4; j < 7; ++j) transMat[j] = pat_->sdxyz[j - 4];
       ++lineNum;
-      if (abs(transMat[0] - tk) < interval_) break;
+      if (std::fabs(transMat[0] - tk) < interval_) break;
       measurement = transMat;
     }
-    if (abs(transMat[0] - tk) < interval_ && measurement[0] != -1) {
+    if (std::fabs(transMat[0] - tk) < interval_ && measurement[0] != -1) {
       reinit_data = false;
       is_measurement_good = true;
       measurement = transMat;
     }
   } else {
-    assert(abs(measurement[0] - tkm1) < interval_);
+    assert(std::fabs(measurement[0] - tkm1) < interval_);
     measurement = transMat;  // last stranded measurement, t(p(k-1))
 
     while (!stream.eof()) {
@@ -112,10 +112,10 @@ bool GPSGrabber::getObservation(double tk) {
       for (int j = 1; j < 4; ++j) transMat[j] = pat_->xyz_ecef[j - 1];
       for (int j = 4; j < 7; ++j) transMat[j] = pat_->sdxyz[j - 4];
       ++lineNum;
-      if (abs(transMat[0] - tk) < interval_) break;
+      if (std::fabs(transMat[0] - tk) < interval_) break;
       measurement = transMat;
     }
-    if (abs(transMat[0] - tk) < interval_) {
+    if (std::fabs(transMat[0] - tk) < interval_) {
       is_measurement_good = true;
       measurement = transMat;
     } else {
@@ -194,12 +194,12 @@ std::istream& GPSGrabber::RtklibPosPatternTOWNED::read(std::istream& is) {
       copysign(sdne_eu_un[1] * sdne_eu_un[1], sdne_eu_un[1]),
       copysign(sdneu[2] * sdneu[2], sdneu[2]);
   Eigen::Matrix3d Recef = Ce2n.transpose() * Rneu * Ce2n;
-  sdxyz[0] = copysign(sqrt(abs(Recef(0, 0))), Recef(0, 0));
-  sdxyz[1] = copysign(sqrt(abs(Recef(1, 1))), Recef(1, 1));
-  sdxyz[2] = copysign(sqrt(abs(Recef(2, 2))), Recef(2, 2));
-  sdxy_yz_zx[0] = copysign(sqrt(abs(Recef(0, 1))), Recef(0, 1));
-  sdxy_yz_zx[1] = copysign(sqrt(abs(Recef(1, 2))), Recef(1, 2));
-  sdxy_yz_zx[2] = copysign(sqrt(abs(Recef(2, 0))), Recef(2, 0));
+  sdxyz[0] = copysign(sqrt(std::fabs(Recef(0, 0))), Recef(0, 0));
+  sdxyz[1] = copysign(sqrt(std::fabs(Recef(1, 1))), Recef(1, 1));
+  sdxyz[2] = copysign(sqrt(std::fabs(Recef(2, 2))), Recef(2, 2));
+  sdxy_yz_zx[0] = copysign(sqrt(std::fabs(Recef(0, 1))), Recef(0, 1));
+  sdxy_yz_zx[1] = copysign(sqrt(std::fabs(Recef(1, 2))), Recef(1, 2));
+  sdxy_yz_zx[2] = copysign(sqrt(std::fabs(Recef(2, 0))), Recef(2, 0));
   return is;
 }
 
