@@ -68,7 +68,6 @@ src/CsvReader.cpp
 src/FrameGrabber.cpp
 src/eigen_utils.cpp
 include/vio/PointStatistics.h
-include/vio/ImuErrorModel.h
 )
 
 IF(${USE_GPSTK})
