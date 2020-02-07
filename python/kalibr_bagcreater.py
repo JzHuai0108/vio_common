@@ -65,8 +65,11 @@ def parseArgs():
                         required=False)
     parser.add_argument('--max_video_frame_height',
                         type=int, default=480,
-                        help='For a video frame, if min(rows, cols) > this val, '
-                             'it will be half sampled. (default: %(default)s)',
+                        help='For a video frame, if min(rows, cols) > %(default)s, '
+                             'it will be downsampled by 2. If the resultant bag is '
+                             'used for photogrammetry, the original focal_length and '
+                             'principal_point should be half-sized, but the '
+                             'distortion parameters should not be changed. (default: %(default)s)',
                         required=False)
 
     if len(sys.argv)<2:
