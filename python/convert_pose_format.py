@@ -10,7 +10,6 @@ def parseArgs():
     # setup the argument list
     parser = argparse.ArgumentParser(
         description='Convert a pose file to standard format.')
-    # case 1 arguments used by the kalibr to create a rosbag from a folder
     parser.add_argument('infile',
                         help='A file containing rows of states, each state including '
                              'time, position and quaternion.\n'

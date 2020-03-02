@@ -73,7 +73,7 @@ TEST(eigen_utils, ReparameterizeJacobians) {
                                          jacobianNumeric);
     EXPECT_TRUE(jacobian.isApprox(jacobianNumeric, 1e-7));
     EXPECT_TRUE(expected_abrhoi[jack].isApprox(abrhoi, 1e-6));
-    EXPECT_TRUE(expected_abrhoj[jack].isApprox(abrhoj, 1e-5));
+    EXPECT_LT((expected_abrhoj[jack] - abrhoj).lpNorm<Eigen::Infinity>(), 1e-5);
   }
   // infinity
   Eigen::Matrix3d Ri = Eigen::Matrix3d::Identity();
