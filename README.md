@@ -2,7 +2,7 @@ vio_common
 
 # Build instructions
 
-1. Install opencv 2.4 and eigen 3.3
+## Install opencv 2.4 and eigen 3.3
 
 ```
 #e.g., 
@@ -11,10 +11,10 @@ sudo apt-get install libopencv-dev libeigen3-dev
 
 If you want to install a specific version of these libraries or install to a specific path(note -DCMAKE\_INSTALL\_PREFIX), you may build them from source.
 
-2. Build vio_common
+## Build vio_common
 
+### Without ROS
 ```
-cd 
 cd workspace
 git clone https://github.com/JzHuai0108/vio_common.git vio_common
 mkdir build && cd build
@@ -25,4 +25,26 @@ make
 make install
 ```
 
+### With ROS
+```
+catkin build vio_common -DUSE_ROS=ON -DCMAKE_BUILD_TYPE=Release -j4
+```
+
+## Run tests
+
+```
+# Build tests
+catkin build vio_common --catkin-make-args run_tests
+# or
+catkin build --make-args tests -- vio_common
+
+# list tests
+rosrun vio_common vio_common_test --gtest_list_tests
+# run a test
+rosrun vio_common vio_common_test --gtest_filter="*some_test*"
+```
+
+## References
+[1] [Build and run tests with catkin tools](https://catkin-tools.readthedocs.io/en/latest/verbs/catkin_build.html#building-and-running-tests). 
+[2] [Run unit tests with catkin](https://personalrobotics.cs.washington.edu/software/unit-testing/)
 

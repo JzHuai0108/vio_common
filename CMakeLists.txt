@@ -96,20 +96,18 @@ TARGET_LINK_LIBRARIES(test_csv_reader ${PROJECT_NAME})
 ADD_EXECUTABLE(test_gps_grabber test/test_gps_grabber.cpp)
 TARGET_LINK_LIBRARIES(test_gps_grabber ${PROJECT_NAME})
 
-find_package(GTest REQUIRED)
-include_directories(${GTEST_INCLUDE_DIRS})
-
 add_executable(video2image app/video2images_kalibr.cpp )
 target_link_libraries(video2image ${OpenCV_LIBS})
 
-add_executable(vio_common_test test/test_main.cpp
+if (CATKIN_ENABLE_TESTING)
+  catkin_add_gtest(vio_common_test test/test_main.cpp
     test/test_time_grabber.cpp
     test/test_utils.cpp
     test/test_frame_grabber.cpp
     test/test_imu_grabber.cpp
-    test/test_eigen_utils.cpp
-    )
-target_link_libraries(vio_common_test ${PROJECT_NAME} ${GTEST_LIBRARIES} glog pthread)
+    test/test_eigen_utils.cpp)
+  target_link_libraries(vio_common_test ${PROJECT_NAME})
+endif()
 
 ################################################################################
 # Create the vio_commonConfig.cmake file for other cmake projects.
