@@ -48,7 +48,7 @@ def parseArgs():
 def convert_pose_format(infile, outfile, in_time_unit=None, in_quat_order="xyzw",
                         output_format="KALIBR", output_delimiter=","):
     # check infile line format
-    with open(infile, "rb") as stream:
+    with open(infile, "r") as stream:
         lines = []
         max_lines = 2
         read_next = True
@@ -78,7 +78,7 @@ def convert_pose_format(infile, outfile, in_time_unit=None, in_quat_order="xyzw"
         outfile = os.path.join(in_dir, in_name + "_canon" + in_ext)
     # load infile and write outfile
     with open(outfile, "w") as ostream:
-        with open(infile, "rb") as istream:
+        with open(infile, "r") as istream:
             for line in istream:
                 if utility_functions.is_header_line(line):
                     continue
