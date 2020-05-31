@@ -11,7 +11,11 @@ In this example, we first crawl the webpage to extract
 all the links and then download files."""  # pylint: disable=pointless-string-statement
 
 
-def get_file_links(archive_url, file_ext_in):
+def has_all_keys(url, key_list):
+    return all(key in url for key in key_list)
+
+
+def get_file_links(archive_url, key_list):
     """create response object"""
     r = requests.get(archive_url)
 
@@ -33,7 +37,7 @@ def get_file_links(archive_url, file_ext_in):
             dir_url = dir_url[:slash_index + 1]
 
     for link in links:
-        if link['href'].endswith(file_ext_in):
+        if has_all_keys(link['href'], key_list):
             file_links_out.append(dir_url + link['href'])
 
     return file_links_out
@@ -61,16 +65,17 @@ def wget_file_series(file_links_in, save_to_path_in):
 if __name__ == "__main__":
     nargs = len(sys.argv)
     if nargs < 3:
-        print('Usage: {} webpage_url file_ext(eg., "zip" or "indoor.zip") '
-              'save_to_path'.format(sys.argv[0]))
+        print('Usage: {} webpage_url comma_separated_filename_keys('
+              'eg., "zip,indoor") save_to_path'.format(sys.argv[0]))
         sys.exit(1)
 
     webpage_url = sys.argv[1]
-    file_ext = sys.argv[2]
+    filename_keys = sys.argv[2]
     save_to_path = sys.argv[3]
 
     # getting all file links
-    file_links = get_file_links(webpage_url, file_ext)
+    filename_key_list = filename_keys.split(',')
+    file_links = get_file_links(webpage_url, filename_key_list)
     print('Found links:\n{}'.format('\n'.join(file_links)))
 
     # download all files
