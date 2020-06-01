@@ -1,5 +1,9 @@
 import json
 import numpy as np
+from numpy import genfromtxt
+
+import os
+
 
 SECOND_TO_MILLIS = 1000
 SECOND_TO_MICROS = 1000000
@@ -38,6 +42,15 @@ def parse_time(timestamp_str, time_unit="ns"):
             return int(timestamp_str[0:-decimal_count]),\
                    int(timestamp_str[-decimal_count:]) * 10 ** (9 - decimal_count)
 
+def is_float(element_str):
+    """check if a string represent a float. To this function, 30e5 is float, but 2131F or 2344f is not float"""
+    try:
+        float(element_str)
+        return True
+    except ValueError:
+        return False
+
+
 def is_header_line(line):
     common_header_markers = ['%', '#', '//']
     has_found = False
@@ -53,6 +66,7 @@ def is_header_line(line):
         else:
             return True
     return has_found
+
 
 def decide_delimiter(line):
     common_delimiters = [',', ' ']
@@ -145,3 +159,31 @@ def read_pose_from_json(pose_json):
         q_w = float(load_dict['rotation']['w'])
         pose = [x, y, z, q_x, q_y, q_z, q_w]
         return pose
+
+
+def interpolate_imu_data(time_gyro_array, time_accel_array):
+    """
+    interpolate accelerometer data at gyro epochs
+    :param time_gyro_array: each row [time in sec, gx, gy, gz]
+    :param time_accel_array: each row [time in sec, ax, ay, az]
+    :return: time_gyro_accel_array: each row [time in sec, gx, gy, gz, ax, ay, az]
+    """
+    a = []
+    for c in range(1, 1+3):
+        a.append(np.interp(time_gyro_array[:, 0], time_accel_array[:, 0], time_accel_array[:, c]))
+    return np.column_stack((time_gyro_array, a[0], a[1], a[2]))
+
+
+def load_advio_imu_data(file_csv):
+    """
+
+    :param file_csv: each row [time in sec, x, y, z]
+    :return: np array nx4
+    """
+    return genfromtxt(file_csv, delimiter=',', skip_header=0)
+
+
+def check_file_exists(filename):
+    """sanity check"""
+    if not os.path.exists(filename):
+        raise OSError("{} does not exist".format(filename))

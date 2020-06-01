@@ -393,11 +393,33 @@ def main():
                 imucount += 1
                 bag.write("/{0}".format(topic), imumsg, timestamp)
             print('Saved {} out of {} inertial messages to the rosbag'.format(imucount, rowcount))
+    else:
+        gyro_file = parsed.imu[0]
+        accel_file = parsed.imu[1]
+        topic = 'imu0'
+        for filename in parsed.imu:
+            utility_functions.check_file_exists(filename)
+        time_gyro_array = utility_functions.load_advio_imu_data(gyro_file)
+        time_accel_array = utility_functions.load_advio_imu_data(accel_file)
+        time_imu_array = utility_functions.interpolate_imu_data(time_gyro_array, time_accel_array)
+        bag_imu_count = 0
+        for row in time_imu_array:
+            imumsg, timestamp = create_imu_message(rospy.Time.from_sec(row[0]), row[1:4], row[4:7])
+            timestampinsec = timestamp.to_sec()
+            # check the below conditions when video and imu use different clocks and their lengths differ much
+            if videotimerange and \
+                    (timestampinsec < videotimerange[0] - MARGIN_TIME or
+                     timestampinsec > videotimerange[1] + MARGIN_TIME):
+                continue
+            bag_imu_count += 1
+            bag.write("/{0}".format(topic), imumsg, timestamp)
+        print('Saved {} out of {} inertial messages to the rosbag'.format(bag_imu_count, time_imu_array.shape[0]))
 
     bag.close()
-    print 'Saved to bag file', parsed.output_bag
+    print('Saved to bag file {}'.format(parsed.output_bag))
 
-MARGIN_TIME = 5 # sec
+
+MARGIN_TIME = 5  # sec
 
 if __name__ == "__main__":
     main()
