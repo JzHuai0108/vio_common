@@ -41,9 +41,16 @@ def parseArgs():
         'KALIBR: [t[nanos], x[m], y[m], z[m], q_x, q_y, q_z, q_w]\n'
         'TUM_RGBD: [t[s] x[m] y[m] z[m] q_x q_y q_z q_w]\n'
         '(default: %(default)s)')
+
     parser.add_argument('--output_delimiter',
                         default=',',
                         help="e.g., ',' or ' ' (default: %(default)s)")
+
+    parser.add_argument(
+        "--shift_secs",
+        type=float,
+        default=0.0,
+        help="shift the timestamp by this amount to avoid 0 timestamp")
 
     if len(sys.argv) < 2:
         parser.print_help()
@@ -70,7 +77,8 @@ def convert_pose_format(infile,
                         in_time_unit=None,
                         in_quat_order="xyzw",
                         output_format="KALIBR",
-                        output_delimiter=","):
+                        output_delimiter=",",
+                        shift_secs=0):
     # check infile line format
     with open(infile, "r") as stream:
         lines = []
@@ -106,6 +114,10 @@ def convert_pose_format(infile,
         in_base = os.path.basename(infile)
         in_name, in_ext = os.path.splitext(in_base)
         outfile = os.path.join(in_dir, in_name + "_canon" + in_ext)
+
+    plus_sec = int(shift_secs)
+    plus_nanosec = int((shift_secs - plus_sec) * 1e9)
+
     # load infile and write outfile
     with open(outfile, "w") as ostream:
         with open(infile, "r") as istream:
@@ -116,6 +128,8 @@ def convert_pose_format(infile,
                 rags = line.split(in_delimiter)
                 rags = [rag.strip() for rag in rags]
                 secs, nanos = utility_functions.parse_time(rags[time_index])
+                secs += plus_sec
+                nanos += plus_nanosec
 
                 if output_format == "KALIBR":
                     if secs > 0:
@@ -159,5 +173,6 @@ if __name__ == "__main__":
     parsed = parseArgs()
     rc = convert_pose_format(parsed.infile, parsed.outfile,
                              parsed.in_time_unit, parsed.in_quat_order,
-                             parsed.output_format, parsed.output_delimiter)
+                             parsed.output_format, parsed.output_delimiter,
+                             parsed.shift_secs)
     sys.exit(rc)
