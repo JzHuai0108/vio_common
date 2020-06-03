@@ -1,18 +1,14 @@
 import json
+import os
 import numpy as np
 from numpy import genfromtxt
-
-import os
-
 
 SECOND_TO_MILLIS = 1000
 SECOND_TO_MICROS = 1000000
 SECOND_TO_NANOS = 1000000000
 
-TIME_UNIT_TO_DECIMALS = {'s': 0,
-                         "ms": 3,
-                         "us": 6,
-                         "ns": 9}
+TIME_UNIT_TO_DECIMALS = {'s': 0, "ms": 3, "us": 6, "ns": 9}
+
 
 def parse_time(timestamp_str, time_unit="ns"):
     """
@@ -25,25 +21,35 @@ def parse_time(timestamp_str, time_unit="ns"):
     secs = 0
     nsecs = 0
     if '.' in timestamp_str:
-        index = timestamp_str.find('.')
-        if index == 0:
-            nsecs = int(float(timestamp_str[index:]) * SECOND_TO_NANOS)
-        elif index == len(timestamp_str) - 1:
-            secs = int(timestamp_str[:index])
+        if 'e' in timestamp_str:
+            stamp = float(timestamp_str)
+            secs = int(stamp)
+            nsecs = int(round((stamp - secs) * SECOND_TO_NANOS))
         else:
-            secs = int(timestamp_str[:index])
-            nsecs = int(float(timestamp_str[index:]) * SECOND_TO_NANOS)
+            index = timestamp_str.find('.')
+            if index == 0:
+                nsecs = int(
+                    round(float(timestamp_str[index:]) * SECOND_TO_NANOS))
+            elif index == len(timestamp_str) - 1:
+                secs = int(timestamp_str[:index])
+            else:
+                secs = int(timestamp_str[:index])
+                nsecs = int(
+                    round(float(timestamp_str[index:]) * SECOND_TO_NANOS))
         return secs, nsecs
     else:
         decimal_count = TIME_UNIT_TO_DECIMALS[time_unit]
         if len(timestamp_str) <= decimal_count:
-            return 0, int(timestamp_str) * 10 ** (9 - decimal_count)
+            return 0, int(timestamp_str) * 10**(9 - decimal_count)
         else:
             return int(timestamp_str[0:-decimal_count]),\
-                   int(timestamp_str[-decimal_count:]) * 10 ** (9 - decimal_count)
+                   int(timestamp_str[-decimal_count:]) * 10 ** \
+                   (9 - decimal_count)
+
 
 def is_float(element_str):
-    """check if a string represent a float. To this function, 30e5 is float, but 2131F or 2344f is not float"""
+    """check if a string represent a float. To this function, 30e5 is float,
+    but 2131F or 2344f is not float"""
     try:
         float(element_str)
         return True
@@ -76,6 +82,7 @@ def decide_delimiter(line):
     max_occurrence = max(occurrences)
     max_pos = occurrences.index(max_occurrence)
     return common_delimiters[max_pos]
+
 
 def decide_time_index_and_unit(lines, delimiter):
     """
@@ -130,6 +137,7 @@ def decide_time_index_and_unit(lines, delimiter):
 
     return time_index, time_unit, t_index
 
+
 def normalize_quat_str(val_str_list):
     max_len = max([len(x) - x.find('.') - 1 for x in val_str_list])
     if max_len > 8:
@@ -166,11 +174,14 @@ def interpolate_imu_data(time_gyro_array, time_accel_array):
     interpolate accelerometer data at gyro epochs
     :param time_gyro_array: each row [time in sec, gx, gy, gz]
     :param time_accel_array: each row [time in sec, ax, ay, az]
-    :return: time_gyro_accel_array: each row [time in sec, gx, gy, gz, ax, ay, az]
+    :return: time_gyro_accel_array: each row
+    [time in sec, gx, gy, gz, ax, ay, az]
     """
     a = []
-    for c in range(1, 1+3):
-        a.append(np.interp(time_gyro_array[:, 0], time_accel_array[:, 0], time_accel_array[:, c]))
+    for c in range(1, 1 + 3):
+        a.append(
+            np.interp(time_gyro_array[:, 0], time_accel_array[:, 0],
+                      time_accel_array[:, c]))
     return np.column_stack((time_gyro_array, a[0], a[1], a[2]))
 
 

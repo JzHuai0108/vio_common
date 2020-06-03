@@ -382,7 +382,7 @@ def loadtimestamps(video_time_file):
     """Except for the header, each row has the timestamp in sec
     as its first component"""
     frame_rostimes = list()
-    with open(video_time_file, 'rb') as csvfile:
+    with open(video_time_file, 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter=',')
         for row in reader:
             if utility_functions.is_header_line(row[0]):
@@ -441,7 +441,7 @@ def main():
         imufiles = get_imu_csv_files(parsed.folder)
         for imufile in imufiles:
             topic = os.path.splitext(os.path.basename(imufile))[0]
-            with open(imufile, 'rb') as csvfile:
+            with open(imufile, 'r') as csvfile:
                 reader = csv.reader(csvfile, delimiter=',')
                 for row in reader:
                     if utility_functions.is_header_line(row):
@@ -453,7 +453,7 @@ def main():
         imufile = parsed.imu
         topic = 'imu0'
         utility_functions.check_file_exists(parsed.imu)
-        with open(imufile, 'rb') as csvfile:
+        with open(imufile, 'r') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             rowcount = 0
             imucount = 0
