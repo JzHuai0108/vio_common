@@ -10,7 +10,7 @@ SECOND_TO_NANOS = 1000000000
 TIME_UNIT_TO_DECIMALS = {'s': 0, "ms": 3, "us": 6, "ns": 9}
 
 
-def parse_time(timestamp_str, time_unit="ns"):
+def parse_time(timestamp_str, time_unit):
     """
     convert a timestamp string to a rospy time
     if a dot is not in the string, the string is taken as an int in time_unit
@@ -42,9 +42,14 @@ def parse_time(timestamp_str, time_unit="ns"):
         if len(timestamp_str) <= decimal_count:
             return 0, int(timestamp_str) * 10**(9 - decimal_count)
         else:
-            return int(timestamp_str[0:-decimal_count]),\
-                   int(timestamp_str[-decimal_count:]) * 10 ** \
-                   (9 - decimal_count)
+            if decimal_count == 0:
+                val = float(timestamp_str)
+                return int(val), int(
+                    (val - int(val)) * 10**(9 - decimal_count))
+            else:
+                return int(timestamp_str[0:-decimal_count]),\
+                       int(timestamp_str[-decimal_count:]) * 10 ** \
+                       (9 - decimal_count)
 
 
 def is_float(element_str):

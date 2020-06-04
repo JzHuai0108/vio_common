@@ -206,7 +206,7 @@ def load_image_to_ros_msg(filename):
 
 
 def create_imu_message_time_string(timestamp_str, omega, alpha):
-    secs, nsecs = utility_functions.parse_time(timestamp_str)
+    secs, nsecs = utility_functions.parse_time(timestamp_str, 's')
     timestamp = rospy.Time(secs, nsecs)
     return create_imu_message(timestamp, omega, alpha), timestamp
 
@@ -387,7 +387,7 @@ def loadtimestamps(video_time_file):
         for row in reader:
             if utility_functions.is_header_line(row[0]):
                 continue
-            secs, nsecs = utility_functions.parse_time(row[0])
+            secs, nsecs = utility_functions.parse_time(row[0], 's')
             frame_rostimes.append(rospy.Time(secs, nsecs))
     return frame_rostimes
 

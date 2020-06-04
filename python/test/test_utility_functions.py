@@ -50,7 +50,7 @@ def test_parse_time():
     ]
 
     for timestr in timestr_list:
-        sec, nsec = utility_functions.parse_time(timestr)
+        sec, nsec = utility_functions.parse_time(timestr, "s")
         assert sec + nsec * 1e-9 - float(timestr) < 1e-8
 
 

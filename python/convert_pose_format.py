@@ -127,7 +127,9 @@ def convert_pose_format(infile,
                     continue
                 rags = line.split(in_delimiter)
                 rags = [rag.strip() for rag in rags]
-                secs, nanos = utility_functions.parse_time(rags[time_index])
+                secs, nanos = utility_functions.parse_time(
+                    rags[time_index], time_unit)
+
                 secs += plus_sec
                 nanos += plus_nanosec
 
