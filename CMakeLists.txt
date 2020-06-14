@@ -37,7 +37,7 @@ FIND_PACKAGE(Eigen REQUIRED)
 # Include dirs
 LIST(APPEND vio_common_INCLUDE_DIR
   ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${Eigen_INCLUDE_DIRS}
+  ${EIGEN_INCLUDE_DIR}
   ${OpenCV_INCLUDE_DIRS}
 )
 
@@ -45,7 +45,7 @@ IF(${USE_ROS})
   FIND_PACKAGE(catkin REQUIRED COMPONENTS roscpp cmake_modules)
   LIST(APPEND vio_common_INCLUDE_DIR ${catkin_INCLUDE_DIRS})
   catkin_package(
-    DEPENDS Eigen OpenCV
+    DEPENDS
     CATKIN_DEPENDS roscpp
     INCLUDE_DIRS include
     LIBRARIES ${PROJECT_NAME}
