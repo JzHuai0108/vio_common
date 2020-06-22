@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import os
 import sys
 import argparse
@@ -78,7 +79,7 @@ def parse_args():
                         help='The csv file containing timestamps of every '
                         'video frames in IMU clock(default: %(default)s).'
                         ' Except for the header, each row has the '
-                        'timestamp in sec as its first component',
+                        'timestamp in nanosec as its first component',
                         required=False)
     parser.add_argument(
         '--max_video_frame_height',
@@ -206,7 +207,7 @@ def load_image_to_ros_msg(filename):
 
 
 def create_imu_message_time_string(timestamp_str, omega, alpha):
-    secs, nsecs = utility_functions.parse_time(timestamp_str, 's')
+    secs, nsecs = utility_functions.parse_time(timestamp_str, 'ns')
     timestamp = rospy.Time(secs, nsecs)
     return create_imu_message(timestamp, omega, alpha), timestamp
 
@@ -379,7 +380,7 @@ def write_video_to_rosbag(bag,
 
 
 def loadtimestamps(video_time_file):
-    """Except for the header, each row has the timestamp in sec
+    """Except for the header, each row has the timestamp in nanosec
     as its first component"""
     frame_rostimes = list()
     with open(video_time_file, 'r') as csvfile:
@@ -387,7 +388,7 @@ def loadtimestamps(video_time_file):
         for row in reader:
             if utility_functions.is_header_line(row[0]):
                 continue
-            secs, nsecs = utility_functions.parse_time(row[0], 's')
+            secs, nsecs = utility_functions.parse_time(row[0], 'ns')
             frame_rostimes.append(rospy.Time(secs, nsecs))
     return frame_rostimes
 
@@ -450,15 +451,15 @@ def main():
                         row[0], row[1:4], row[4:7])
                     bag.write("/{0}".format(topic), imumsg, timestamp)
     elif len(parsed.imu) == 1:
-        imufile = parsed.imu
+        imufile = parsed.imu[0]
         topic = 'imu0'
-        utility_functions.check_file_exists(parsed.imu)
+        utility_functions.check_file_exists(imufile)
         with open(imufile, 'r') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             rowcount = 0
             imucount = 0
-            for row in reader:  # note row[i] are strings
-                if utility_functions.is_header_line(row):
+            for row in reader:  # note row has many strings.
+                if utility_functions.is_header_line(row[0]):
                     continue
                 imumsg, timestamp = create_imu_message_time_string(
                     row[0], row[1:4], row[4:7])
