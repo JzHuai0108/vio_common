@@ -14,10 +14,10 @@ import sys
 import tempfile
 
 import cv2
-import its.caps
-import its.device
-import its.image
-import its.objects
+# import its.caps
+# import its.device
+# import its.image
+# import its.objects
 import numpy as np
 
 DEBUG = False
@@ -148,8 +148,8 @@ def main():
     if DEBUG:
         debug_dir = setup_debug_dir(args.debug_dir)
         # Write raw frames.
-        for i, img in enumerate(frames):
-            its.image.write_image(img, '%s/raw/%03d.png' % (debug_dir, i))
+        # for i, img in enumerate(frames):
+        #     its.image.write_image(img, '%s/raw/%03d.png' % (debug_dir, i))
     else:
         debug_dir = None
 
@@ -233,12 +233,26 @@ def load_data(dir_name):
     Returns:
         A list of RGB images as numpy arrays.
     """
-    frame_files = glob.glob('%s/*.png' % dir_name)
-    frames = []
-    for frame_file in sorted(frame_files):
-        frames.append(its.image.load_rgb_image(frame_file))
-    with open('%s/reported_skew.txt' % dir_name, 'r') as f:
-        reported_skew = f.readline()[:-2]  # Strip off 'ms' suffix
+    modulename = 'its'
+    if modulename in sys.modules:
+        android = True
+    else:
+        android = False
+    if android:
+        frame_files = glob.glob('%s/*.png' % dir_name)
+        frames = []
+        for frame_file in sorted(frame_files):
+            frames.append(its.image.load_rgb_image(frame_file))
+    else:
+        frame_files = glob.glob('%s/*.jpg' % dir_name)
+        frames = []
+        for frame_file in sorted(frame_files):
+            frames.append(cv2.imread(frame_file))
+    reported_skew = 20
+    ref_skew_txt = '{}/reported_skew.txt'.format(dir_name)
+    if os.path.isfile(ref_skew_txt):
+        with open(ref_skew_txt, 'r') as f:
+            reported_skew = f.readline()[:-2]  # Strip off 'ms' suffix
     return frames, reported_skew
 
 
@@ -328,7 +342,7 @@ def calculate_shutter_skew(frame, led_time, frame_num=None, debug_dir=None):
     debug_print('%s points in the largest cluster.' % len(largest_cluster))
 
     np_cluster = np.array([[c.x, c.y] for c in largest_cluster])
-    [vx], [vy], [x0], [y0] = cv2.fitLine(np_cluster, cv2.cv.CV_DIST_L2, 0,
+    [vx], [vy], [x0], [y0] = cv2.fitLine(np_cluster, cv2.DIST_L2, 0,
                                          0.01, 0.01)
     slope = vy / vx
     debug_print('Slope is %s.' % slope)
@@ -363,6 +377,15 @@ def calculate_shutter_skew(frame, led_time, frame_num=None, debug_dir=None):
     return shutter_skew, cluster_percentage, slope
 
 
+def android_image_to_opencv_image(img):
+    if img.dtype == 'uint8':
+        return img
+    img *= 255
+    img = img.astype(np.uint8)
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    return img
+
+
 def find_contours(img):
     """Finds contours in the given image.
 
@@ -376,9 +399,7 @@ def find_contours(img):
     """
     # Convert to format OpenCV can work with (BGR ordering with byte-ranged
     # values).
-    img *= 255
-    img = img.astype(np.uint8)
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    img = android_image_to_opencv_image(img)
 
     # Since the LED colors for the panel we're using are red, we can get better
     # contours for the LEDs if we ignore the green and blue channels.  This also
@@ -398,8 +419,7 @@ def find_contours(img):
         contour_img = cv2.cvtColor(opening, cv2.COLOR_GRAY2BGR)
     else:
         contour_img = None
-    contours, _ = cv2.findContours(opening, cv2.cv.CV_RETR_EXTERNAL,
-                                   cv2.cv.CV_CHAIN_APPROX_NONE)
+    _, contours, _ = cv2.findContours(opening, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     if DEBUG:
         cv2.drawContours(contour_img, contours, -1, (0, 0, 255), thickness=2)
     return contours, img, contour_img, red_img
