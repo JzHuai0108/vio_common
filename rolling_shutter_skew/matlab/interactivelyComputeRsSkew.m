@@ -1,29 +1,66 @@
-function interactivelyComputeRsSkew(img_name) %
-    interactively compute rolling shutter skew on an image of LED panel.%
-    ex : % res_dir = '/ksf-data/led-panel';
+function interactivelyComputeRsSkew(img_name, t_led, led_gap_px)
+% interactively compute rolling shutter skew on an image of LED panel.
+% first draw two inclined lines for the rolling shutter effect at the
+% bottom and at the top, then draw two vertical lines through the LED light
+% centers, first left, second right.
+
+% ex :
+% res_dir = '/ksf-data/led-panel';
 % img_name = [ res_dir, '/honorv10/expo5ms/2020_07_15_19_35_32/raw/00010.jpg' ];
 % img_name = [ res_dir, '/honorv10/expo5ms/2020_07_15_19_35_32/raw/00001.jpg' ];
 % img_name = [ res_dir, '/honorv10/expo5ms/2020_07_15_19_35_41/raw/00013.jpg' ];
 % img_name = [ res_dir, '/honorv10/expo1ms/2020_07_15_19_15_32/raw/00001.jpg' ];
-% img_name =
-    [ res_dir, '/honorv10/expo02ms/2020_07_15_18_07_44/raw/00013.jpg' ];
+% img_name = [ res_dir, '/honorv10/expo02ms/2020_07_15_18_07_44/raw/00013.jpg' ];
 % img_name = [ res_dir, '/asus/2020_07_15_17_15_23/raw/00097.jpg' ];
 % interactivelyComputeRsSkew(img_name);
+
 close all;
+
+if nargin < 3
+    led_gap_px = 60;
+end
+if nargin < 2
+    t_led = 1;
+end
 I = imread(img_name);
 figure;
 imshow(I);
-slope = drawline('LineWidth', 1, 'Color', 'cyan');
-slope2 = drawline('LineWidth', 1, 'Color', 'cyan');
+sloping1 = drawline('LineWidth', 1, 'Color', 'cyan');
+sloping2 = drawline('LineWidth', 1, 'Color', 'cyan');
 
 left = drawline('LineWidth', 1, 'Color', 'cyan');
 right = drawline('LineWidth', 1, 'Color', 'cyan');
 
-w = mean(right.Position( :, 1)) - mean(left.Position( :, 1));
-m = slopeFunc(slope.Position + slope2.Position);
-% take average to be more accurate.H = 720;
-t_led = 5;
-col = 5;
-t_r = col * t_led * H / (w * m);
-fprintf('t_r %.5f\n', t_r);
+addlistener(sloping1,'ROIMoved',@allevents);
+addlistener(sloping2,'ROIMoved',@allevents);
+addlistener(left,'ROIMoved',@allevents);
+addlistener(right,'ROIMoved',@allevents);
+
+allevents(0, 0);
+
+    function allevents(src, evt)
+        % rolling shutter skew computation.
+        w = mean(right.Position(:, 1)) - mean(left.Position(:, 1));
+        m = slopeFunc(sloping1.Position + sloping2.Position); % take average to be more accurate.
+        H = 720;
+        col = round(w / led_gap_px);
+        t_r = col * t_led * H / (w * m);
+        
+        str = sprintf(['left x %.1f, right x %.1f\n', ...
+            'led-step(px) %d, led col steps %d\n', ...
+            'sloping1 (%d, %d; %d, %d)\n', ...
+            'sloping2 (%d, %d; %d, %d)\n', ...
+            'H %d, t-led %.4f ms, t-r %.4f ms\n'], ...
+            mean(left.Position(:, 1)), mean(right.Position(:, 1)), ...
+            led_gap_px, col, ...
+            sloping1.Position(1,1), sloping1.Position(1,2), ...
+            sloping1.Position(2,1), sloping1.Position(2,2), ...
+            sloping2.Position(1,1), sloping2.Position(1,2), ...
+            sloping2.Position(2,1), sloping2.Position(2,2), ...
+            H, t_led, t_r);
+        dim = [.7 .7 .25 .25];
+        delete(findall(gcf,'type','annotation'));
+        t = annotation('textbox', dim, 'String',str, 'FitBoxToText','on');
+        t.BackgroundColor = 'w';
+    end
 end

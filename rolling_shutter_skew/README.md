@@ -3,7 +3,12 @@
 Most likely, the rolling shutter skew is independent of the exposure time.
 
 ## Data collection
-adjust exposure time, and LED light time
+For a reported rolling shutter skew, t_r, the application is recommended to capture frames at 
+exposure time about (1/10 - 1/15) * t_r so as to ensure accuracy.
+
+For a specified exposure time, the duration of LED flashing time is recommended to be similar to or smaller than the exposure time, 
+so the slanting LED band will be narrow. In the case that exposure time is equal to the LED flashing time,
+the LED band will be about two LED lights wide.
 
 ## RS skew calculation
 The principle to estimate the rolling shutter skew is that 
