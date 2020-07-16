@@ -342,8 +342,8 @@ def calculate_shutter_skew(frame, led_time, frame_num=None, debug_dir=None):
     debug_print('%s points in the largest cluster.' % len(largest_cluster))
 
     np_cluster = np.array([[c.x, c.y] for c in largest_cluster])
-    [vx], [vy], [x0], [y0] = cv2.fitLine(np_cluster, cv2.DIST_L2, 0,
-                                         0.01, 0.01)
+    [vx], [vy], [x0], [y0] = cv2.fitLine(np_cluster, cv2.DIST_L2, 0, 0.01,
+                                         0.01)
     slope = vy / vx
     debug_print('Slope is %s.' % slope)
     (frame_h, frame_w, _) = frame.shape
@@ -419,7 +419,8 @@ def find_contours(img):
         contour_img = cv2.cvtColor(opening, cv2.COLOR_GRAY2BGR)
     else:
         contour_img = None
-    _, contours, _ = cv2.findContours(opening, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    _, contours, _ = cv2.findContours(opening, cv2.RETR_EXTERNAL,
+                                      cv2.CHAIN_APPROX_NONE)
     if DEBUG:
         cv2.drawContours(contour_img, contours, -1, (0, 0, 255), thickness=2)
     return contours, img, contour_img, red_img
