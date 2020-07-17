@@ -1,4 +1,4 @@
-function interactivelyComputeRsSkew(img_name, t_led, led_gap_px)
+function interactivelyComputeRsSkew(t_led, led_gap_px)
 % interactively compute rolling shutter skew on an image of LED panel.
 % first draw two inclined lines for the rolling shutter effect at the
 % bottom and at the top, then draw two vertical lines through the LED light
@@ -13,37 +13,32 @@ function interactivelyComputeRsSkew(img_name, t_led, led_gap_px)
 % img_name = [ res_dir, '/honorv10/expo02ms/2020_07_15_18_07_44/raw/00013.jpg' ];
 % img_name = [ res_dir, '/asus/2020_07_15_17_15_23/raw/00097.jpg' ];
 % interactivelyComputeRsSkew(img_name);
-
-close all;
-
 if nargin < 3
     led_gap_px = 60;
 end
 if nargin < 2
     t_led = 1;
 end
-I = imread(img_name);
-figure;
-imshow(I);
 sloping1 = drawline('LineWidth', 1, 'Color', 'cyan');
 sloping2 = drawline('LineWidth', 1, 'Color', 'cyan');
 
 left = drawline('LineWidth', 1, 'Color', 'cyan');
 right = drawline('LineWidth', 1, 'Color', 'cyan');
 
-addlistener(sloping1,'ROIMoved',@allevents);
-addlistener(sloping2,'ROIMoved',@allevents);
-addlistener(left,'ROIMoved',@allevents);
-addlistener(right,'ROIMoved',@allevents);
+addlistener(sloping1,'ROIMoved',@drawLineEvents);
+addlistener(sloping2,'ROIMoved',@drawLineEvents);
+addlistener(left,'ROIMoved',@drawLineEvents);
+addlistener(right,'ROIMoved',@drawLineEvents);
 
-allevents(0, 0);
+drawLineEvents(0, 0);
 
-    function allevents(src, evt)
+    function drawLineEvents(src, evt)
         % rolling shutter skew computation.
         w = mean(right.Position(:, 1)) - mean(left.Position(:, 1));
         m = slopeFunc(sloping1.Position + sloping2.Position); % take average to be more accurate.
         H = 720;
         col = round(w / led_gap_px);
+        global t_r;
         t_r = col * t_led * H / (w * m);
         
         str = sprintf(['left x %.1f, right x %.1f\n', ...
@@ -58,9 +53,9 @@ allevents(0, 0);
             sloping2.Position(1,1), sloping2.Position(1,2), ...
             sloping2.Position(2,1), sloping2.Position(2,2), ...
             H, t_led, t_r);
-        dim = [.7 .7 .25 .25];
-        delete(findall(gcf,'type','annotation'));
+        dim = [.65 .6 .25 .25];
         t = annotation('textbox', dim, 'String',str, 'FitBoxToText','on');
         t.BackgroundColor = 'w';
+        drawnow;
     end
 end
