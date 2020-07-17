@@ -17,9 +17,9 @@ end
 
 % show the window
 cell_list = cell(1, 5);
-cell_list{1, 1} = {'Next', 'getNextFrame'};
+cell_list{1, 1} = {'Previous', 'getPreviousFrame'};
 cell_list{1, 2} = {'Refresh', 'getCurrentFrame'};
-cell_list{1, 3} = {'Previous', 'getPreviousFrame'};
+cell_list{1, 3} = {'Next', 'getNextFrame'};
 cell_list{1, 4} = {'Draw lines', 'interactivelyComputeRsSkewWrap'};
 cell_list{1, 5} = {'Save and Next', 'saveCurrentAndGetNext'};
 

@@ -15,12 +15,11 @@ if exist(outputfig, 'file')==2
 end
 set(gcf, 'Color', 'w');
 saveas(gcf, outputfig);
-
-fileID = fopen([outputDir, '/interactive-rs-skew-estimate.txt'], 'a');
-fprintf(fileID, '%s %.4f ms\n', imageName, t_r);
-fclose(fileID);
 global numDrawnImages;
 numDrawnImages = numDrawnImages + 1;
+fileID = fopen([ outputDir, '/interactive-rolling-shutter-skew.txt' ], 'a');
+fprintf(fileID, '%s %.4f ms %d\n', imageName, t_r, numDrawnImages);
+fclose(fileID);
 
 getNextFrame(hObject, eventdata, imageList);
 end

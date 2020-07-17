@@ -1,6 +1,6 @@
-function found = showFrame(imageList, frameIndex)
+function found = showFrame(imageList, frameIndex) 
 if frameIndex > length(imageList) || frameIndex < 1
-    fprintf('Invalid frame number %d.\n', frameIndex);
+    fprintf('Out of bound frame index %d.\n', frameIndex);
     found = 0;
     return;
 end
@@ -23,8 +23,8 @@ if isfile(imageName)
     
     [~, name, ~] = fileparts(imageName);
     global numDrawnImages;
-    str = sprintf('Image %s #Saved images %d', name, numDrawnImages);
-    title(str);
+    str = sprintf('Image %s #Saved images %d', imageName, numDrawnImages);
+    title(str, 'Interpreter', 'none');
     global t_r;
     t_r = -1; % reset t_r
     found = 1;
