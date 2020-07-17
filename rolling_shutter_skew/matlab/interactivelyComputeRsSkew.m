@@ -13,10 +13,10 @@ function interactivelyComputeRsSkew(t_led, led_gap_px)
 % img_name = [ res_dir, '/honorv10/expo02ms/2020_07_15_18_07_44/raw/00013.jpg' ];
 % img_name = [ res_dir, '/asus/2020_07_15_17_15_23/raw/00097.jpg' ];
 % interactivelyComputeRsSkew(img_name);
-if nargin < 3
+if nargin < 2 
     led_gap_px = 60;
 end
-if nargin < 2
+if nargin < 1
     t_led = 1;
 end
 sloping1 = drawline('LineWidth', 1, 'Color', 'cyan');
