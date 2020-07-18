@@ -1,5 +1,5 @@
 function saveCurrentAndGetNext(hObject, eventdata, imageList, outputDir)
-
+interactiveStatFile = 'interactive-rolling-shutter-skew.txt';
 global currentIndex;
 imageName = imageList{currentIndex};
 global t_r;
@@ -17,7 +17,7 @@ set(gcf, 'Color', 'w');
 saveas(gcf, outputfig);
 global numDrawnImages;
 numDrawnImages = numDrawnImages + 1;
-fileID = fopen([ outputDir, '/interactive-rolling-shutter-skew.txt' ], 'a');
+fileID = fopen([ outputDir, '/', interactiveStatFile], 'a');
 fprintf(fileID, '%s %.4f ms %d\n', imageName, t_r, numDrawnImages);
 fclose(fileID);
 
