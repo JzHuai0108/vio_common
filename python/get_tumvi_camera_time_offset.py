@@ -36,9 +36,13 @@ def get_timestamps_of_topic(bagfile, topic):
     headerstamps = []
     times = []
     in_bag = rosbag.Bag(bagfile, "r")
+    max_samples = 100
     for _, msg, t in in_bag.read_messages(topics=[topic]):
         headerstamps.append(msg.header.stamp.to_nsec())
         times.append(t.to_nsec())
+        if len(times) >= max_samples:
+            break
+
     in_bag.close()
 
     headerstamps = np.array(headerstamps)
@@ -127,6 +131,8 @@ def main():
     print('Time delay for rosbag {}'.format(bagfile_list[0]))
     print('cam {}: {}'.format(0, cam0_time_delay))
     print('cam {}: {}'.format(1, cam1_time_delay))
+    print('{} time delay: {}, such that td + raw.header.stamp = '
+          'calibrated.header.stamp.'.format(rawbag, overall_time_shift))
 
 
 if __name__ == '__main__':

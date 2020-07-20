@@ -10,6 +10,8 @@ import os
 import argparse
 
 import rosbag
+import rospy
+
 from cv_bridge import CvBridge
 import cv2
 
@@ -31,12 +33,29 @@ def decide_output_encoding(cv_img):
     return coding
 
 
+TUMVI_RAW_SEQUENCE_TIME_DELAY = {
+    "room1": 1520530200562073469,
+    "room2": 1520530200549376010,
+    "room3": 1520530200542217731,
+    "room4": 1520530200537532567,
+    "room5": 1520530200527061223,
+    "room6": 1520615804665967941,
+}
+
+
 def main():
     """Extract a folder of images from a rosbag.
     """
     parser = argparse.ArgumentParser(
         description="Downsample images in a ROS bag.")
     parser.add_argument("bag_file", help="Input ROS bag.")
+    parser.add_argument(
+        '--time_delay',
+        help="unit nanoseconds, time delay + raw.header.stamp = "
+        "calibrated.header.stamp. If not provided, time delay will set as "
+        "ros message time - message[0].header.stamp",
+        type=int,
+        default=None)
     parser.add_argument("--out_bag_file",
                         help="Output ROS bag file.",
                         default=None)
@@ -53,7 +72,12 @@ def main():
 
     out_bag = rosbag.Bag(out_bag_file, 'w')
     bridge = CvBridge()
-    time_shift = None
+    time_shift = args.time_delay
+    if args.time_delay is not None:
+        time_shift = rospy.Duration(args.time_delay / 1000000000,
+                                    args.time_delay % 1000000000)
+        print('Raw message time offset set to {}'.format(time_shift))
+
     for k in range(2):
         count = 0
         image_topic = '/cam{}/image_raw'.format(k)
@@ -76,6 +100,8 @@ def main():
             rosimage = bridge.cv2_to_imgmsg(cv_half_img, encoding=encoding)
             if time_shift is None:
                 time_shift = t - msg.header.stamp
+                print('Raw message time offset set to {}'.format(time_shift))
+
             # assign because rosimage.header.stamp is zero.
             rosimage.header.stamp = time_shift + msg.header.stamp
             out_bag.write(image_topic, rosimage, rosimage.header.stamp)
