@@ -1,9 +1,12 @@
-function computeRsSkewOnImages(imageDir, outputDir, t_led, led_gap_px)
+function computeRsSkewOnImages(imageDir, outputDir, t_led, led_gap_px, H)
+if nargin < 5
+    H = 720;
+end
 if nargin < 4
     led_gap_px = 60; % number of pixels between two LED columns' centerlines
 end
 if nargin < 3
-    t_led = 1; % the time a LED light is lit
+    t_led = 1; % the time a LED light is lit in millisecs.
 end
 
 close all;
@@ -105,7 +108,7 @@ for i=n_row:-1:1
                     case 4 % draw
                         h_mat(i,j) = uicontrol('Parent',fig_number, ...
                             'Units','points', ...
-                            'Callback',{cell_list{i,j}{2}, t_led, led_gap_px}, ...
+                            'Callback',{cell_list{i,j}{2}, t_led, led_gap_px, H}, ...
                             'ListboxTop', 0, ...
                             'Position',[posx(i,j)  posy(i,j)  x_size   y_size], ...
                             'String',cell_list{i,j}{1}, ...

@@ -1,4 +1,4 @@
-function interactivelyComputeRsSkew(t_led, led_gap_px)
+function interactivelyComputeRsSkew(t_led, led_gap_px, H)
 % interactively compute rolling shutter skew on an image of LED panel.
 % first draw two inclined lines for the rolling shutter effect at the
 % bottom and at the top, then draw two vertical lines through the LED light
@@ -13,11 +13,14 @@ function interactivelyComputeRsSkew(t_led, led_gap_px)
 % img_name = [ res_dir, '/honorv10/expo02ms/2020_07_15_18_07_44/raw/00013.jpg' ];
 % img_name = [ res_dir, '/asus/2020_07_15_17_15_23/raw/00097.jpg' ];
 % interactivelyComputeRsSkew(img_name);
+if nargin < 3
+    H = 720;
+end
 if nargin < 2 
     led_gap_px = 60;
 end
 if nargin < 1
-    t_led = 1;
+    t_led = 1; % millisec
 end
 sloping1 = drawline('LineWidth', 1, 'Color', 'cyan');
 sloping2 = drawline('LineWidth', 1, 'Color', 'cyan');
@@ -36,7 +39,7 @@ drawLineEvents(0, 0);
         % rolling shutter skew computation.
         w = mean(right.Position(:, 1)) - mean(left.Position(:, 1));
         m = slopeFunc(sloping1.Position + sloping2.Position); % take average to be more accurate.
-        H = 720;
+       
         col = round(w / led_gap_px);
         global t_r;
         t_r = col * t_led * H / (w * m);

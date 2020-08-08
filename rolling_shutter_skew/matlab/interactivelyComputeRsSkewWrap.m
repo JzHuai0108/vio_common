@@ -1,3 +1,4 @@
-function interactivelyComputeRsSkewWrap(hObject, eventdata, t_led, led_gap_px)
-    interactivelyComputeRsSkew(t_led, led_gap_px);
+function interactivelyComputeRsSkewWrap(...
+    hObject, eventdata, t_led, led_gap_px, H)
+    interactivelyComputeRsSkew(t_led, led_gap_px, H);
 end
