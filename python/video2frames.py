@@ -16,10 +16,10 @@ def parseArgs():
     #setup the argument list
     parser = argparse.ArgumentParser(
         description='Convert a video to a sequence of image frames, optionally downsample.')
-    parser.add_argument('video',
-                        nargs='?', help='Video filename')
     parser.add_argument('--output-folder', metavar='output_folder',
                         help='An folder to output the image sequences', required=True)
+    parser.add_argument('--video',  metavar='video_file',
+                        nargs='?', help='Video filename', required=True)
     parser.add_argument('--video-from-to', metavar='video_from_to', type=int,
                         nargs=2,
                         help='Use the video frames starting from up to this'
@@ -29,8 +29,7 @@ def parseArgs():
                         help='Downsample the frames to frame_count / choose_every_n.')
     parser.add_argument('--downsample-by-2',  action='store_true', dest='downsample_by_2',
                         help='Downsample a frame to half of its original width and length.')
-    parser.add_argument('--save_rgb',  action='store_true',
-                        help='Save RGB or gray.')
+
     #print help if no argument is specified
     if len(sys.argv)<2:
         msg = 'Example usage: {} --video video_and_frame_timestamps/IMG_2805.MOV ' \
@@ -56,8 +55,7 @@ def emptyfolder(folder):
 
 def video_to_frames(input_loc, output_loc, video_from_to=None,
                     choose_every_n=None,
-                    downsample_by_2=None,
-                    save_rgb=False):
+                    downsample_by_2=None):
     """Function to extract frames from input video file
     and save them as separate frames in an output directory.
     Args:
@@ -101,14 +99,8 @@ def video_to_frames(input_loc, output_loc, video_from_to=None,
             print('Empty frame, break the video stream, latest frame id %d' % count)
             break
         if count in frame_ids:
-            if save_rgb:
-                image_np = frame
-            else:
-                image_np = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
+            image_np = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             h, w = image_np.shape[:2]
-            if w < h:
-                image_np = cv2.rotate(image_np, cv2.ROTATE_90_COUNTERCLOCKWISE)
             if downsample_by_2:
                 image_np = cv2.pyrDown(image_np, dstsize=(w / 2, h / 2))
             # Write the results back to output location.
@@ -135,7 +127,7 @@ def video_to_frames(input_loc, output_loc, video_from_to=None,
 def main():
     parsed = parseArgs()
     video_to_frames(parsed.video, parsed.output_folder, parsed.video_from_to,
-                    parsed.choose_every_n, parsed.downsample_by_2, parsed.save_rgb)
+                    parsed.choose_every_n, parsed.downsample_by_2)
 
 if __name__ == "__main__":
     main()
