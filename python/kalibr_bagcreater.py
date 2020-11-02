@@ -445,7 +445,7 @@ def main():
             with open(imufile, 'r') as csvfile:
                 reader = csv.reader(csvfile, delimiter=',')
                 for row in reader:
-                    if utility_functions.is_header_line(row):
+                    if utility_functions.is_header_line(row[0]):
                         continue
                     imumsg, timestamp = create_imu_message_time_string(
                         row[0], row[1:4], row[4:7])
