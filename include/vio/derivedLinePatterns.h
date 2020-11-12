@@ -4,7 +4,10 @@
 #include "vio/CsvReader.h"
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
+#include <Eigen/StdVector>
+
 #include <iomanip>
+#include <vector>
 
 namespace vio {
 

@@ -2,6 +2,7 @@
 #include "vio/CsvReader.h"
 #include <iostream>
 #include <memory>
+#include <sstream>
 #include <string>
 
 namespace vio {

@@ -57,18 +57,19 @@ endif()
 
 
 # Set Sourcefiles
-list(APPEND SOURCEFILES 
-  src/Sample.cpp
-  src/utils.cpp
-  src/TimeGrabber.cpp
-  src/maths_utils.cpp
-  src/ImuGrabber.cpp
-  src/GpsGrabber.cpp
+list(APPEND SOURCEFILES
+  include/vio/PointStatistics.h
   src/CsvReader.cpp
-  src/derivedLinePatterns.cpp
   src/FrameGrabber.cpp
+  src/GpsGrabber.cpp
+  src/ImuGrabber.cpp
+  src/Sample.cpp
+  src/TimeGrabber.cpp
+  src/VimapContainer.cpp
+  src/derivedLinePatterns.cpp
   src/eigen_utils.cpp
-  include/vio/PointStatistics.h)
+  src/maths_utils.cpp
+  src/utils.cpp)
 
 if(${USE_GPSTK})
   add_definitions(-DHAVE_GPSTK)

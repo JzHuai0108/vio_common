@@ -1,11 +1,6 @@
 #include "vio/derivedLinePatterns.h"
 
 #include <gtest/gtest.h>
-// https://stackoverflow.com/questions/12774207/fastest-way-to-check-if-a-file-exist-using-standard-c-c11-c
-inline bool exists_test3(const std::string &name) {
-  struct stat buffer;
-  return (stat(name.c_str(), &buffer) == 0);
-}
 
 TEST(CsvReader, LoadOkvisOutput) {
   const std::string csvFile = "../test/data/okvis_output.csv";
@@ -13,7 +8,7 @@ TEST(CsvReader, LoadOkvisOutput) {
               Eigen::aligned_allocator<vio::OkvisOutputPattern>>
       csvData;
   double startTime = 0, finishTime = 1e10;
-  if (!exists_test3(csvFile))
+  if (!vio::fileExists(csvFile))
     return;
   vio::loadCsvData(csvFile, csvData, 1, startTime, finishTime);
   vio::OkvisOutputPattern front, back;
