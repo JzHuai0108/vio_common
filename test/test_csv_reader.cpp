@@ -7,15 +7,15 @@ inline bool exists_test3(const std::string &name) {
   return (stat(name.c_str(), &buffer) == 0);
 }
 
-TEST(CsvReader, OkvisOutputPatternFile) {
-  const std::string okvisFile = "../test/data/okvis_output.csv";
+TEST(CsvReader, LoadOkvisOutput) {
+  const std::string csvFile = "../test/data/okvis_output.csv";
   std::vector<vio::OkvisOutputPattern,
               Eigen::aligned_allocator<vio::OkvisOutputPattern>>
       csvData;
   double startTime = 0, finishTime = 1e10;
-  if (!exists_test3(okvisFile))
+  if (!exists_test3(csvFile))
     return;
-  vio::loadOkvisData(okvisFile, csvData, startTime, finishTime);
+  vio::loadCsvData(csvFile, csvData, 1, startTime, finishTime);
   vio::OkvisOutputPattern front, back;
   front.time_ = "512936278663280";
   front.sec_ = 512936;

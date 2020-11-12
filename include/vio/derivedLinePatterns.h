@@ -273,21 +273,22 @@ public:
 
 // use CsvReader to load data from a csv file.
 template <class Pattern>
-void loadOkvisData(
+void loadCsvData(
     std::string csvFile,
     std::vector<Pattern, Eigen::aligned_allocator<Pattern>> &csvData,
-    double startTime, double finishTime) {
+    int headerLines = 1, double startTime = 0.0, double finishTime = 1e20) {
   if (finishTime <= 0)
     finishTime = 1e20;
-  CsvReader cg(csvFile, std::shared_ptr<LinePattern>(new Pattern()), 1);
-  while (cg.getNextObservation()) {
-    double time = cg.currentRow()->timestamp();
+  CsvReader reader(csvFile, std::shared_ptr<LinePattern>(new Pattern()),
+                   headerLines);
+  while (reader.getNextObservation()) {
+    double time = reader.currentRow()->timestamp();
     if (time < startTime)
       continue;
     if (time > finishTime)
       break;
     csvData.push_back(
-        *std::static_pointer_cast<const Pattern>(cg.currentRow()));
+        *std::static_pointer_cast<const Pattern>(reader.currentRow()));
   }
 }
 
