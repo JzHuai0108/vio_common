@@ -65,6 +65,7 @@ src/maths_utils.cpp
 src/ImuGrabber.cpp
 src/GpsGrabber.cpp
 src/CsvReader.cpp
+src/derivedLinePatterns.cpp
 src/FrameGrabber.cpp
 src/eigen_utils.cpp
 include/vio/PointStatistics.h
@@ -90,9 +91,6 @@ IF(${USE_GPSTK})
 ENDIF()
 
 # Tests
-ADD_EXECUTABLE(test_csv_reader test/test_csv_reader.cpp)
-TARGET_LINK_LIBRARIES(test_csv_reader ${PROJECT_NAME})
-
 ADD_EXECUTABLE(test_gps_grabber test/test_gps_grabber.cpp)
 TARGET_LINK_LIBRARIES(test_gps_grabber ${PROJECT_NAME})
 
@@ -101,6 +99,7 @@ target_link_libraries(video2image ${OpenCV_LIBS})
 
 if (CATKIN_ENABLE_TESTING)
   catkin_add_gtest(vio_common_test test/test_main.cpp
+    test/test_csv_reader.cpp
     test/test_time_grabber.cpp
     test/test_utils.cpp
     test/test_frame_grabber.cpp

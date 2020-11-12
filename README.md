@@ -9,7 +9,8 @@ vio_common
 sudo apt-get install libopencv-dev libeigen3-dev
 ```
 
-If you want to install a specific version of these libraries or install to a specific path(note -DCMAKE\_INSTALL\_PREFIX), you may build them from source.
+If you want to install a specific version of these libraries or install to a specific path (note -DCMAKE\_INSTALL\_PREFIX), 
+you may build them from source.
 
 ## Build vio_common
 
@@ -30,7 +31,7 @@ make install
 catkin build vio_common -DUSE_ROS=ON -DCMAKE_BUILD_TYPE=Release -j4
 ```
 
-## Run tests
+## Build and run gtests
 
 ```
 # Build tests
