@@ -77,8 +77,8 @@ if(${USE_GPSTK})
 endif()
 
 # Create library
-include_directories(${vio_common_INCLUDE_DIR})
 add_library(${PROJECT_NAME} SHARED ${SOURCEFILES})
+target_include_directories(${PROJECT_NAME} PUBLIC ${vio_common_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})
 
 if(${USE_ROS})
