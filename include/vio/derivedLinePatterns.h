@@ -1,10 +1,10 @@
 #ifndef DERIVED_LINE_PATTERNS_H
 #define DERIVED_LINE_PATTERNS_H
 
-#include "vio/CsvReader.h"
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <Eigen/StdVector>
+#include "vio/CsvReader.h"
 
 #include <iomanip>
 #include <vector>
@@ -12,7 +12,7 @@
 namespace vio {
 
 class MaplabVertexPattern : public LinePattern {
-public:
+ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   MaplabVertexPattern() {}
@@ -46,14 +46,14 @@ public:
   size_t vertex_index;
   int64_t time_ns;
   Eigen::Vector3d p_WS_;
-  Eigen::Quaterniond q_WS_; // In order x, y, z, w when printed out.
+  Eigen::Quaterniond q_WS_;  // In order x, y, z, w when printed out.
   Eigen::Vector3d v_WS_;
   Eigen::Vector3d accelBias_;
   Eigen::Vector3d gyroBias_;
 };
 
 class MaplabTrackPattern : public LinePattern {
-public:
+ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   MaplabTrackPattern() {}
@@ -110,7 +110,7 @@ public:
 };
 
 class MaplabLandmarkPattern : public LinePattern {
-public:
+ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   MaplabLandmarkPattern() {}
@@ -147,7 +147,7 @@ public:
 };
 
 class MaplabObservationPattern : public LinePattern {
-public:
+ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   MaplabObservationPattern() {}
@@ -188,8 +188,61 @@ public:
   size_t landmark_index;
 };
 
+class ImuOutputPattern : public LinePattern {
+ public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  ImuOutputPattern() {}
+
+  virtual ~ImuOutputPattern() {}
+
+  std::ostream &print(std::ostream &os) const override {
+    char delim = ',';
+    os << sec_ << std::setw(9) << std::setfill('0') << nsec_ << delim
+       << std::setprecision(6) << w_[0] << delim << w_[1] << delim << w_[2]
+       << delim << a_[0] << delim << a_[1] << delim << a_[2];
+    return os;
+  }
+
+  std::istream &read(std::istream &is) override {
+    std::string time;
+    getline(is, time, ',');
+    std::string trunk = time.substr(0, time.length() - 9);
+    std::istringstream ss1(trunk);
+    ss1 >> sec_;
+
+    std::string residuals = time.substr(time.length() - 9);
+    std::istringstream ss2(residuals);
+    ss2 >> nsec_;
+    char delim;
+    is >> w_[0] >> delim >> w_[1] >> delim >> w_[2] >> delim >> a_[0] >>
+        delim >> a_[1] >> delim >> a_[2];
+    return is;
+  }
+
+  static ImuOutputPattern Random() {
+    ImuOutputPattern pat;
+    pat.sec_ = rand() / 4;
+    pat.nsec_ = rand() / 4;
+    pat.w_.setRandom();
+    pat.a_.setRandom();
+    return pat;
+  }
+
+  bool equal(const ImuOutputPattern &rhs) {
+    double precision = 1e-7;
+    return sec_ == rhs.sec_ && nsec_ == rhs.nsec_ &&
+           w_.isApprox(rhs.w_, precision) && a_.isApprox(rhs.a_, precision);
+  }
+
+ public:
+  uint32_t sec_;
+  uint32_t nsec_;
+  Eigen::Vector3d w_;
+  Eigen::Vector3d a_;
+};
+
 class OkvisOutputPattern : public LinePattern {
-public:
+ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   OkvisOutputPattern();
 
@@ -233,12 +286,13 @@ public:
     return time_ == rhs.time_ && sec_ == rhs.sec_ && nsec_ == rhs.nsec_ &&
            frameIdInSource == rhs.frameIdInSource &&
            p_WS_.isApprox(rhs.p_WS_, precision) &&
-           q_WS_.isApprox(q_WS_, precision) &&
+           q_WS_.isApprox(rhs.q_WS_, precision) &&
            sb_WS_.isApprox(rhs.sb_WS_, 1e-6) &&
-           p_SC_.isApprox(p_SC_, precision) && q_SC_.isApprox(q_SC_, precision);
+           p_SC_.isApprox(rhs.p_SC_, precision) &&
+           q_SC_.isApprox(rhs.q_SC_, precision);
   }
 
-public:
+ public:
   std::string time_;
   uint32_t sec_;
   uint32_t nsec_;
@@ -251,7 +305,7 @@ public:
 };
 
 class ViclamOutputPattern : public LinePattern {
-public:
+ public:
   ViclamOutputPattern();
   virtual ~ViclamOutputPattern() {}
   std::ostream &print(std::ostream &) const override;
@@ -265,7 +319,7 @@ public:
   std::istream &read(std::istream &) override;
   double timestamp() const override;
 
-public:
+ public:
   std::string time_;
   uint32_t sec_;
   uint32_t nsec_;
@@ -280,21 +334,18 @@ void loadCsvData(
     std::string csvFile,
     std::vector<Pattern, Eigen::aligned_allocator<Pattern>> &csvData,
     int headerLines = 1, double startTime = 0.0, double finishTime = 1e20) {
-  if (finishTime <= 0)
-    finishTime = 1e20;
+  if (finishTime <= 0) finishTime = 1e20;
   CsvReader reader(csvFile, std::shared_ptr<LinePattern>(new Pattern()),
                    headerLines);
   while (reader.getNextObservation()) {
     double time = reader.currentRow()->timestamp();
-    if (time < startTime)
-      continue;
-    if (time > finishTime)
-      break;
+    if (time < startTime) continue;
+    if (time > finishTime) break;
     csvData.push_back(
         *std::static_pointer_cast<const Pattern>(reader.currentRow()));
   }
 }
 
-} // namespace vio
+}  // namespace vio
 
-#endif // DERIVED_LINE_PATTERNS_H
+#endif  // DERIVED_LINE_PATTERNS_H

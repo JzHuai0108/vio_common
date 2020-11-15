@@ -46,6 +46,15 @@ TEST(CsvReader, OkvisOutputPattern) {
   EXPECT_TRUE(pat2.equal(pat));
 }
 
+TEST(CsvReader, ImuOutputPattern) {
+  vio::ImuOutputPattern pat = vio::ImuOutputPattern::Random();
+  std::stringstream ss;
+  pat.print(ss);
+  vio::ImuOutputPattern pat2;
+  pat2.read(ss);
+  EXPECT_TRUE(pat2.equal(pat));
+}
+
 TEST(CsvReader, MaplabVertexPattern) {
   vio::MaplabVertexPattern pat = vio::MaplabVertexPattern::Random();
   std::stringstream ss;
