@@ -66,7 +66,16 @@ def parse_args():
                         type=float,
                         default=0.0,
                         help='The time of the first video frame based on the'
-                        ' Imu clock (default: %(default)s)',
+                             ' Imu clock. It is used together with frame rate'
+                             ' to estimate frame timestamps if the video time'
+                             ' file is not provided. (default: %(default)s)',
+                        required=False)
+    parser.add_argument('--video_file_time_offset',
+                        type=float,
+                        default=0.0,
+                        help='When the time file for the video is provided, '
+                             'the video_file_time_offset may be added to '
+                             'these timestamps.(default: %(default)s)',
                         required=False)
     parser.add_argument('--video_from_to',
                         type=float,
@@ -407,6 +416,9 @@ def main():
         frame_timestamps = list()
         if parsed.video_time_file:
             frame_timestamps = loadtimestamps(parsed.video_time_file)
+            aligned_timestamps = [time + rospy.Duration.from_sec(parsed.video_file_time_offset)
+                                  for time in frame_timestamps]
+            frame_timestamps = aligned_timestamps
             print('Loaded {} timestamps for frames'.format(
                 len(frame_timestamps)))
             video_time_offset = frame_timestamps[0].to_sec()
