@@ -7,9 +7,8 @@ using namespace std;
 namespace vio {
 
 FrameGrabber::FrameGrabber(const std::string visualDataPath,
-                           const std::string frameTimeFile,
-                           const int startFrameIndex,
-                           const int finishFrameIndex)
+                           const std::string frameTimeFile, int startFrameIndex,
+                           int finishFrameIndex, int maxFrameHeight)
     : is_measurement_good(false),
       mTimestampFile(frameTimeFile),
       mTG(frameTimeFile),
@@ -34,8 +33,11 @@ FrameGrabber::FrameGrabber(const std::string visualDataPath,
     }
     int width = mCapture.get(CV_CAP_PROP_FRAME_WIDTH),
         height = mCapture.get(CV_CAP_PROP_FRAME_HEIGHT);
-    mnDownScale = getDownScale(width, height, 1000);
-
+    if (maxFrameHeight > 0) {
+      mnDownScale = getDownScale(width, height, maxFrameHeight);
+    } else {
+      mnDownScale = 1;
+    }
     std::cout << "Reading in video " << mVideoFile << " prop_frame_width "
               << width << " prop_frame_height " << height << " mnDownScale "
               << mnDownScale << std::endl;

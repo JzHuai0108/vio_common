@@ -22,10 +22,12 @@ class FrameGrabber {
    * @param finishFrameIndex 0 based finishing frame index within the video
    *    or the image dir. If not given, the whole video or the image
    *    sequence is processed
+   * @param maxFrameHeight if nonpositive, it has no effect, otherwise, video
+   * frames will be downscaled to have a frame height no greater than it.
    */
   FrameGrabber(const std::string visualDataPath,
-               const std::string frameTimeFile, const int startFrameIndex,
-               const int finishFrameIndex = -1);
+               const std::string frameTimeFile, int startFrameIndex,
+               int finishFrameIndex = -1, int maxFrameHeight = -1);
 
   FrameGrabber(const FrameGrabber &) = delete;
   FrameGrabber &operator=(const FrameGrabber &) = delete;
