@@ -34,18 +34,37 @@ def coherency(x, gray_img):
     return np.std(intensities)
 
 
-def find_circles_mser(img):
+def suppress(fs, x):
+    """
+    check if to suppress x based on circles in fs.
+    :param x:
+    :return:
+    """
+    for f in fs:
+        distx = f.pt[0] - x.pt[0]
+        disty = f.pt[1] - x.pt[1]
+        dist = math.sqrt(distx * distx + disty * disty)
+        if (f.size > x.size) and (dist < f.size / 2):
+            return True
+
+def find_circles_mser(img, mask_right_part = False,  cull_by_size = True, draw_result=True):
     """
     find circles in the red channel of an image with the MSER.
-    :param img:
-    :return:
+    :param img: image should have 3 dimens
+    :return: a list of detected circles
     See https://stackoverflow.com/questions/9860667/writing-robust-color-and-size-invariant-circle-detection-with-opencv-based-on
     When the detected circle has a imprecise radius, circle center may be accurate if the circle is well distributed.
     """
-    if img.shape[2] > 1:
-        red_img = img[:, :, 2]
-    else:
+
+
+
+    if len(img.shape) < 3:
+        red_img = img
+    elif img.shape[2] == 1:
         red_img = img[:, :, 0]
+    else:
+        red_img = img[:, :, 2]
+
     # equ = cv2.equalizeHist(red_img) # equalize leads to worse circle detections,
     # sometimes more false positives, sometimes more false negatives.
 
@@ -58,33 +77,27 @@ def find_circles_mser(img):
     fs = detector.detect(red_img) # use 3 channel original image causes worse results.
     fs.sort(key=lambda x: -x.size)
 
-    def suppress(x):
-        for f in fs:
-            distx = f.pt[0] - x.pt[0]
-            disty = f.pt[1] - x.pt[1]
-            dist = math.sqrt(distx * distx + disty * disty)
-            if (f.size > x.size) and (dist < f.size / 2):
-                return True
+    sfs = [x for x in fs if not suppress(fs, x)]
 
-    sfs = [x for x in fs if not suppress(x)]
+    if mask_right_part:
+        # remove circles on the right part of the image
+        h = red_img.shape[0]
+        w = red_img.shape[1]
+        assert(w > h)
+        leftRegions = []
+        for x in sfs:
+            if x.pt[0] < h:
+                leftRegions.append(x)
+        sfs = leftRegions
 
-    # remove circles on the right part of the image
-    h = red_img.shape[0]
-    w = red_img.shape[1]
-    assert(w > h)
-    leftRegions = []
-    for x in sfs:
-        if x.pt[0] < h:
-            leftRegions.append(x)
-    sfs = leftRegions
+    if cull_by_size:
+        # remove circles too small or too large
+        expectedDiameter = 30
+        fraction = 0.75
+        medianDiameter = min(max(np.median([x.size for x in sfs]), expectedDiameter),
+                             expectedDiameter / fraction)
 
-    # remove circles too small or too large
-    expectedDiameter = 30
-    fraction = 0.75
-    medianDiameter = min(max(np.median([x.size for x in sfs]), expectedDiameter),
-                         expectedDiameter / fraction)
-
-    sfs = [x for x in sfs if x.size < medianDiameter / fraction and x.size > medianDiameter * fraction]
+        sfs = [x for x in sfs if x.size < medianDiameter / fraction and x.size > medianDiameter * fraction]
 
     # coherentRegions = []
     # for x in sfs:
@@ -92,23 +105,24 @@ def find_circles_mser(img):
     #         coherentRegions.append(x)
     # sfs = coherentRegions
 
-    circle_img = img.copy()
-    d_red = (65, 55, 150)
-    l_red = (200, 200, 250)
-    for f in sfs:
-        cv2.circle(circle_img, (int(f.pt[0]), int(f.pt[1])), int(f.size / 2), d_red, 2, cv2.LINE_AA)
-        cv2.circle(circle_img, (int(f.pt[0]), int(f.pt[1])), int(f.size / 2), l_red, 1, cv2.LINE_AA)
+    if draw_result:
+        circle_img = img.copy()
+        d_red = (65, 55, 150)
+        l_red = (200, 200, 250)
+        for f in sfs:
+            cv2.circle(circle_img, (int(f.pt[0]), int(f.pt[1])), int(f.size / 2), d_red, 2, cv2.LINE_AA)
+            cv2.circle(circle_img, (int(f.pt[0]), int(f.pt[1])), int(f.size / 2), l_red, 1, cv2.LINE_AA)
 
-    h, w = img.shape[:2]
-    vis = np.zeros((h, w * 2 + 5), np.uint8)
-    vis = cv2.cvtColor(vis, cv2.COLOR_GRAY2BGR)
-    vis[:h, :w] = img
-    vis[:h, w + 5:w * 2 + 5] = circle_img
+        h, w = img.shape[:2]
+        vis = np.zeros((h, w * 2 + 5), np.uint8)
+        vis = cv2.cvtColor(vis, cv2.COLOR_GRAY2BGR)
+        vis[:h, :w] = img
+        vis[:h, w + 5:w * 2 + 5] = circle_img
 
-    cv2.imshow("image", vis)
-    # cv2.imwrite("circles.jpg", vis)
-    cv2.waitKey()
-    cv2.destroyAllWindows()
+        cv2.imshow("image", vis)
+        cv2.imwrite("circles.jpg", circle_img)
+        cv2.waitKey()
+        cv2.destroyAllWindows()
 
     return sfs
 
