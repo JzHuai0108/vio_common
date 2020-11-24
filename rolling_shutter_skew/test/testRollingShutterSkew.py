@@ -1,8 +1,16 @@
+#!/usr/bin/env python
 import glob
+
 import cv2
 import numpy as np
 import findCircles
 import kNearestNeighbor
+
+# def testVideoManager():
+#     video = '../data/movie.mp4'
+#     video_manager = VideoManager.VideoManager(video)
+#     video_manager.play()
+#     video_manager.close()
 
 
 def testRollingShutterSkew():
@@ -10,14 +18,10 @@ def testRollingShutterSkew():
     frame_files = glob.glob('%s/*.png' % dir_name)
     expectedCircleDist = [60, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55]
     for image_index, image_name in enumerate(frame_files):
-        if image_index != 9:
+        if image_index != 2:
             continue
         img = cv2.imread(image_name)
         img = findCircles.android_image_to_opencv_image(img)
-        if img.shape[2] > 1:
-            red_img = img[:, :, 2]
-        else:
-            red_img = img[:, :, 0]
 
         circles = findCircles.find_circles_mser(img)
         centers = np.zeros((len(circles), 2), dtype=np.float32)
