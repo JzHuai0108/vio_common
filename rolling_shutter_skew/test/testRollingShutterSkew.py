@@ -29,5 +29,5 @@ def testRollingShutterSkew():
             centers[index, 0] = c.pt[0]
             centers[index, 1] = c.pt[1]
         circleDist = expectedCircleDist[image_index]
-        coordinates = kNearestNeighbor.assignCoordinatesToPoints(centers, circleDist)
+        coordinates, _ = kNearestNeighbor.assignCoordinatesToPoints(centers, circleDist)
         kNearestNeighbor.drawCoordinates(circles, coordinates, img)

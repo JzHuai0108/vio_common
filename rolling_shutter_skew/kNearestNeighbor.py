@@ -50,6 +50,7 @@ def assignCoordinatesToPoints(circle_centers, expected_circle_dist):
     x from left to right, y from top to bottom
     :param expected_circle_dist: expected circle distance
     :return: coordinates for each circle's center, will be set to sentinel if not computed.
+      dxy [delta x, delta y] average circle center distance in pixels, x for columns, y for rows.
     """
     angle_tolerance = 10 * math.pi / 180  # the allowed angle uncertainty in checking if two circles
     # satisfy the horizontal, vertical or diagonal relative positions.
@@ -158,7 +159,7 @@ def assignCoordinatesToPoints(circle_centers, expected_circle_dist):
         warnings.warn('Refined delta at x y: {} are a bit off from {}. '
                       'Try to adjust the circle distance.'.
                       format(dxy, expected_circle_dist))
-        return coordinates
+        return coordinates, dxy
 
     # mark the remaining circles by calculation with the adjusted dx, dy
     # 1. compute the center of the largest component
@@ -173,7 +174,7 @@ def assignCoordinatesToPoints(circle_centers, expected_circle_dist):
     if valid_coordinates == 0:
         warnings.warn('Unable to find valid coordinates for circles in the max component.'
                       ' Try to adjust the circle distance!')
-        return coordinates
+        return coordinates, dxy
 
     center_pixels /= valid_coordinates
     center_coordinates /= valid_coordinates
@@ -189,7 +190,7 @@ def assignCoordinatesToPoints(circle_centers, expected_circle_dist):
             coordinates[circle_index, 0] = round(circle_coord[0])
             coordinates[circle_index, 1] = round(circle_coord[1])
 
-    return coordinates
+    return coordinates, dxy
 
 
 def drawCoordinates(circles, coordinates, img):

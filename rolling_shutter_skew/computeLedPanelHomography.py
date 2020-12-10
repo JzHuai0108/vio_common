@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import math
 import os
 import sys
 
@@ -32,7 +33,8 @@ def compute_homography_opencv(circles_for_homography, coordinates_for_homography
     scaled_h, status = cv2.findHomography(centers, coordinates_scaled)
     actual_h, status = cv2.findHomography(centers, coordinates)
     print('OpenCV found actual H\n{}\nscaled H\n{}'.format(actual_h, scaled_h))
-    print("Index: Projection(col, row), Error(col, row)")
+    # print("Index: Projection(col, row), Error(col, row)")
+    reproj_error = 0
     for index in range(centers.shape[0]):
         point = np.zeros((3, 1))
         point[0] = centers[index, 0]
@@ -40,9 +42,14 @@ def compute_homography_opencv(circles_for_homography, coordinates_for_homography
         point[2] = 1.0
         projected = np.dot(scaled_h, point)
         projected /= projected[2]
-        print('{}:({},{}),({},{})'.format(
-            index, projected[0], projected[1],
-            projected[0] - coordinates_scaled[index, 0], projected[1] - coordinates_scaled[index, 1]))
+        reproj_error += (projected[0] - coordinates_scaled[index, 0]) ** 2
+        reproj_error += (projected[1] - coordinates_scaled[index, 1]) ** 2
+        # print('{}:({},{}),({},{})'.format(
+        #     index, projected[0], projected[1],
+        #     projected[0] - coordinates_scaled[index, 0], projected[1] - coordinates_scaled[index, 1]))
+    reproj_error /= centers.shape[0]
+    reproj_error = math.sqrt(reproj_error)
+    print("Reprojection error root mean squared error {:.2f} pixels.".format(reproj_error))
     return actual_h, scaled_h
 
 
@@ -101,6 +108,7 @@ def computeLedPanelHomography(video, circle_dist=45, num_accumulated_images = 7)
         return
     draw_img = None
     accumulated_circles = None
+    dxy = []
     for image_index in range(num_accumulated_images):
         _, img = video_manager.nextFrame()
         draw_img = img
@@ -122,7 +130,7 @@ def computeLedPanelHomography(video, circle_dist=45, num_accumulated_images = 7)
         for index, c in enumerate(accumulated_circles):
             centers[index, 0] = c.pt[0]
             centers[index, 1] = c.pt[1]
-        coordinates = kNearestNeighbor.assignCoordinatesToPoints(centers, circle_dist)
+        coordinates, dxy = kNearestNeighbor.assignCoordinatesToPoints(centers, circle_dist)
         # kNearestNeighbor.drawCoordinates(accumulated_circles, coordinates, img)
 
     # filter circles by size percentile,
@@ -185,8 +193,9 @@ def computeLedPanelHomography(video, circle_dist=45, num_accumulated_images = 7)
     cv2.waitKey(0)
 
     with open(homography_txt, "a") as stream:
-        stream.write("#Homography computed with image from {} to {} with #correspondences {}\n".format(
-            0, num_accumulated_images-1, len(circles_for_homography)))
+        stream.write("#Homography computed with image from {} to {} with #correspondences {} "
+                     "and average circle distances (col: {:.2f}, row: {:.2f}) \n".format(
+            0, num_accumulated_images-1, len(circles_for_homography), dxy[0], dxy[1]))
         for row in actual_h:
             stream.write('{}\n'.format(' '.join(map(str, row))))
         print('Homography saved to {}'.format(homography_txt))
