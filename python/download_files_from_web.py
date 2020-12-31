@@ -5,10 +5,14 @@ import sys
 import requests
 from bs4 import BeautifulSoup
 """URL of the archive web-page which provides link to
-all file lectures. It would have been tiring to
+all files. It would have been tiring to
 download each file manually.
 In this example, we first crawl the webpage to extract
-all the links and then download files."""  # pylint: disable=pointless-string-statement
+all the links and then download files.
+To install requirements,
+pip install BeautifulSoup4
+pip install html5lib
+"""  # pylint: disable=pointless-string-statement
 
 
 def has_all_keys(url, key_list):
