@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import math
 import warnings
 
@@ -6,6 +7,7 @@ import numpy as np
 
 import largestComponent
 
+SENTINEL = 1000  # sentinel for invalid circle center coordinate.
 
 def nearestNeighbors(trainData, k=3):
     """
@@ -48,12 +50,13 @@ def assignCoordinatesToPoints(circle_centers, expected_circle_dist):
     x from left to right, y from top to bottom
     :param expected_circle_dist: expected circle distance
     :return: coordinates for each circle's center, will be set to sentinel if not computed.
+      dxy [delta x, delta y] average circle center distance in pixels, x for columns, y for rows.
     """
     angle_tolerance = 10 * math.pi / 180  # the allowed angle uncertainty in checking if two circles
     # satisfy the horizontal, vertical or diagonal relative positions.
     dist_tolerance = 10  # the uncertainty allowed in checking if two circles satisfy the expected distance.
     round_tolerance = 0.2  # allowed uncertainty in checking if a coordinate is close to an integer.
-    sentinel = 100000  # sentinel for invalid circle center coordinate.
+
     expected_diagonal_dist = expected_circle_dist * math.sqrt(2)
 
     neighbor_list = nearestNeighbors(circle_centers, 4)
@@ -82,7 +85,7 @@ def assignCoordinatesToPoints(circle_centers, expected_circle_dist):
     seed = np.min(maxcomponent)
 
     # mark the circles in the largest component with nominal coordinates
-    coordinates = np.full((numcircles, 2), sentinel, dtype=int)
+    coordinates = np.full((numcircles, 2), SENTINEL, dtype=int)
     coordinates[seed, :] = 0
     visited = np.full((numcircles, 1), False, dtype=bool)
     queue = [seed]
@@ -92,7 +95,7 @@ def assignCoordinatesToPoints(circle_centers, expected_circle_dist):
         for neighbor in neighbor_list[c]:
             neighbor_updated = False
             angle, dist = relativeAngleAndDistance(circle_centers[c, :], circle_centers[neighbor, :])
-            delta = np.array([sentinel, sentinel])
+            delta = np.array([SENTINEL, SENTINEL])
             if abs(dist - expected_circle_dist) < dist_tolerance:
                 if - angle_tolerance < angle < angle_tolerance:
                     delta = np.array([1, 0])
@@ -112,23 +115,23 @@ def assignCoordinatesToPoints(circle_centers, expected_circle_dist):
                 if - angle_tolerance < angle + math.pi * 0.75 < angle_tolerance:
                     delta = np.array([-1, -1])
 
-            if delta[0] != sentinel:
-                if coordinates[c, 0] != sentinel:
+            if delta[0] != SENTINEL:
+                if coordinates[c, 0] != SENTINEL:
                     expected_coord = coordinates[c, :] + delta
-                    if coordinates[neighbor, 0] != sentinel:
+                    if coordinates[neighbor, 0] != SENTINEL:
                         if coordinates[neighbor, 0] != expected_coord[0] or \
                                 coordinates[neighbor, 1] != expected_coord[1]:
                             msg = "neighbor {} of coordinates {} disagrees with computed coordinates {}. " \
                                   "Try to adjust the circle distance!".\
                                 format(neighbor, coordinates[neighbor], expected_coord)
                             warnings.warn(msg)
-                            return np.full((numcircles, 2), sentinel, dtype=int)
+                            return np.full((numcircles, 2), SENTINEL, dtype=int)
                     else:
                         coordinates[neighbor, :] = expected_coord
                         queue.append(neighbor)
                         neighbor_updated = True
                 else:
-                    if coordinates[neighbor, 0] != sentinel:
+                    if coordinates[neighbor, 0] != SENTINEL:
                         expected_coord = coordinates[neighbor, :] - delta
                         coordinates[c, :] = expected_coord
                         queue.append(c)
@@ -142,7 +145,7 @@ def assignCoordinatesToPoints(circle_centers, expected_circle_dist):
     delta_samples = [[], []]
     for c in maxcomponent:
         for neighbor in neighbor_list[c]:
-            if coordinates[c, 0] != sentinel and coordinates[neighbor, 0] != sentinel:
+            if coordinates[c, 0] != SENTINEL and coordinates[neighbor, 0] != SENTINEL:
                 for j in range(0, 2):
                     dc = coordinates[c, j] - coordinates[neighbor, j]
                     if dc == 0:
@@ -156,7 +159,7 @@ def assignCoordinatesToPoints(circle_centers, expected_circle_dist):
         warnings.warn('Refined delta at x y: {} are a bit off from {}. '
                       'Try to adjust the circle distance.'.
                       format(dxy, expected_circle_dist))
-        return coordinates
+        return coordinates, dxy
 
     # mark the remaining circles by calculation with the adjusted dx, dy
     # 1. compute the center of the largest component
@@ -164,14 +167,14 @@ def assignCoordinatesToPoints(circle_centers, expected_circle_dist):
     center_coordinates = np.array([0, 0], dtype=np.float64)
     valid_coordinates = 0
     for c in maxcomponent:
-        if coordinates[c, 0] != sentinel:
+        if coordinates[c, 0] != SENTINEL:
             center_pixels += circle_centers[c, :]
             center_coordinates += coordinates[c, :]
             valid_coordinates += 1
     if valid_coordinates == 0:
         warnings.warn('Unable to find valid coordinates for circles in the max component.'
                       ' Try to adjust the circle distance!')
-        return coordinates
+        return coordinates, dxy
 
     center_pixels /= valid_coordinates
     center_coordinates /= valid_coordinates
@@ -187,7 +190,7 @@ def assignCoordinatesToPoints(circle_centers, expected_circle_dist):
             coordinates[circle_index, 0] = round(circle_coord[0])
             coordinates[circle_index, 1] = round(circle_coord[1])
 
-    return coordinates
+    return coordinates, dxy
 
 
 def drawCoordinates(circles, coordinates, img):
@@ -207,7 +210,7 @@ def drawCoordinates(circles, coordinates, img):
     for index, f in enumerate(circles):
         cv2.circle(circle_img, (int(f.pt[0]), int(f.pt[1])), int(f.size / 2), d_red, 2, cv2.LINE_AA)
         cv2.circle(circle_img, (int(f.pt[0]), int(f.pt[1])), int(f.size / 2), l_red, 1, cv2.LINE_AA)
-        cv2.putText(circle_img, '{},{}'.format(coordinates[index, 0], coordinates[index, 1]),
+        cv2.putText(circle_img, '{:.0f},{:.0f}'.format(coordinates[index, 0], coordinates[index, 1]),
                     (int(f.pt[0]), int(f.pt[1])), font, fontScale, (0, 255, 0), thickness, cv2.LINE_AA)
 
     h, w = img.shape[:2]
@@ -217,6 +220,6 @@ def drawCoordinates(circles, coordinates, img):
     vis[:h, w + 5:w * 2 + 5] = circle_img
 
     cv2.imshow("image", vis)
-    # cv2.imwrite("coordinates.jpg", vis)
+    # cv2.imwrite("coordinates.jpg", circle_img)
     cv2.waitKey()
     cv2.destroyAllWindows()

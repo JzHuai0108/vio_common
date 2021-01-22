@@ -31,6 +31,15 @@ imageWidth = 1280;
 border = 50;
 gap_x = 20;
 gap_y = 0;
+
+homographyTxt = [imageDir, '/homography.txt'];
+if isfile(homographyTxt)
+    homography = readmatrix(homographyTxt, 'NumHeaderLines', 1);
+    disp(['Load homography from ', homographyTxt]);
+    disp(homography);
+else
+    homography = eye(3);
+end
 global currentIndex;
 currentIndex = 1;
 
@@ -108,7 +117,7 @@ for i=n_row:-1:1
                     case 4 % draw
                         h_mat(i,j) = uicontrol('Parent',fig_number, ...
                             'Units','points', ...
-                            'Callback',{cell_list{i,j}{2}, t_led, led_gap_px, H}, ...
+                            'Callback',{cell_list{i,j}{2}, t_led, led_gap_px, H, homography}, ...
                             'ListboxTop', 0, ...
                             'Position',[posx(i,j)  posy(i,j)  x_size   y_size], ...
                             'String',cell_list{i,j}{1}, ...
