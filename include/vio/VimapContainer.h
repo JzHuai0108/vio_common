@@ -105,10 +105,14 @@ class VimapContainer {
   std::vector<MaplabVertexPattern,
               Eigen::aligned_allocator<MaplabVertexPattern>>
       vertices_;
-  // Per maplab implementation, the tracks/keypoints in one image are
-  // consecutive.
+  // Per maplab implementation, the keypoints in one image have consecutive
+  // indices. These keypoints are either detected by a feature detector say ORB
+  // or tracked from a keypoint in the previous frame by gyro aided KLT tracker.
+  // Note the observations of a feature track are always in consecutive vertices.
   std::vector<MaplabTrackPattern, Eigen::aligned_allocator<MaplabTrackPattern>>
       tracks_;
+  // Observations for a landmark may come from vertices of distant indices
+  // because of loop closure and landmark merges.
   std::vector<MaplabObservationPattern,
               Eigen::aligned_allocator<MaplabObservationPattern>>
       observations_;
