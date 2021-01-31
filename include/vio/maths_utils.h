@@ -11,20 +11,6 @@
 
 namespace vio {
 
-/*
-class AbstractCamera;
-
-double
-interpolateDisparity         (const cv::Mat & m,
-                              const Eigen::Vector2i & uv_pyr,
-                              int level);
-float
-interpolateMat_32f           (const cv::Mat & mat,
-                              const Eigen::Vector2f & uv);
-
-float
-interpolateMat_8u            (const cv::Mat & mat,
-                              const Eigen::Vector2f & uv);*/
 Eigen::Vector2d project2d(const Eigen::Vector3d&);
 
 Eigen::Vector3d project3d(const Eigen::Vector4d&);
@@ -34,6 +20,8 @@ Eigen::Vector3d unproject2d(const Eigen::Vector2d&);
 Eigen::Vector4d unproject3d(const Eigen::Vector3d&);
 
 double norm_max(const Eigen::VectorXd& v);
+
+int round_up_to_max_pow10(int n);
 
 inline Eigen::Vector3d invert_depth(const Eigen::Vector3d& x) {
   return unproject2d(x.head<2>()) / x[2];

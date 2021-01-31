@@ -31,6 +31,8 @@ class VimapContainer {
 
   void loadVimapFromFolder(std::string vimap_folder);
 
+  bool check() const;
+
   std::vector<int64_t> vertexTimestamps() const;
 
   bool checkLandmarkIndicesConsecutive() const;

@@ -67,6 +67,51 @@ void VimapContainer::loadVimapFromFolder(std::string vimap_folder) {
   }
 }
 
+bool VimapContainer::check() const {
+  bool status = true;
+  if (vertices_.size()) {
+    std::cout << "First and last lines of vertices.\n";
+    vertices_.front().print(std::cout);
+    std::cout << std::endl;
+    vertices_.back().print(std::cout);
+    std::cout << std::endl;
+  } else {
+    std::cerr << "Vimap has no vertices.\n";
+    status = false;
+  }
+  if (tracks_.size()) {
+    std::cout << "First and last lines of tracks.\n";
+    tracks_.front().print(std::cout);
+    std::cout << std::endl;
+    tracks_.back().print(std::cout);
+    std::cout << std::endl;
+  } else {
+    std::cerr << "Vimap has no tracks.\n";
+    status = false;
+  }
+  if (observations_.size()) {
+    std::cout << "First and last lines of observations.\n";
+    observations_.front().print(std::cout);
+    std::cout << std::endl;
+    observations_.back().print(std::cout);
+    std::cout << std::endl;
+  } else {
+    std::cerr << "Vimap has no observations.\n";
+    status = false;
+  }
+  if (landmarks_.size()) {
+    std::cout << "First and last lines of landmarks.\n";
+    landmarks_.front().print(std::cout);
+    std::cout << std::endl;
+    landmarks_.back().print(std::cout);
+    std::cout << std::endl;
+  } else {
+    std::cerr << "Vimap has no landmarks.\n";
+    status = false;
+  }
+  return status;
+}
+
 std::vector<int64_t> VimapContainer::vertexTimestamps() const {
   std::vector<int64_t> timestamps;
   timestamps.reserve(vertices_.size());
