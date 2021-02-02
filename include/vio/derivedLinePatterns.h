@@ -106,7 +106,7 @@ class MaplabTrackPattern : public LinePattern {
   Eigen::Vector2d measurement;
   double uncertainty;
   double scale;
-  size_t track_id;
+  int track_id;
 };
 
 class MaplabLandmarkPattern : public LinePattern {

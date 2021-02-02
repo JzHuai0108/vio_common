@@ -50,11 +50,12 @@ void VimapContainer::loadVimapFromFolder(std::string vimap_folder) {
   std::string tracks_csv = vimap_folder + "/tracks.csv";
   std::string observations_csv = vimap_folder + "/observations.csv";
   std::string landmarks_csv = vimap_folder + "/landmarks.csv";
+  std::string imu_csv = vimap_folder + "/imu.csv";
   if (fileExists(vertices_csv)) {
     loadCsvData(vertices_csv, vertices_, 1);
   }
   if (fileExists(tracks_csv)) {
-    loadCsvData(tracks_csv, tracks_, 2);
+    loadCsvData(tracks_csv, tracks_, 1);
     numberCameras_ = tracks_.back().frame_index + 1;
   }
   if (fileExists(landmarks_csv)) {
@@ -64,6 +65,12 @@ void VimapContainer::loadVimapFromFolder(std::string vimap_folder) {
   if (fileExists(observations_csv)) {
     loadCsvData(observations_csv, observations_, 1);
     createValidKeypoints();
+  }
+  if (fileExists(imu_csv)) {
+    vio::loadCsvData(imu_csv, imuData_, 1);
+    for (ImuOutputPattern &row : imuData_) {
+        std::swap(row.w_, row.a_);
+    }
   }
 }
 
@@ -160,10 +167,7 @@ bool VimapContainer::createValidKeypoints() {
     corners.corner_ids[observation.keypoint_index] = observation.landmark_index;
   }
   // remove keypoints not associated to landmarks
-  for (const MaplabTrackPattern& keypoint : tracks_) {
-    CornersInImage& corners =
-        validKeypoints_[keypoint.vertex_index * numCameras +
-                        keypoint.frame_index];
+  for (CornersInImage& corners : validKeypoints_) {
     std::vector<bool> status;
     status.reserve(corners.corners.size());
     for (auto id : corners.corner_ids) {

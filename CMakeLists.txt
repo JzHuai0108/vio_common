@@ -103,7 +103,8 @@ if(CATKIN_ENABLE_TESTING)
     test/test_utils.cpp
     test/test_frame_grabber.cpp
     test/test_imu_grabber.cpp
-    test/test_eigen_utils.cpp)
+    test/test_eigen_utils.cpp
+    test/test_vimap_container.cpp)
   target_link_libraries(vio_common_test ${PROJECT_NAME})
 endif()
 

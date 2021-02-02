@@ -102,6 +102,12 @@ class VimapContainer {
 
   bool createValidKeypoints();
 
+  const std::vector<vio::ImuOutputPattern,
+                    Eigen::aligned_allocator<vio::ImuOutputPattern>>
+  imuData() const {
+    return imuData_;
+  }
+
  private:
   // Per maplab implementation, the vertex indices are consecutive from 0.
   std::vector<MaplabVertexPattern,
@@ -123,7 +129,12 @@ class VimapContainer {
               Eigen::aligned_allocator<MaplabLandmarkPattern>>
       landmarks_;
 
+  std::vector<vio::ImuOutputPattern,
+              Eigen::aligned_allocator<vio::ImuOutputPattern>>
+      imuData_;
+
   size_t numberCameras_;
+  // keypoints in each image associated to landmarks.
   std::vector<CornersInImage, Eigen::aligned_allocator<CornersInImage>>
       validKeypoints_;
 };
