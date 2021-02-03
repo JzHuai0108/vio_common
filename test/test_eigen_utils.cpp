@@ -158,3 +158,12 @@ TEST(eigen_utils, ExtractBlocks) {
   expected4 << 1, 2, 4, 6, 7, 9, 16, 17, 19, 21, 22, 24;
   EXPECT_LT((res - expected4).lpNorm<Eigen::Infinity>(), 1e-8);
 }
+
+TEST(Eigen, QuaternionDiff) {
+  Eigen::Vector4d xyzw(0.0002580249512621188, 0.0005713455181395015,
+                       0.7010130254309982, 0.7131481929890183);
+  Eigen::Quaterniond ref(xyzw[3], xyzw[0], xyzw[1], xyzw[2]);
+
+  Eigen::Quaterniond actual(xyzw.data());
+  EXPECT_LT(Eigen::AngleAxisd(ref.inverse() * actual).angle(), 1e-8);
+}
