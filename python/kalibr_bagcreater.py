@@ -62,7 +62,7 @@ def parse_args():
         'Each row should be: time[sec or nanosec],x,y,z'
         ' then accelerometer data will be interpolated'
         ' for gyro timestamps.')
-    parser.add_argument('--video_time_offset',
+    parser.add_argument('--first_frame_imu_time',
                         type=float,
                         default=0.0,
                         help='The time of the first video frame based on the'
@@ -93,7 +93,7 @@ def parse_args():
     parser.add_argument(
         '--max_video_frame_height',
         type=int,
-        default=480,
+        default=100000,
         help='For a video frame, if min(rows, cols) > %(default)s, '
         'it will be downsampled by 2. If the resultant bag is '
         'used for photogrammetry, the original focal_length and '
@@ -236,13 +236,25 @@ def create_imu_message(timestamp, omega, alpha):
 def write_video_to_rosbag(bag,
                           video_filename,
                           video_from_to,
-                          video_time_offset=0.0,
+                          first_frame_imu_time=0.0,
                           frame_timestamps=None,
-                          max_video_frame_height=100000000,
-                          shift_in_time=0.0):
-    """return estimated rough video time range in imu clock
-       video_time_offset + frame_time_in_video(0 based) ~= frame_time_in_imu
-       shift_in_time is to shift all measurements by a user specified amount.
+                          frame_remote_timestamps=None,
+                          max_video_frame_height=100000,
+                          shift_in_time=0.0,
+                          topic="/cam0/image_raw"):
+    """
+    :param bag: opened bag stream writing to
+    :param video_filename:
+    :param video_from_to: start and finish seconds within the video. Only frames within this range will be bagged.
+    :param first_frame_imu_time: The rough timestamp of the first frame per the IMU clock.
+    This value is used to estimate the video time range per the IMU clock.
+    Also it is used for frame local time if frame_timestamps is empty.
+    :param frame_timestamps: Frame timestamps by the host clock.
+    :param frame_remote_timestamps: Frame timestamps by the remote device clock.
+    :param max_video_frame_height:
+    :param shift_in_time: The time shift to apply to the resulting local (host) timestamps.
+    :return: rough video time range in imu clock.
+    first_frame_imu_time + frame_time_in_video(0 based) ~= frame_time_in_imu.
     """
     cap = cv2.VideoCapture(video_filename)
     rate = cap.get(cv2.CAP_PROP_FPS)
@@ -251,7 +263,7 @@ def write_video_to_rosbag(bag,
     start_id = 0
     finish_id = 1000000
     image_time_range_in_bag = list()
-    framesinvideo = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+    framesinvideo = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     print('#Frames {} in the video {}'.format(framesinvideo, video_filename))
     if frame_timestamps is None:
         frame_timestamps = list()
@@ -269,10 +281,10 @@ def write_video_to_rosbag(bag,
         start_id = int(max(start_id, video_from_to[0] * rate))
         finish_id = int(min(finish_id, video_from_to[1] * rate))
     image_time_range_in_bag.append(
-        max(float(start_id) / rate - 1.0, 0.0) + video_time_offset +
+        max(float(start_id) / rate - 0.05, 0.0) + first_frame_imu_time +
         shift_in_time)
     image_time_range_in_bag.append(
-        float(finish_id) / rate + 1.0 + video_time_offset + shift_in_time)
+        float(finish_id) / rate + 0.05 + first_frame_imu_time + shift_in_time)
     print('video frame index start {} finish {}'.format(start_id, finish_id))
     cap.set(cv2.CAP_PROP_POS_FRAMES,
             start_id)  # start from start_id, 0 based index
@@ -294,9 +306,8 @@ def write_video_to_rosbag(bag,
             break
 
         time_frame = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
-        time_frame_offset = time_frame + video_time_offset
-        # print('currentFrameId {} and timestamp in video {:.9f}'.
-        # format(current_id, time_frame))
+        time_frame_offset = time_frame + first_frame_imu_time
+
         _, frame = cap.read()
         if frame is None:
             print('Empty frame, break the video stream')
@@ -304,9 +315,8 @@ def write_video_to_rosbag(bag,
 
         image_np = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         h, w = image_np.shape[:2]
-
         if min(w, h) > max_video_frame_height:
-            image_np = cv2.pyrDown(image_np, dstsize=(w / 2, h / 2))
+            image_np = cv2.pyrDown(image_np, dstsize=(w // 2, h // 2))
         if w < h:
             image_np = cv2.rotate(image_np, cv2.ROTATE_90_COUNTERCLOCKWISE)
         cv2.imshow('frame', image_np)
@@ -314,24 +324,28 @@ def write_video_to_rosbag(bag,
             break
 
         if frame_timestamps:  # external
-            timestamp = frame_timestamps[video_frame_id]
+            local_time = frame_timestamps[video_frame_id]
         else:
             decimal, integer = math.modf(time_frame_offset)
-            timestamp = rospy.Time(secs=int(integer), nsecs=int(decimal * 1e9))
-        timestamp += rospy.Duration.from_sec(shift_in_time)
+            local_time = rospy.Time(secs=int(integer), nsecs=int(decimal * 1e9))
+        local_time += rospy.Duration.from_sec(shift_in_time)
+
+        remote_time = local_time
+        if frame_remote_timestamps:
+            remote_time = frame_remote_timestamps[video_frame_id]
 
         rosimage = Image()
-        rosimage.header.stamp = timestamp
+        rosimage.header.stamp = remote_time
         rosimage.height = image_np.shape[0]
         rosimage.width = image_np.shape[1]
         rosimage.step = rosimage.width
         rosimage.encoding = "mono8"
         rosimage.data = image_np.tostring()
 
-        topic_prefix = 'cam0'
         framecount += 1
         current_id += 1
-        bag.write("/{0}/image_raw".format(topic_prefix), rosimage, timestamp)
+        bag.write(topic, rosimage, local_time)
+
     cap.release()
     cv2.destroyAllWindows()
     print('Saved {} out of {} video frames as image messages to the rosbag'.
@@ -339,11 +353,11 @@ def write_video_to_rosbag(bag,
     return image_time_range_in_bag
 
 
-def loadtimestamps(video_time_file):
+def loadtimestamps(time_file):
     """Except for the header, each row has the timestamp in nanosec
     as its first component"""
     frame_rostimes = list()
-    with open(video_time_file, 'r') as csvfile:
+    with open(time_file, 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter=',')
         for row in reader:
             if utility_functions.is_header_line(row[0]):
@@ -353,6 +367,119 @@ def loadtimestamps(video_time_file):
     return frame_rostimes
 
 
+def load_local_and_remote_times(time_file):
+    """
+
+    :param time_file: Except for the header lines, each line has the first column as the remote time in ns,
+    and the last column as the local time in secs.
+    :return: list of tuples (local time, remote time)
+    """
+    frame_rostimes = list()
+    with open(time_file, 'r') as csvfile:
+        reader = csv.reader(csvfile, delimiter=',')
+        for row in reader:
+            if utility_functions.is_header_line(row[0]):
+                continue
+            secs, nsecs = utility_functions.parse_time(row[0], 'ns')
+            remote_time = rospy.Time(secs, nsecs)
+            local_time = rospy.Time.from_sec(float(row[-1]))
+            frame_rostimes.append((local_time, remote_time))
+    return frame_rostimes
+
+
+def write_imufile_to_rosbag(bag, imufile, timerange=None, buffertime=5, topic="/imu0"):
+    """
+
+    :param bag: output bag stream.
+    :param imufile: each line: time(ns), gx, gy, gz, ax, ay, az
+    :param timerange: only write imu data within this range to the bag, in seconds.
+    :param buffertime: time to pad the timerange, in seconds.
+    :param topic: imu topic
+    :return:
+    """
+    utility_functions.check_file_exists(imufile)
+    with open(imufile, 'r') as csvfile:
+        reader = csv.reader(csvfile, delimiter=',')
+        rowcount = 0
+        imucount = 0
+        for row in reader:  # note a row is a list of strings.
+            if utility_functions.is_header_line(row[0]):
+                continue
+            imumsg, timestamp = create_imu_message_time_string(
+                row[0], row[1:4], row[4:7])
+            timestampinsec = timestamp.to_sec()
+            rowcount += 1
+            if timerange and \
+                    (timestampinsec < timerange[0] - buffertime or
+                     timestampinsec > timerange[1] + buffertime):
+                continue
+            imucount += 1
+            bag.write(topic, imumsg, timestamp)
+        print('Saved {} out of {} inertial messages to the rosbag'.format(
+            imucount, rowcount))
+
+
+def write_imufile_remotetime_to_rosbag(bag, imufile, timerange=None, buffertime=5, topic="/imu0"):
+    """
+
+    :param bag: output bag stream.
+    :param imufile: each line: time(sec), ax, ay, az, gx, gy, gz, device-time(sec), and others
+    :param timerange: only write imu data within this local time range to the bag, in seconds.
+    :param buffertime: time to pad the timerange, in seconds.
+    :param topic: imu topic
+    :return:
+    """
+    utility_functions.check_file_exists(imufile)
+    with open(imufile, 'r') as csvfile:
+        reader = csv.reader(csvfile, delimiter=',')
+        rowcount = 0
+        imucount = 0
+        for row in reader:  # note a row is a list of strings.
+            if utility_functions.is_header_line(row[0]):
+                continue
+            local_timestamp = rospy.Time.from_sec(float(row[0]))
+            remote_timestamp = rospy.Time.from_sec(float(row[7]))
+            imumsg = create_imu_message(remote_timestamp, row[4:7], row[1:4])
+            timestampinsec = local_timestamp.to_sec()
+            rowcount += 1
+            if timerange and \
+                    (timestampinsec < timerange[0] - buffertime or
+                     timestampinsec > timerange[1] + buffertime):
+                continue
+            imucount += 1
+            bag.write(topic, imumsg, local_timestamp)
+
+        print('Saved {} out of {} inertial messages to the rosbag'.format(
+            imucount, rowcount))
+
+
+def write_gyro_accel_to_rosbag(bag, imufiles, timerange=None, buffertime=5, topic="/imu0", shift_secs=0.0):
+    gyro_file = imufiles[0]
+    accel_file = imufiles[1]
+    for filename in imufiles:
+        utility_functions.check_file_exists(filename)
+    time_gyro_array = utility_functions.load_advio_imu_data(gyro_file)
+    time_accel_array = utility_functions.load_advio_imu_data(accel_file)
+    time_imu_array = utility_functions.interpolate_imu_data(
+        time_gyro_array, time_accel_array)
+    bag_imu_count = 0
+    for row in time_imu_array:
+        timestamp = rospy.Time.from_sec(row[0]) + rospy.Duration.from_sec(shift_secs)
+        imumsg = create_imu_message(timestamp, row[1:4], row[4:7])
+
+        timestampinsec = timestamp.to_sec()
+        # check below conditions when video and imu use different clocks
+        # and their lengths differ much
+        if timerange and \
+                (timestampinsec < timerange[0] - buffertime or
+                 timestampinsec > timerange[1] + buffertime):
+            continue
+        bag_imu_count += 1
+        bag.write(topic, imumsg, timestamp)
+    print('Saved {} out of {} inertial messages to the rosbag'.format(
+        bag_imu_count, time_imu_array.shape[0]))
+
+
 def main():
     parsed = parse_args()
 
@@ -360,10 +487,10 @@ def main():
     videotimerange = None  # time range of video frames in IMU clock
     if parsed.video is not None:
         utility_functions.check_file_exists(parsed.video)
-        print('given video time offset {}'.format(parsed.video_time_offset))
+        print('Given video time offset {}'.format(parsed.first_frame_imu_time))
         if parsed.video_from_to:
-            print('video_from_to: {}'.format(parsed.video_from_to))
-        video_time_offset = parsed.video_time_offset
+            print('Frame time range within the video: {}'.format(parsed.video_from_to))
+        first_frame_imu_time = parsed.first_frame_imu_time
         frame_timestamps = list()
         if parsed.video_time_file:
             frame_timestamps = loadtimestamps(parsed.video_time_file)
@@ -372,15 +499,17 @@ def main():
             frame_timestamps = aligned_timestamps
             print('Loaded {} timestamps for frames'.format(
                 len(frame_timestamps)))
-            video_time_offset = frame_timestamps[0].to_sec()
+            first_frame_imu_time = frame_timestamps[0].to_sec()
         videotimerange = write_video_to_rosbag(
             bag,
             parsed.video,
             parsed.video_from_to,
-            video_time_offset,
-            frame_timestamps=frame_timestamps,
+            first_frame_imu_time,
+            frame_timestamps,
+            frame_remote_timestamps=None,
             max_video_frame_height=parsed.max_video_frame_height,
-            shift_in_time=parsed.shift_secs)
+            shift_in_time=parsed.shift_secs,
+            topic="/cam0/image_raw")
 
     elif parsed.folder is not None:
         # write images
@@ -414,63 +543,13 @@ def main():
                         row[0], row[1:4], row[4:7])
                     bag.write("/{0}".format(topic), imumsg, timestamp)
     elif len(parsed.imu) == 1:
-        imufile = parsed.imu[0]
-        topic = 'imu0'
-        utility_functions.check_file_exists(imufile)
-        with open(imufile, 'r') as csvfile:
-            reader = csv.reader(csvfile, delimiter=',')
-            rowcount = 0
-            imucount = 0
-            for row in reader:  # note row has many strings.
-                if utility_functions.is_header_line(row[0]):
-                    continue
-                imumsg, timestamp = create_imu_message_time_string(
-                    row[0], row[1:4], row[4:7])
-                timestampinsec = timestamp.to_sec()
-                rowcount += 1
-                # check below conditions when video and imu use different
-                #  clocks and their lengths differ much
-                if videotimerange and \
-                        (timestampinsec < videotimerange[0] - MARGIN_TIME or
-                         timestampinsec > videotimerange[1] + MARGIN_TIME):
-                    continue
-                imucount += 1
-                bag.write("/{0}".format(topic), imumsg, timestamp)
-            print('Saved {} out of {} inertial messages to the rosbag'.format(
-                imucount, rowcount))
+        write_imufile_to_rosbag(bag, parsed.imu[0], videotimerange, 5, "/imu0")
     else:
-        gyro_file = parsed.imu[0]
-        accel_file = parsed.imu[1]
-        topic = 'imu0'
-        for filename in parsed.imu:
-            utility_functions.check_file_exists(filename)
-        time_gyro_array = utility_functions.load_advio_imu_data(gyro_file)
-        time_accel_array = utility_functions.load_advio_imu_data(accel_file)
-        time_imu_array = utility_functions.interpolate_imu_data(
-            time_gyro_array, time_accel_array)
-        bag_imu_count = 0
-        for row in time_imu_array:
-            timestamp = rospy.Time.from_sec(row[0]) + rospy.Duration.from_sec(
-                parsed.shift_secs)
-            imumsg = create_imu_message(timestamp, row[1:4], row[4:7])
-
-            timestampinsec = timestamp.to_sec()
-            # check below conditions when video and imu use different clocks
-            # and their lengths differ much
-            if videotimerange and \
-                    (timestampinsec < videotimerange[0] - MARGIN_TIME or
-                     timestampinsec > videotimerange[1] + MARGIN_TIME):
-                continue
-            bag_imu_count += 1
-            bag.write("/{0}".format(topic), imumsg, timestamp)
-        print('Saved {} out of {} inertial messages to the rosbag'.format(
-            bag_imu_count, time_imu_array.shape[0]))
+        write_gyro_accel_to_rosbag(bag, parsed.imu, videotimerange, 5, "/imu0", parsed.shift_secs)
 
     bag.close()
     print('Saved to bag file {}'.format(parsed.output_bag))
 
-
-MARGIN_TIME = 5  # sec
 
 if __name__ == "__main__":
     main()
