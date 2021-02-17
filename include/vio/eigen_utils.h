@@ -299,12 +299,13 @@ Eigen::Matrix<double, Eigen::Dynamic, 1> subdiagonal(
     const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> &M);
 
 /**
+ * @deprecated hard to use and potentially buggy.
  * @brief reparameterize_AIDP, reparameterize a anchored inverse depth point
  * stemed from Li et al ICRA14 optimization based estimator design supplemental
  * material eq 37 in computing, equation $\rho_j
  * \mathbf{T}_G^{C_j}\mathbf{T}_{C_i}^G\left[\begin{matrix}\alpha_i \\ \beta_i
  * \\ 1\\ \rho_i \end{matrix}\right] = \rho_i \left[\begin{matrix}\alpha_j \\
- * \beta_j \\ 1\\ \rho_j\end{matrix}\right]$
+ * \beta_j \\ 1\\ \rho_j\end{matrix}\right]$\
  * @param Ri Rotation from the old anchor frame i to the global frame
  * @param Rj Rotation from the new anchor frame j to the global frame
  * @param abrhoi old inverse depth representation, \alpha, \beta, \rho =1/z
@@ -321,6 +322,7 @@ void reparameterize_AIDP(const Eigen::Matrix3d &Ri, const Eigen::Matrix3d &Rj,
                          Eigen::Matrix<double, 3, 9> *jacobian =
                              (Eigen::Matrix<double, 3, 9> *)(NULL));
 /**
+ * @deprecated
  * @brief compute the Jacobians for reparameterization, for debugging
  * @param Ri
  * @param Rj
