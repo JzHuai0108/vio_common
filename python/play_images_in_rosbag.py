@@ -46,20 +46,22 @@ def main():
     print('Press q key to quit.')
     bridge = CvBridge()
     count = 0
-    first_image_time = None
-    last_image_time = None
+    image_local_time = [None, None]
+    image_remote_time = [None, None]
     time_stream = None
     for _, msg, t in in_bag.read_messages(topics=[args.image_topic]):
         cv_img = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         if count == 0:
             print('Video frame info:')
             print_image_info(cv_img)
-            first_image_time = t
+            image_local_time[0] = t
+            image_remote_time[0] = msg.header.stamp
             if args.time_outfile:
                 time_stream = open(args.time_outfile, 'w')
         if time_stream:
             time_stream.write('{},{}\n'.format(msg.header.stamp, t))
-        last_image_time = t
+        image_local_time[1] = t
+        image_remote_time[1] = msg.header.stamp
         cv2.imshow('Frame', cv_img)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
@@ -68,9 +70,10 @@ def main():
         time_stream.close()
     cv2.destroyAllWindows()
     in_bag.close()
-    print("Displayed {} images of {} on topic {} first image time {} "
-          "last image time {}".format(count, args.bag_file, args.image_topic,
-                                      first_image_time, last_image_time))
+    print("Displayed {} images of {} on topic {}\n\t\t\tlocal time\t\t\tremote time\nfirst image\t{}\t{}\n"
+          "last image\t{}\t{}\n".format(count, args.bag_file, args.image_topic,
+                                        image_local_time[0], image_remote_time[0],
+                                        image_local_time[1], image_remote_time[1]))
 
 
 if __name__ == '__main__':

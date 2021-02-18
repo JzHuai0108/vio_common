@@ -61,7 +61,7 @@ def parse_args():
     parser.add_argument(
         '--max_video_frame_height',
         type=int,
-        default=480,
+        default=100000,
         help='For a video frame, if min(rows, cols) > %(default)s, '
         'it will be downsampled by 2. If the resultant bag is '
         'used for photogrammetry, the original focal_length and '
