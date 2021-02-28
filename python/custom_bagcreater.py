@@ -9,6 +9,7 @@ unix time by computer (sec), ax, ay, az, gx, gy, gz, time by sensor (sec)
 Sometimes, the unix time of the video has to plus an offset say 8 hours to account for the local time shift.
 """
 import argparse
+import os
 import sys
 
 import rospy

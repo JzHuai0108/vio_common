@@ -30,7 +30,9 @@ if __name__ == '__main__':
     if sys.platform == "win32":
         import os, msvcrt
         msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
-    
+    if len(sys.argv) < 2:
+        print('Usage: {} a.pdf b.pdf [...]'.format(sys.argv[0]))
+        sys.exit(1)
     output_file = os.path.join(os.path.dirname(sys.argv[1]), "combined.pdf")
     with open(output_file, "wb") as output_stream:
         pdf_cat(sys.argv[1:], output_stream)

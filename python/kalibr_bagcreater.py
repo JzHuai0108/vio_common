@@ -196,12 +196,12 @@ def get_imu_csv_files(input_dir):
     return imu_files
 
 
-def load_image_to_ros_msg(filename):
+def load_image_to_ros_msg(filename, timestamp=None):
     image_np = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
-
-    timestamp_nsecs = os.path.splitext(os.path.basename(filename))[0]
-    timestamp = rospy.Time(secs=int(timestamp_nsecs[0:-9]),
-                           nsecs=int(timestamp_nsecs[-9:]))
+    if timestamp is None:
+        timestamp_nsecs = os.path.splitext(os.path.basename(filename))[0]
+        timestamp = rospy.Time(secs=int(timestamp_nsecs[0:-9]),
+                               nsecs=int(timestamp_nsecs[-9:]))
 
     rosimage = Image()
     rosimage.header.stamp = timestamp
@@ -213,6 +213,26 @@ def load_image_to_ros_msg(filename):
     rosimage.data = image_np.tostring()
 
     return rosimage, timestamp
+
+
+def create_rosbag_for_images_in_dir(data_dir, output_bag, topic = "/cam0/image_raw"):
+    """
+    Find all images recursively in data_dir, and put them in a rosbag under topic.
+    The timestamp for each image is determined by its index.
+    It is mainly used to create a rosbag for calibrating cameras with kalibr.
+    :param data_dir:
+    :param output_bag: Its existing content will be overwritten.
+    :param topic:
+    :return:
+    """
+    image_files=get_image_files_from_dir(data_dir)
+    print('Found #images {} under {}'.format(len(image_files), data_dir))
+    bag = rosbag.Bag(output_bag, 'w')
+    for index, image_filename in enumerate(image_files):
+        image_msg, timestamp = load_image_to_ros_msg(image_filename, rospy.Time(index, 0))
+        bag.write(topic, image_msg, timestamp)
+    print("Saved #images {} of to bag".format(len(image_files)))
+    bag.close()
 
 
 def create_imu_message_time_string(timestamp_str, omega, alpha):
