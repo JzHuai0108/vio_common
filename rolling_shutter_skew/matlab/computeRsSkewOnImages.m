@@ -1,4 +1,7 @@
 function computeRsSkewOnImages(imageDir, outputDir, t_led, led_gap_px, H)
+% compute rolling shutter skew from tilted lines caused by the rolling
+% shutter effect and the running columns of the LED panel. The tilted lines
+% and two circle centers are interactively drawn by hand.
 if nargin < 5
     H = 720;
 end
