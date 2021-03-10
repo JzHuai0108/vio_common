@@ -18,8 +18,8 @@ def parseArgs():
         description='Convert a video to a sequence of image frames, optionally downsample.')
     parser.add_argument('video',
                         nargs='?', help='Video filename')
-    parser.add_argument('--output-folder', metavar='output_folder',
-                        help='An folder to output the image sequences', required=True)
+    parser.add_argument('output_folder',
+                        help='An folder to output the image sequences')
     parser.add_argument('--video-from-to', metavar='video_from_to', type=int,
                         nargs=2,
                         help='Use the video frames starting from up to this'

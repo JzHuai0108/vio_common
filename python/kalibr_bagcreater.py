@@ -261,7 +261,8 @@ def write_video_to_rosbag(bag,
                           frame_remote_timestamps=None,
                           max_video_frame_height=100000,
                           shift_in_time=0.0,
-                          topic="/cam0/image_raw"):
+                          topic="/cam0/image_raw",
+                          ratio=1.0):
     """
     :param bag: opened bag stream writing to
     :param video_filename:
@@ -273,6 +274,7 @@ def write_video_to_rosbag(bag,
     :param frame_remote_timestamps: Frame timestamps by the remote device clock.
     :param max_video_frame_height:
     :param shift_in_time: The time shift to apply to the resulting local (host) timestamps.
+    :param ratio: ratio of output frames / input frames
     :return: rough video time range in imu clock.
     first_frame_imu_time + frame_time_in_video(0 based) ~= frame_time_in_imu.
     """
@@ -354,17 +356,18 @@ def write_video_to_rosbag(bag,
         if frame_remote_timestamps:
             remote_time = frame_remote_timestamps[video_frame_id]
 
-        rosimage = Image()
-        rosimage.header.stamp = remote_time
-        rosimage.height = image_np.shape[0]
-        rosimage.width = image_np.shape[1]
-        rosimage.step = rosimage.width
-        rosimage.encoding = "mono8"
-        rosimage.data = image_np.tostring()
+        if (current_id - start_id) * ratio >= framecount:
+            rosimage = Image()
+            rosimage.header.stamp = remote_time
+            rosimage.height = image_np.shape[0]
+            rosimage.width = image_np.shape[1]
+            rosimage.step = rosimage.width
+            rosimage.encoding = "mono8"
+            rosimage.data = image_np.tostring()
+            bag.write(topic, rosimage, local_time)
+            framecount += 1
 
-        framecount += 1
         current_id += 1
-        bag.write(topic, rosimage, local_time)
 
     cap.release()
     cv2.destroyAllWindows()

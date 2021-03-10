@@ -14,9 +14,13 @@ import utility_functions
 
 def main():
     if len(sys.argv) < 5:
-        print("Usage: {} <folder where only one video avi and frame timestamp txt for bluefox reside> "
-              "<output bag fullpath> <start seconds> <finish seconds>".format(sys.argv[0]))
+        print("Usage: {} <folder where only one video avi and frame timestamp txt> "
+              "<output bag fullpath> <start seconds> <finish seconds> [frame select ratio, (0-1)]".format(sys.argv[0]))
         sys.exit(1)
+
+    ratio = 1.0
+    if len(sys.argv) > 5:
+        ratio = float(sys.argv[5])
 
     video = None
     for root, dirnames, filenames in os.walk(sys.argv[1]):
@@ -28,7 +32,14 @@ def main():
     if not video:
         warnings.warn("Failed to find any avi file under {}. Please make sure the correct folder is passed in.".format(sys.argv[1]))
         sys.exit(1)
-    video_time_file = video.replace('.avi', '.txt')
+    potential_exts = [".txt", ".csv"]
+    video_time_file = None
+    for ext in potential_exts:
+        video_time_file = video.replace('.avi', ext)
+        if os.path.isfile(video_time_file):
+            break
+    if video_time_file is None:
+        print("Failed to find timestamp file for {}".format(video))
     output_bag = sys.argv[2]
     video_from_to = [float(sys.argv[3]), float(sys.argv[4])]
     bag = rosbag.Bag(output_bag, 'w')
@@ -49,7 +60,8 @@ def main():
         frame_remote_timestamps=None,
         max_video_frame_height=100000,
         shift_in_time=0.0,
-        topic="/cam0/image_raw")
+        topic="/cam0/image_raw",
+        ratio=ratio)
     bag.close()
     print('Saved to bag file {}'.format(output_bag))
 
