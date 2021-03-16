@@ -56,7 +56,8 @@ def parse_args():
                         help='The csv file containing timestamps of every '
                         'video frames in IMU clock(default: %(default)s).'
                         ' Except for the header, each row has the '
-                        'timestamp in nanosec as its first component',
+                        'device timestamp in nanoseconds as the first component '
+                        'and the host timestamp in seconds as the last component',
                         required=False)
 
     parser.add_argument(

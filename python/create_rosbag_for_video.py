@@ -14,7 +14,7 @@ import utility_functions
 
 def main():
     if len(sys.argv) < 5:
-        print("Usage: {} <folder where only one video avi and frame timestamp txt> "
+        print("Usage: {} <video avi> "
               "<output bag fullpath> <start seconds> <finish seconds> [frame select ratio, (0-1)]".format(sys.argv[0]))
         sys.exit(1)
 
@@ -22,16 +22,7 @@ def main():
     if len(sys.argv) > 5:
         ratio = float(sys.argv[5])
 
-    video = None
-    for root, dirnames, filenames in os.walk(sys.argv[1]):
-        for filename in filenames:
-            if filename.endswith('.avi'):
-                video = os.path.join(root, filename)
-                break
-
-    if not video:
-        warnings.warn("Failed to find any avi file under {}. Please make sure the correct folder is passed in.".format(sys.argv[1]))
-        sys.exit(1)
+    video = sys.argv[1]
     potential_exts = [".txt", ".csv"]
     video_time_file = None
     for ext in potential_exts:
@@ -45,8 +36,6 @@ def main():
     bag = rosbag.Bag(output_bag, 'w')
     utility_functions.check_file_exists(video)
     print('Frame time range within the video: {}'.format(video_from_to))
-
-    frame_timestamps = list()
 
     frame_timestamps = kalibr_bagcreater.loadtimestamps(video_time_file)
     print('Loaded {} timestamps for frames'.format(len(frame_timestamps)))
