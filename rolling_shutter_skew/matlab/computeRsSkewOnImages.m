@@ -1,10 +1,8 @@
-function computeRsSkewOnImages(imageDir, outputDir, t_led, led_gap_px, H)
+function computeRsSkewOnImages(imageDir, outputDir, t_led, led_gap_px)
 % compute rolling shutter skew from tilted lines caused by the rolling
 % shutter effect and the running columns of the LED panel. The tilted lines
 % and two circle centers are interactively drawn by hand.
-if nargin < 5
-    H = 720;
-end
+
 if nargin < 4
     led_gap_px = 60; % number of pixels between two LED columns' centerlines
 end
@@ -49,7 +47,8 @@ currentIndex = 1;
 global numDrawnImages;
 numDrawnImages = 0;
 
-global tr_estimate; % modified by interactivelyComputeRsSkew, and saved by saveCurrentAndGetNext
+global t_r; % line delay, modified by interactivelyComputeRsSkew, and saved by saveCurrentAndGetNext.
+global t_r_h; % line delay with homography correction.
 
 if ~exist('fig_number')
     fig_number = 1;
@@ -120,7 +119,7 @@ for i=n_row:-1:1
                     case 4 % draw
                         h_mat(i,j) = uicontrol('Parent',fig_number, ...
                             'Units','points', ...
-                            'Callback',{cell_list{i,j}{2}, t_led, led_gap_px, H, homography}, ...
+                            'Callback',{cell_list{i,j}{2}, t_led, led_gap_px, homography}, ...
                             'ListboxTop', 0, ...
                             'Position',[posx(i,j)  posy(i,j)  x_size   y_size], ...
                             'String',cell_list{i,j}{1}, ...
