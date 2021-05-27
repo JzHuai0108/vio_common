@@ -123,8 +123,6 @@ def main():
     overall_time_shift = headerstamps_all[calibratedbag]['/imu0'][
         0] - headerstamps_all[rawbag]['/imu0'][0]
 
-    # cam0_time_delay = deltac0 - overall_time_shift
-    # cam1_time_delay = deltac1 - overall_time_shift
     cam0_time_delay = deltac0 - overall_time_shift
     cam1_time_delay = deltac1 - overall_time_shift
 
