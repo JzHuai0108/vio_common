@@ -6,6 +6,8 @@ using namespace std;
 
 namespace vio {
 
+using namespace cv;
+
 FrameGrabber::FrameGrabber(const std::string visualDataPath,
                            const std::string frameTimeFile, int startFrameIndex,
                            int finishFrameIndex, int maxFrameHeight)
@@ -21,18 +23,18 @@ FrameGrabber::FrameGrabber(const std::string visualDataPath,
     mVideoFile = visualDataPath;
     mCapture = cv::VideoCapture(mVideoFile);
     experim = CrowdSourcedData;
-    double rate = mCapture.get(CV_CAP_PROP_FPS);
+    double rate = mCapture.get(CAP_PROP_FPS);
     if (!rate) std::cerr << "Error opening video file " << mVideoFile << endl;
-    mCapture.set(CV_CAP_PROP_POS_FRAMES,
+    mCapture.set(CAP_PROP_POS_FRAMES,
                  mnStartId);  // start from mnStartId, 0 based index
     if (mnFinishId == -1) {
-      mnFinishId = (int)(mCapture.get(CV_CAP_PROP_FRAME_COUNT) - 1);
+      mnFinishId = (int)(mCapture.get(CAP_PROP_FRAME_COUNT) - 1);
     } else {
       mnFinishId = std::min(mnFinishId,
-                            (int)(mCapture.get(CV_CAP_PROP_FRAME_COUNT) - 1));
+                            (int)(mCapture.get(CAP_PROP_FRAME_COUNT) - 1));
     }
-    int width = mCapture.get(CV_CAP_PROP_FRAME_WIDTH),
-        height = mCapture.get(CV_CAP_PROP_FRAME_HEIGHT);
+    int width = mCapture.get(CAP_PROP_FRAME_WIDTH),
+        height = mCapture.get(CAP_PROP_FRAME_HEIGHT);
     if (maxFrameHeight > 0) {
       mnDownScale = getDownScale(width, height, maxFrameHeight);
     } else {
@@ -94,8 +96,8 @@ bool FrameGrabber::grabFrame(cv::Mat& left_img, double& tk) {
 
   if (experim == CrowdSourcedData) {
     cv::Mat dst;
-    assert(mCapture.get(CV_CAP_PROP_POS_FRAMES) == mnCurrentId);
-    double videoTimeSec = mCapture.get(CV_CAP_PROP_POS_MSEC) / 1000.0;
+    assert(mCapture.get(CAP_PROP_POS_FRAMES) == mnCurrentId);
+    double videoTimeSec = mCapture.get(CAP_PROP_POS_MSEC) / 1000.0;
     time_frame = assignTimeToVideoFrame(mnCurrentId, videoTimeSec);
     mCapture.read(left_img);
     rotateIfNeeded(&left_img);
@@ -106,7 +108,7 @@ bool FrameGrabber::grabFrame(cv::Mat& left_img, double& tk) {
       if (mnCurrentId > mnFinishId) {
         return false;
       }
-      int videoFrameId = mCapture.get(CV_CAP_PROP_POS_FRAMES);
+      int videoFrameId = mCapture.get(CAP_PROP_POS_FRAMES);
       if (videoFrameId != mnCurrentId) {
         std::cerr << "Expected frame id " << mnCurrentId
                   << " and actual one in video " << videoFrameId << " differ. "
@@ -115,7 +117,7 @@ bool FrameGrabber::grabFrame(cv::Mat& left_img, double& tk) {
                   << mnFinishId << std::endl;
         return false;
       }
-      double videoTimeSec = mCapture.get(CV_CAP_PROP_POS_MSEC) / 1000.0;
+      double videoTimeSec = mCapture.get(CAP_PROP_POS_MSEC) / 1000.0;
       time_frame = assignTimeToVideoFrame(mnCurrentId, videoTimeSec);
       mCapture.read(left_img);
       rotateIfNeeded(&left_img);
@@ -131,9 +133,9 @@ bool FrameGrabber::grabFrame(cv::Mat& left_img, double& tk) {
     if (left_img.channels() == 3) {
       cv::Mat temp;
       if (mbRGB)
-        cvtColor(left_img, temp, CV_RGB2GRAY);
+        cvtColor(left_img, temp, COLOR_RGB2GRAY);
       else
-        cvtColor(left_img, temp, CV_BGR2GRAY);
+        cvtColor(left_img, temp, COLOR_BGR2GRAY);
       left_img = temp;
     }
   } else {
@@ -194,9 +196,9 @@ bool FrameGrabber::grabFrameByIndex(const int queryIndex, cv::Mat& left_img,
 
   if (experim == CrowdSourcedData) {
     cv::Mat dst;
-    mCapture.set(CV_CAP_PROP_POS_FRAMES, queryIndex);
-    assert(mCapture.get(CV_CAP_PROP_POS_FRAMES) == queryIndex);
-    time_frame = mCapture.get(CV_CAP_PROP_POS_MSEC) / 1000.0;
+    mCapture.set(CAP_PROP_POS_FRAMES, queryIndex);
+    assert(mCapture.get(CAP_PROP_POS_FRAMES) == queryIndex);
+    time_frame = mCapture.get(CAP_PROP_POS_MSEC) / 1000.0;
     mCapture.read(left_img);
 
     if (left_img.empty()) {  // this happens when a frame is missing or at the
@@ -218,9 +220,9 @@ bool FrameGrabber::grabFrameByIndex(const int queryIndex, cv::Mat& left_img,
     if (left_img.channels() == 3) {
       cv::Mat temp;
       if (mbRGB)
-        cvtColor(left_img, temp, CV_RGB2GRAY);
+        cvtColor(left_img, temp, COLOR_RGB2GRAY);
       else
-        cvtColor(left_img, temp, CV_BGR2GRAY);
+        cvtColor(left_img, temp, COLOR_BGR2GRAY);
       left_img = temp;
     }
   } else {
