@@ -96,9 +96,11 @@ endif()
 # Tests
 add_executable(test_gps_grabber test/test_gps_grabber.cpp)
 target_link_libraries(test_gps_grabber ${PROJECT_NAME})
+# set_target_properties(test_gps_grabber PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 add_executable(video2image app/video2images_kalibr.cpp )
 target_link_libraries(video2image ${OpenCV_LIBS})
+# set_target_properties(video2image PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 if(CATKIN_ENABLE_TESTING)
   catkin_add_gtest(vio_common_test test/test_main.cpp
@@ -143,7 +145,9 @@ if(NOT ${USE_ROS})
   install(FILES "${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/vio_commonConfig.cmake"
           DESTINATION ${CMAKECONFIG_INSTALL_DIR})
 
+  set(DefaultScriptPermissions OWNER_READ OWNER_WRITE OWNER_EXECUTE    GROUP_READ         GROUP_EXECUTE   WORLD_READ       WORLD_EXECUTE )
   install(DIRECTORY include/vio DESTINATION ${CMAKE_INSTALL_PREFIX}/include FILES_MATCHING PATTERN "*.h")
+  install(DIRECTORY python/ DESTINATION ${CMAKE_INSTALL_PREFIX}/bin FILE_PERMISSIONS ${DefaultScriptPermissions} FILES_MATCHING PATTERN "*.py" PATTERN "test" EXCLUDE)
   install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
   install(TARGETS test_gps_grabber video2image DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 endif()
