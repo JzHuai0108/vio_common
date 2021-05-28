@@ -53,6 +53,10 @@ if(${USE_ROS})
 else()
   set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
   set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
+
+  # Install to (e.g. /usr/local/) and look for libraries there.
+  set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib)
+  SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
 endif()
 
 
@@ -141,4 +145,5 @@ if(NOT ${USE_ROS})
 
   install(DIRECTORY include/vio DESTINATION ${CMAKE_INSTALL_PREFIX}/include FILES_MATCHING PATTERN "*.h")
   install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+  install(TARGETS test_gps_grabber video2image DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 endif()
