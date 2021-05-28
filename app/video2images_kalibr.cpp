@@ -93,8 +93,8 @@ int main(int argc, char** argv) {
     std::cout << "to avoid timestamp less than 9 digits causing error in "
                  "kalibr_bagcreator\n";
     std::cout << "The output does not need to exist beforehand\n";
-    std::cout << "Ex:" << argv[0]
-              << "/home/user/Desktop/IMG_0658.MOV /home/user/Desktop/IMG_0658/"
+    std::cout << "Ex: " << argv[0]
+              << " /home/user/Desktop/IMG_0658.MOV /home/user/Desktop/IMG_0658/"
               << std::endl;
 
     return 1;
