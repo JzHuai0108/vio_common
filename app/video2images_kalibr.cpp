@@ -93,8 +93,8 @@ int main(int argc, char** argv) {
     std::cout << "to avoid timestamp less than 9 digits causing error in "
                  "kalibr_bagcreator\n";
     std::cout << "The output does not need to exist beforehand\n";
-    std::cout << "Ex:" << argv[0]
-              << "/home/user/Desktop/IMG_0658.MOV /home/user/Desktop/IMG_0658/"
+    std::cout << "Ex: " << argv[0]
+              << " /home/user/Desktop/IMG_0658.MOV /home/user/Desktop/IMG_0658/"
               << std::endl;
 
     return 1;
@@ -114,33 +114,33 @@ int main(int argc, char** argv) {
   makePath(argv[2]);
 
   std::string windowName = "DisplayVideo";
-  cv::namedWindow(windowName, CV_WINDOW_AUTOSIZE);
+  cv::namedWindow(windowName, WINDOW_AUTOSIZE);
 
   int downscale = 1;
   cv::VideoCapture cap(videoName);
   char buffer[100];
-  double rate = cap.get(CV_CAP_PROP_FPS);
+  double rate = cap.get(CAP_PROP_FPS);
   if (!rate) cerr << "Error opening video file " << videoName << endl;
 
-  assert(cap.get(CV_CAP_PROP_POS_FRAMES) == 0);
-  assert(cap.get(CV_CAP_PROP_POS_MSEC) == 0);
+  assert(cap.get(CAP_PROP_POS_FRAMES) == 0);
+  assert(cap.get(CAP_PROP_POS_MSEC) == 0);
 
-  cap.set(CV_CAP_PROP_POS_FRAMES, startIndex);  // start from a 0 based index
+  cap.set(CAP_PROP_POS_FRAMES, startIndex);  // start from a 0 based index
   int totalImages =
-      std::min(finishIndex, (int)cap.get(CV_CAP_PROP_FRAME_COUNT) - 1);
-  int width = cap.get(CV_CAP_PROP_FRAME_WIDTH),
-      height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
+      std::min(finishIndex, (int)cap.get(CAP_PROP_FRAME_COUNT) - 1);
+  int width = cap.get(CAP_PROP_FRAME_WIDTH),
+      height = cap.get(CAP_PROP_FRAME_HEIGHT);
 
   cv::Mat left_img, dst, last_left_img;
   double time_frame(-1);  // unit milli sec
   double last_time_frame(-1);
   for (int numImages = startIndex; numImages <= totalImages; ++numImages) {
-    int currentId = cap.get(CV_CAP_PROP_POS_FRAMES);
+    int currentId = cap.get(CAP_PROP_POS_FRAMES);
     if (currentId != numImages) {
       cout << "current image video id 0 based " << currentId << " and counter "
            << numImages << endl;
     }
-    time_frame = cap.get(CV_CAP_PROP_POS_MSEC);
+    time_frame = cap.get(CAP_PROP_POS_MSEC);
 
     cout << "frame time " << std::setprecision(16) << time_frame
          << "[ms] and index " << numImages;
