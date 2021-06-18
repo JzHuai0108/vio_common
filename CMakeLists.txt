@@ -56,7 +56,7 @@ else()
 
   # Install to (e.g. /usr/local/) and look for libraries there.
   set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib)
-  SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
+  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
 endif()
 
 
