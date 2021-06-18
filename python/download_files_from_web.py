@@ -1,14 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import os
 import subprocess
 import sys
 import requests
 from bs4 import BeautifulSoup
-"""URL of the archive web-page which provides link to
-all files. It would have been tiring to
-download each file manually.
-In this example, we first crawl the webpage to extract
-all the links and then download files.
+
+"""First crawl the webpage to extract all links and then download files sequentially.
 To install requirements,
 pip install BeautifulSoup4
 pip install html5lib
@@ -41,8 +38,14 @@ def get_file_links(archive_url, key_list):
             dir_url = dir_url[:slash_index + 1]
 
     for link in links:
-        if has_all_keys(link['href'], key_list):
-            file_links_out.append(dir_url + link['href'])
+        try:
+            if has_all_keys(link['href'], key_list):
+                if dir_url in link['href']:
+                    file_links_out.append(link['href'])
+                else:
+                    file_links_out.append(dir_url + link['href'])
+        except KeyError:
+            print("href key not found in link:{}".format(link))
 
     return file_links_out
 
@@ -53,15 +56,15 @@ def subprocess_cmd(command):
     print(proc_stdout)
 
 
-def wget_file_series(file_links_in, save_to_path_in):
-    # create the bash script
-    bash_script = os.path.join(save_to_path_in, 'download.sh')
-    with open(bash_script, 'w') as stream:
-        stream.write('{}'.format('\n'.join(file_links_in)))
+def wget_file_series(links, path_prefix):
+    # create wget script
+    link_file = os.path.join(path_prefix, 'links.txt')
+    with open(link_file, 'w') as stream:
+        stream.write('{}'.format('\n'.join(links)))
 
     # invoke the bash script
-    print('Downloading files to {}'.format(save_to_path_in))
-    command = 'cd {}; wget -i {};'.format(save_to_path_in, bash_script)
+    print('Downloading files to {}'.format(path_prefix))
+    command = 'cd {}; wget -i {};'.format(path_prefix, link_file)
     subprocess_cmd(command)
     print('Downloading finishes!')
 

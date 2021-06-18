@@ -312,6 +312,7 @@ def write_video_to_rosbag(bag,
             start_id)  # start from start_id, 0 based index
     current_id = start_id
     framecount = 0
+    last_frame_remote_time = 0
     while cap.isOpened():
         if current_id > finish_id:
             print('Exceeding finish_id %d' % finish_id +
@@ -353,10 +354,14 @@ def write_video_to_rosbag(bag,
         local_time += rospy.Duration.from_sec(shift_in_time)
 
         remote_time = local_time
+        is_dud = False
         if frame_remote_timestamps:
             remote_time = frame_remote_timestamps[video_frame_id]
+            if last_frame_remote_time != 0:
+                is_dud = remote_time == last_frame_remote_time
+            last_frame_remote_time = remote_time
 
-        if (current_id - start_id) * ratio >= framecount:
+        if (current_id - start_id) * ratio >= framecount and not is_dud:
             rosimage = Image()
             rosimage.header.stamp = remote_time
             rosimage.height = image_np.shape[0]
@@ -462,7 +467,7 @@ def write_imufile_remotetime_to_rosbag(bag, imufile, timerange=None, buffertime=
                 continue
             local_timestamp = rospy.Time.from_sec(float(row[0]))
             remote_timestamp = rospy.Time.from_sec(float(row[7]))
-            imumsg = create_imu_message(remote_timestamp, row[4:7], row[1:4])
+            imumsg = create_imu_message(remote_timestamp, row[1:4], row[4:7])
             timestampinsec = local_timestamp.to_sec()
             rowcount += 1
             if timerange and \

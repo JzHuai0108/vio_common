@@ -103,7 +103,7 @@ class VimapContainer {
   bool createValidKeypoints();
 
   const std::vector<vio::ImuOutputPattern,
-                    Eigen::aligned_allocator<vio::ImuOutputPattern>>
+                    Eigen::aligned_allocator<vio::ImuOutputPattern>>&
   imuData() const {
     return imuData_;
   }
