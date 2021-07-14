@@ -33,8 +33,8 @@ def parseArgs():
                         help='Save RGB or gray.')
     #print help if no argument is specified
     if len(sys.argv)<2:
-        msg = 'Example usage: {} --video video_and_frame_timestamps/IMG_2805.MOV ' \
-               '--output-folder video_and_frame_timestamps/IMG_2805/ ' \
+        msg = 'Example usage: {} video_and_frame_timestamps/IMG_2805.MOV ' \
+               'video_and_frame_timestamps/IMG_2805/ ' \
               '--video-from-to 0 500 --choose-every-n 2 --downsample-by-2\n '.format(sys.argv[0])
 
         print(msg)
@@ -70,7 +70,7 @@ def video_to_frames(input_loc, output_loc, video_from_to=None,
         os.mkdir(output_loc)
     except OSError:
         pass
-    emptyfolder(output_loc)
+    # emptyfolder(output_loc)
     # Log the time
     time_start = time.time()
     # Start capturing the feed
