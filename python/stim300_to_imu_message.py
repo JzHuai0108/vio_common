@@ -1,3 +1,4 @@
+import math
 import shutil
 
 from sensor_msgs.msg import Imu
@@ -11,7 +12,7 @@ import sys
 
 
 def print_stim300(msg, t):
-    print("header time {} ros time {} gyro(deg/s) {} {} {} acc(gravity) {} {} {} gyro_temp(C) {} {} {} acc_temp(C) {} {} {} "
+    print("stim300 header time {} ros time {} gyro(deg/s) {} {} {} acc(gravity) {} {} {} gyro_temp(C) {} {} {} acc_temp(C) {} {} {} "
           "gyro flag {} acc flag {} gyro t flag {} acc t flag {} yaw {} pitch {} roll {} lat {} lon {} h {}".format(
         msg.header.stamp, t, msg.x_gyro, msg.y_gyro, msg.z_gyro, msg.x_acc, msg.y_acc, msg.z_acc,
         msg.x_gyro_t, msg.y_gyro_t, msg.z_gyro_t, msg.x_acc_t, msg.y_acc_t, msg.z_acc_t,
@@ -38,6 +39,7 @@ def stim300_to_imu(stim300_msg, gyro_unit, acc_unit):
     rosimu.orientation.w = q[3]
     return rosimu
 
+
 def save_snippet(input_bag, output_bag, maxlidarcount):
     imucount = 0
     lidarcount = 0
@@ -58,7 +60,7 @@ def save_snippet(input_bag, output_bag, maxlidarcount):
                 break
 
 
-def convert_stim_messages(input_bag, output_bag):
+def convert_stim_messages(input_bag, output_bag, output_imu_topic):
     if os.path.isfile(output_bag):
         os.remove(output_bag)
     shutil.copy2(input_bag, output_bag)
@@ -71,10 +73,10 @@ def convert_stim_messages(input_bag, output_bag):
     with rosbag.Bag(output_bag, 'a') as outbag:
         for topic, msg, t in rosbag.Bag(input_bag).read_messages():
             if topic == "/imu_stim300":
-                if imucount % rate == 0:
+                if imucount % (rate * 10) == 0:
                     print_stim300(msg, t)
                 imumsg = stim300_to_imu(msg, degtorad, gravity)
-                outbag.write(topic, imumsg, imumsg.header.stamp)
+                outbag.write(output_imu_topic, imumsg, imumsg.header.stamp)
                 imucount += 1
             else:
                 if lidarcount % 100 == 0:
@@ -96,7 +98,8 @@ def main():
     topic_list = in_bag.get_type_and_topic_info()[1].keys()
     print('Topics {} are in {}'.format(topic_list, input_bag))
     # save_snippet(input_bag, output_bag, 300)
-    convert_stim_messages(input_bag, output_bag)
+    convert_stim_messages(input_bag, output_bag, '/imu0')
+
 
 if __name__ == "__main__":
     main()
