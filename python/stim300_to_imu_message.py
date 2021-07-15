@@ -3,11 +3,9 @@ import shutil
 
 from sensor_msgs.msg import Imu
 import rosbag
-import rospy
 from tf.transformations import quaternion_from_euler
 
 import os
-import subprocess
 import sys
 
 

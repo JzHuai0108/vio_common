@@ -3,56 +3,73 @@
 
 from __future__ import print_function
 
-import os
 import sys
-import warnings
+import argparse
 
+import numpy as np
 import rosbag
+import rospy
+
 import kalibr_bagcreater
 import utility_functions
 
 
+def parseArgs():
+    parser = argparse.ArgumentParser(
+        description="Write images of a video into a rosbag.")
+    parser.add_argument("video", help="Input video file.")
+    parser.add_argument("--image_topic",
+                        help="Save to which topic.",
+                        default='/cam0/image_raw')
+    parser.add_argument("--time_file",
+                        default=None,
+                        help="Timestamp file for every frame in the video.")
+    parser.add_argument("--output_bag",
+                        default="",
+                        help="Bag to append the images.")
+
+    parser.add_argument("--start_seconds",
+                        default=0,
+                        help="Start time within the video.")
+    parser.add_argument("--finish_seconds",
+                        default=1e8,
+                        help="Finish time within the video.")
+
+    parser.add_argument("--ratio",
+                        default=1.0,
+                        help="Select a portion of all frames at ratio in [0, 1.0].")
+
+    args = parser.parse_args()
+    return args
+
+
 def main():
-    if len(sys.argv) < 5:
-        print("Usage: {} <video avi> "
-              "<output bag fullpath> <start seconds> <finish seconds> [frame select ratio, (0-1)]".format(sys.argv[0]))
-        sys.exit(1)
-
-    ratio = 1.0
-    if len(sys.argv) > 5:
-        ratio = float(sys.argv[5])
-
-    video = sys.argv[1]
-    potential_exts = [".txt", ".csv"]
-    video_time_file = None
-    for ext in potential_exts:
-        video_time_file = video.replace('.avi', ext)
-        if os.path.isfile(video_time_file):
-            break
-    if video_time_file is None:
-        print("Failed to find timestamp file for {}".format(video))
-    output_bag = sys.argv[2]
-    video_from_to = [float(sys.argv[3]), float(sys.argv[4])]
-    bag = rosbag.Bag(output_bag, 'w')
-    utility_functions.check_file_exists(video)
+    args = parseArgs()
+    video_from_to = [args.start_seconds, args.finish_seconds]
+    utility_functions.check_file_exists(args.video)
     print('Frame time range within the video: {}'.format(video_from_to))
 
-    frame_timestamps = kalibr_bagcreater.loadtimestamps(video_time_file)
-    print('Loaded {} timestamps for frames'.format(len(frame_timestamps)))
-    first_frame_imu_time = frame_timestamps[0].to_sec()
+    frame_timestamps = np.loadtxt(args.time_file)
+    rostimestamps = []
+    for row in frame_timestamps:
+        rostimestamps.append(rospy.Time(row[0]))
+
+    print('Loaded {} timestamps for frames'.format(len(rostimestamps)))
+    first_frame_imu_time = rostimestamps[0].to_sec()
+    bag = rosbag.Bag(args.output_bag, 'a')
     videotimerange = kalibr_bagcreater.write_video_to_rosbag(
         bag,
-        video,
+        args.video,
         video_from_to,
         first_frame_imu_time,
-        frame_timestamps,
+        rostimestamps,
         frame_remote_timestamps=None,
         max_video_frame_height=100000,
         shift_in_time=0.0,
-        topic="/cam0/image_raw",
-        ratio=ratio)
+        topic=args.image_topic,
+        ratio=args.ratio)
     bag.close()
-    print('Saved to bag file {}'.format(output_bag))
+    print('Saved to bag file {}'.format(args.output_bag))
 
 
 if __name__ == "__main__":
