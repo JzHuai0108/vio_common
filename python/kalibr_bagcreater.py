@@ -360,8 +360,8 @@ def write_video_to_rosbag(bag,
             if last_frame_remote_time != 0:
                 is_dud = remote_time == last_frame_remote_time
             last_frame_remote_time = remote_time
-
-        if (current_id - start_id) * ratio >= framecount and not is_dud:
+        ratiostatus = (current_id - start_id) * ratio >= framecount
+        if ratiostatus and not is_dud:
             rosimage = Image()
             rosimage.header.stamp = remote_time
             rosimage.height = image_np.shape[0]
@@ -371,6 +371,9 @@ def write_video_to_rosbag(bag,
             rosimage.data = image_np.tostring()
             bag.write(topic, rosimage, local_time)
             framecount += 1
+        else:
+            print('Skip frame of id {}, is dud? {} ratio status? {} start_id {} framecount {}.'.format(
+                current_id, is_dud, ratiostatus, start_id, framecount))
 
         current_id += 1
 
