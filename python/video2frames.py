@@ -98,7 +98,7 @@ def video_to_frames(input_loc, output_loc, video_from_to=None,
         # Extract the frame
         ret, frame = cap.read()
         if frame is None:
-            print('Empty frame, break the video stream, latest frame id %d' % count)
+            print('Empty frame, break the video stream, latest frame id %d.' % count)
             break
         if count in frame_ids:
             if save_rgb:
@@ -128,8 +128,9 @@ def video_to_frames(input_loc, output_loc, video_from_to=None,
     cap.release()
     cv2.destroyAllWindows()
     # Print stats
-    print("Done extracting frames.\n%d frames extracted out of #frames in video %d" % (savedcount, video_length))
-    print("It took %d seconds for conversion." % (time_end-time_start))
+    print("Done extracting %d from %d to %d out of video with %d frames." % (
+        savedcount, minframeid, maxframeid, video_length))
+    print("It took %d seconds for extraction." % (time_end-time_start))
 
 
 def main():
