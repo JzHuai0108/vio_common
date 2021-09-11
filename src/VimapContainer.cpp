@@ -51,6 +51,9 @@ void VimapContainer::loadVimapFromFolder(std::string vimap_folder) {
   std::string observations_csv = vimap_folder + "/observations.csv";
   std::string landmarks_csv = vimap_folder + "/landmarks.csv";
   std::string imu_csv = vimap_folder + "/imu.csv";
+  if (!fileExists(imu_csv)) {
+    imu_csv = vimap_folder + "/imu0.csv";
+  }
   if (fileExists(vertices_csv)) {
     loadCsvData(vertices_csv, vertices_, 1);
   }
@@ -68,9 +71,6 @@ void VimapContainer::loadVimapFromFolder(std::string vimap_folder) {
   }
   if (fileExists(imu_csv)) {
     vio::loadCsvData(imu_csv, imuData_, 1);
-    for (ImuOutputPattern &row : imuData_) {
-        std::swap(row.w_, row.a_);
-    }
   }
 }
 
