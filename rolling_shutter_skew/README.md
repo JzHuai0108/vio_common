@@ -43,4 +43,5 @@ Delineate right line through the centers of another column, say j at pixel pj in
 The average slope of these two slope lines is m.
 t_r = t_led * (j - i) * H / (m * (pj - pi))
 
+### Method 3. Automatic detection by careful image processing
 
