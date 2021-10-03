@@ -352,6 +352,7 @@ def compute_line_delay(image_all_leds_on, image_rolling_leds, led_time, roi, deb
     # where \theta is the angle between the line and the x axis from left to right.
 
     coef_c = np.array([0.0, 1.0, 0.0])
+    # Use bounds to limit the search region.
     res = minimize(find_boundary, coef_c, (crop_red), method='powell', options={'xtol': 1e-4, 'disp': True})
 
     linedelay = led_time
