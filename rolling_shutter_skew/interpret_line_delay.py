@@ -65,7 +65,7 @@ class ArgumentParser(object):
         self.__parser.add_argument(
             '--frame_rolling_led',
             type=float,
-            default=30.0,
+            default=20.0,
             help=('Time of a frame with columns of LEDs rolling in the video. (default: %(default)s)'))
 
 

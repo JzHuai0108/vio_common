@@ -44,14 +44,15 @@ class VideoManager(object):
         :param frameId: zero based frame index in the video
         :return: status, frame
         """
+        if frameId > self.finish_id:
+            print('Cannot read frame at {} in the video of frames {}.'.format(frameId, self.finish_id + 1))
+            return False, None
         self.cap.set(cv2.CAP_PROP_POS_FRAMES, frameId)
         ret, frame = self.cap.read()
         h, w = frame.shape[:2]
         if h > w:
             frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
-        if frame is None:
-            print('Cannot read frame at {} in the video.'.format(frameId))
-            return False, None
+
         return True, frame
 
 
