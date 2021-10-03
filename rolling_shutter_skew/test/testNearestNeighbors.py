@@ -8,7 +8,7 @@ def testKNearestNeighbor():
     l = 25
     trainData = np.random.randint(0,100,(l,2)).astype(np.float32)
     k = 3
-    result = kNearestNeighbor.nearestNeighbors(trainData, k)
+    result, _ = kNearestNeighbor.nearestNeighbors(trainData, k)
 
     index = random.randrange(0, l)
     dist = []

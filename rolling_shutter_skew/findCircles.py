@@ -48,7 +48,7 @@ def suppress(fs, x):
         if (f.size > x.size) and (dist < f.size / 2):
             return True
 
-def find_circles_mser(img, mask_right_part = False,  cull_by_size = True, draw_result=True):
+def find_circles_mser(img, roi = None, cull_by_size = True, draw_result = True):
     """
     find circles in the red channel of an image with the MSER.
     :param img: image should have 3 dimens
@@ -56,8 +56,6 @@ def find_circles_mser(img, mask_right_part = False,  cull_by_size = True, draw_r
     See https://stackoverflow.com/questions/9860667/writing-robust-color-and-size-invariant-circle-detection-with-opencv-based-on
     When the detected circle has a imprecise radius, circle center may be accurate if the circle is well distributed.
     """
-
-
 
     if len(img.shape) < 3:
         red_img = img
@@ -80,14 +78,10 @@ def find_circles_mser(img, mask_right_part = False,  cull_by_size = True, draw_r
 
     sfs = [x for x in fs if not suppress(fs, x)]
 
-    if mask_right_part:
-        # remove circles on the right part of the image
-        h = red_img.shape[0]
-        w = red_img.shape[1]
-        assert(w > h)
+    if roi:
         leftRegions = []
         for x in sfs:
-            if x.pt[0] < h:
+            if roi[1] < x.pt[0] < roi[3] and roi[0] < x.pt[1] < roi[2]:
                 leftRegions.append(x)
         sfs = leftRegions
 
@@ -120,10 +114,9 @@ def find_circles_mser(img, mask_right_part = False,  cull_by_size = True, draw_r
         vis[:h, :w] = img
         vis[:h, w + 5:w * 2 + 5] = circle_img
 
-        cv2.imshow("image", vis)
-        cv2.imwrite("circles.jpg", circle_img)
+        cv2.imshow("Detected circles", circle_img)
+        # cv2.imwrite("circles.jpg", circle_img)
         cv2.waitKey()
-        cv2.destroyAllWindows()
 
     return sfs
 

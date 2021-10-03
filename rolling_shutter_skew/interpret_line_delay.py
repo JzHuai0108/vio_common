@@ -14,9 +14,12 @@ import matplotlib.pyplot as plt
 
 import ioUtilities
 
+import calibrateCamera
 import findCircles
 import kNearestNeighbor
 from point_to_parabola import pointToParabola
+import VideoManager
+
 
 class ArgumentParser(object):
     """Parses command line arguments for the rolling shutter test."""
@@ -29,9 +32,9 @@ class ArgumentParser(object):
             action='store_true',
             help='print and write data useful for debugging')
         self.__parser.add_argument(
-            '-i',
-            '--img',
-            help='Path to the LED panel image')
+            '-v',
+            '--video',
+            help='Path to the LED panel video')
         self.__parser.add_argument(
             '-l',
             '--led_time',
@@ -46,10 +49,30 @@ class ArgumentParser(object):
                   'specified directory.  Otherwise, the system\'s default '
                   'location for temporary folders is used.  --debug must '
                   'be specified along with this argument.'))
+        self.__parser.add_argument(
+            '--roi',
+            nargs="+",
+            type=int,
+            help=('region of interest: top, left, bottom, right. '
+                  'Note for opencv image coordinates x axis is from left to right, y top to bottom.\n'
+                  'If not provided, user will be prompted to drag a bounding box on the raw image.'))
+
+        self.__parser.add_argument(
+            '--frame_all_led_on',
+            type=float,
+            default=1.0,
+            help=('Time of a frame with all LEDs on in the video. (default: %(default)s)'))
+        self.__parser.add_argument(
+            '--frame_rolling_led',
+            type=float,
+            default=30.0,
+            help=('Time of a frame with columns of LEDs rolling in the video. (default: %(default)s)'))
+
 
     def parse_args(self):
         """Returns object containing parsed values from the command line."""
         return self.__parser.parse_args()
+
 
 def drawCoordinates(circles, coordinates, img):
     """
@@ -77,10 +100,11 @@ def drawCoordinates(circles, coordinates, img):
     vis[:h, :w] = img
     vis[:h, w + 5:w * 2 + 5] = circle_img
 
-    cv2.imshow("image", vis)
+    cv2.imshow("Circle center coordinates", circle_img)
     # cv2.imwrite("coordinates.jpg", circle_img)
     cv2.waitKey()
     cv2.destroyAllWindows()
+
 
 def drawlines(coef, hegiht, width):
     """
@@ -126,54 +150,48 @@ def drawlines_cv(coef_list, img, xmin_list, xmax_list):
     cv2.destroyAllWindows()
 
 
-def find_boundary(coef, image, xmin, xmax, ymin, ymax):
+def drawPoints(pts, img):
+    radius = 2
+    # color in BGR
+    color = (0, 255, 0)
+
+    # Line thickness in px
+    thickness = 1
+
+    vis = img.copy()
+    for pt in pts:
+        vis = cv2.circle(vis, (pt[0], pt[1]), radius, color, thickness)
+
+    cv2.imshow("Projected world points", vis)
+    cv2.waitKey()
+
+
+def find_boundary(coef, grey_img):
     '''
     For step 4, we need to optimize a function
     a,b,c = argmax mean(I(S_b(a, b, c))) - mean(I(S_d(a, b, c))) = argmax f(a, b, c)
     where a,b,c are the coefficients for the quadratic curve we are trying to fit to the boundary of
     the bright side S_b(a,b,c) and the dark side S_d(a, b, c), I(x) is the intensity at pixel x.
     '''
-    if len(image.shape) < 3:
-        grey_img = image
-    elif image.shape[2] == 1:
-        grey_img = image[:, :, 0]
-    else:
-        grey_img = image[:, :, 2]
-    
-    # cv2.line(image, (int(xmin), int(ymin)), (int(xmin), int(ymax)), (0,255,0), 1, 4)
-    # cv2.line(image, (int(xmin), int(ymin)), (int(xmax), int(ymin)), (0,255,0), 1, 4)
-    # cv2.line(image, (int(xmin), int(ymax)), (int(xmax), int(ymax)), (0,255,0), 1, 4)
-    # cv2.line(image, (int(xmax), int(ymin)), (int(xmax), int(ymax)), (0,255,0), 1, 4)
-    # cv2.imshow("image", grey_img)
-    # cv2.waitKey()
-    # cv2.destroyAllWindows()
 
     height = grey_img.shape[0]
     width = grey_img.shape[1]
-    I_sb = 0.0
-    n_sb = 0.0
-    I_sd = 0.0
-    n_sd = 0.0
-    for r in range(ymin, ymax, 1):
-        for c in range(xmin, xmax, 1):
-            # two sides of the curve C: s_b and s_c
-            cand, dist = pointToParabola(coef, (c, r))
-            if r >= np.polyval(coef, c) and dist < 100: #and r<np.polyval(coef, c)+100:
-                I_sb += grey_img[r,c]
-                n_sb += 1
-            elif r < np.polyval(coef, c) and dist < 100: #and r>=np.polyval(coef, c)-100:
-                I_sd += grey_img[r,c]
-                n_sd += 1
-    if n_sb<=10 or n_sd<=10:
-        print(1000)
-        return 1000.0
-    res = abs(I_sb/n_sb - I_sd/n_sd)
-    if res > 0:
-        res = 1.0/res
-    else:
-        res = 1000
-    print(res)
-    return res
+    total_diff = 0
+    rows = 0
+
+    # TODO(jhuai): implement as the pseudo code (binliang)
+    for r in range(0, height, 1): # for each row, given the line equation, compute the intersection point on the row, say [c, r]
+        # if [c -50, c+ 50] overlap the row r with more than 50 pixels:
+            # the left side from [c-50, r] to [c, r] is the bright side (check the image boundary), get the mean m_bright
+            # the right side from [c, r] to [c+50, r] is the dark side, get the mean m_dark
+            # compute the difference d = m_bright - m_dark
+
+            total_diff += d
+            rows += 1
+    # compute the average overall difference
+    avg_diff = total_diff / rows
+    return avg_diff
+
 
 def get_intersection(coef_a, coef_b, x_min, x_max, coef_a_):
     x = np.arange(x_min, x_max, 0.005)
@@ -188,142 +206,155 @@ def get_intersection(coef_a, coef_b, x_min, x_max, coef_a_):
 
     return -1, -1
 
-def rosen(x, image):
-    """The Rosenbrock function"""
-    return sum(100.0*(x[1:]-x[:-1]**2.0)**2.0 + (1-x[:-1])**2.0)
 
-def compute_line_delay(image, led_time, debug_dir):
+class BoundingBoxWidget(object):
+    def __init__(self, image, winname):
+        self.original_image = image
+        self.clone = self.original_image.copy()
+        self.winname = winname
+        cv2.namedWindow(winname)
+        cv2.setMouseCallback(winname, self.extract_coordinates)
+
+        # Bounding box reference points
+        self.image_coordinates = []
+
+    def extract_coordinates(self, event, x, y, flags, parameters):
+        # Record starting (x,y) coordinates on left mouse button click
+        if event == cv2.EVENT_LBUTTONDOWN:
+            self.image_coordinates = [(x,y)]
+
+        # Record ending (x,y) coordintes on left mouse button release
+        elif event == cv2.EVENT_LBUTTONUP:
+            if x == self.image_coordinates[-1][0] and y == self.image_coordinates[-1][1]:
+                self.image_coordinates = []
+                return
+            self.image_coordinates.append((x, y))
+            print('top left bottom right: {} {} {} {}'.format(self.image_coordinates[0][1], self.image_coordinates[0][0],
+                                                              self.image_coordinates[1][1], self.image_coordinates[1][0]))
+            print('x,y,w,h : ({}, {}, {}, {})'.format(self.image_coordinates[0][0], self.image_coordinates[0][1],
+                                                      self.image_coordinates[1][0] - self.image_coordinates[0][0],
+                                                      self.image_coordinates[1][1] - self.image_coordinates[0][1]))
+
+            # Draw rectangle
+            cv2.rectangle(self.clone, self.image_coordinates[0], self.image_coordinates[1], (36,255,12), 2)
+            cv2.imshow(self.winname, self.clone)
+
+        # Clear drawing boxes on right mouse button click
+        elif event == cv2.EVENT_RBUTTONDOWN:
+            self.clone = self.original_image.copy()
+
+    def show_image(self):
+        return self.clone
+
+
+
+def compute_line_delay(image_all_leds_on, image_rolling_leds, led_time, roi, debug_dir):
     """
     calculate line delay given an image of a LED panel
-    assumptions:
-    1. The image is roughly aligned to the LED panel, though there may be lens distortion
 
     algorithm:
-    1. detect circles on the LED panel
-    2. identify columns of circles by using assumption 1.
-    3. fit quadratic curves to at least two columns of circles, say column A and column B. It's better to have a large
-      gap between the two columns.
-    4. find the tilted side of the LED light clusters, and fit a quadratic curve to it, denote the curve by C.
-    5. find the intersection of column A and curve C, denoted by (r1, c1), and the intersection of column B and curve C,
-     denoted by (r2, c2), then the line_delay * (r2 - r1) = led_time * (B - A)
-
-    For step 1, refer to find_circles_mser in this repo and
-    https://scikit-image.org/docs/dev/auto_examples/features_detection/plot_blob.html
-
-    For step 2, refer to assignCoordinatesToPoints in this repo
-    You may have a better way to do this, be creative.
-
-    Step 3 is fairly easy.
+    1. detect circles of the LED panel on image_all_leds_on, and assign coordinates
+    2. estimate the camera intrinsics and extrinsics with these cicle centers,
+    3. rectifiy image_rolling_leds.
+    4. find the tilted side of the LED light clusters, and fit a line to it, denote the line by L.
+    5. the line delay can be computed by d = t_led / (tan(theta) * circle_distance)
+     where theta is the angle between the line and the x axis.
 
     For step 4, we need to optimize a function
-    a,b,c = argmax mean(I(S_b(a, b, c))) - mean(I(S_d(a, b, c))) = argmax f(a, b, c)
-    where a,b,c are the coefficients for the quadratic curve we are trying to fit to the boundary of
-    the bright side S_b(a,b,c) and the dark side S_d(a, b, c), I(x) is the intensity at pixel x.
+    a,b = argmax mean(I(S_b(a, b))) - mean(I(S_d(a, b))) = argmax f(a, b)
+    where a,b are the coefficients for the line we are trying to fit to the boundary of
+    the bright side S_b(a,b) and the dark side S_d(a, b), I(x) is the intensity at pixel x.
     You may use some optimization routines without computing gradient, referring to
     https://stackoverflow.com/questions/26739550/optimize-a-function-in-scipy-without-explicitly-defining-the-gradient
     You just need to define the cost function f.
 
-    Step 5 is fairly easy.
-
-    :param image:
-    :param led_time:
-    :param debug_dir:
+    :param image_all_leds_on: image where all LEDs are on, h x w x 3
+    :param image_rolling_leds: image where the LED columns are rolling on, h x w x 3
+    :param led_time: the duration a LED light is bright.
+    :param roi: region of interest, used to limit the area to search for the LED panel in image_all_leds_on
+    :param debug_dir: directory to save the debug info
     :return: line_delay
     """
-    height = image.shape[0]
-    width = image.shape[1]
-    # 1.detect circles on the LED panel
-    circles = findCircles.find_circles_mser(image)
-    # print(sfs)
+    height = image_all_leds_on.shape[0]
+    width = image_all_leds_on.shape[1]
+    assert image_all_leds_on.shape == image_rolling_leds.shape, \
+        "The image with all LEDs on and the image of rolling columns of LEDs should have the same shape"
 
-    # 2.identify columns of circles by using assumption 1.
-    centers = np.zeros((len(circles), 2), dtype=np.float32)
+    # 1.detect circles on the LED panel
+    circles = findCircles.find_circles_mser(image_all_leds_on, roi)
+    numPoints = len(circles)
+    # 2.identify coordinates of circles
+    centers = np.zeros((numPoints, 2), dtype=np.float32)
     for index, c in enumerate(circles):
         centers[index, 0] = c.pt[0]
         centers[index, 1] = c.pt[1]
-    coordinates, dxy = kNearestNeighbor.assignCoordinatesToPoints(centers, 45)
-    drawCoordinates(circles, coordinates, image)
-    # print(dxy)
+    coordinates, _ = kNearestNeighbor.assignCoordinatesToPoints(centers, -1)
+    drawCoordinates(circles, coordinates, image_all_leds_on)
 
-    # 3. fit quadratic curves to at least two columns of circles, say column A and column B. It's better to have a large
-    # gap between the two columns.
-    minC = 1000
-    maxC = -1000
-    xmin = ymin = 1000000
-    xmax = ymax = -1000000
-    for index, f in enumerate(circles):
-        if coordinates[index, 0] == 1000:
-            continue
-        if coordinates[index, 0] < minC:
-            minC = coordinates[index, 0]
-        if coordinates[index, 0] > maxC:
-            maxC = coordinates[index, 0]
-        if f.pt[0] < xmin:
-            xmin = int(f.pt[0])
-        if f.pt[0] > xmax:
-            xmax = int(f.pt[0])
-        if f.pt[1] < ymin:
-            ymin = int(f.pt[1])
-        if f.pt[1] > ymax:
-            ymax = int(f.pt[1])
-    
-    col_a = minC
-    col_b = maxC
-    if maxC-minC > 4:
-        col_a += 1
-        col_b -= 1
+    objp = np.zeros((1, numPoints, 3), np.float32)
+    corners = np.zeros((1, numPoints, 2), np.float32)
+    for i in range(numPoints):
+        objp[0, i, :2] = coordinates[i, :]
+        corners[0, i, :] = centers[i, :]
+    K, D, R_CW, t_CW = calibrateCamera.calibrate_camera(objp, corners, (width, height))
+    undistorted_rolling_leds = calibrateCamera.undistort(K, D, R_CW, image_rolling_leds)
 
-    xy_a = []
-    xy_b = []
-    for index, f in enumerate(circles):
-        if coordinates[index, 0] == col_a:
-            xy_a.append([f.pt[0],f.pt[1]])
-        if coordinates[index, 0] == col_b:
-            xy_b.append([f.pt[0],f.pt[1]])
-    xy_a=np.array(xy_a)
-    xy_a = xy_a[np.lexsort([xy_a[:,0]]), :]
-    xy_b=np.array(xy_b)
-    xy_b = xy_b[np.lexsort([xy_b[:,0]]), :]
-    # fig, ax = plt.subplots()
-    # ax.plot(xy_a[:,0], xy_a[:,1], 'bx')
-    # ax.plot(xy_b[:,0], xy_b[:,1], 'rx')
+    # Visualize circles in the rectified image.
+    projected = calibrateCamera.projectPoints(coordinates, R_CW, t_CW, K)
+    drawPoints(projected, undistorted_rolling_leds)
 
-    # fit quadratic curves
-    coef_a = np.polyfit(xy_a[:,0], xy_a[:,1], 2)
-    ya_fit = np.polyval(coef_a, xy_a[:,0])
-    coef_b = np.polyfit(xy_b[:,0], xy_b[:,1], 2)
-    yb_fit = np.polyval(coef_b, xy_b[:,0])
-    # ax.plot(xy_a[:,0], ya_fit, 'gx-')
-    # ax.plot(xy_b[:,0], yb_fit, 'gx-')
-    # plt.show()
+    # find min and max world coordinates in order to get the ROI
+    roi_rectified = kNearestNeighbor.boundingRect(coordinates)
+    pad = 0.35 # The pad is set a bit larger than the radius of a circle considering that the circle distance is 1.
+    lefttop = [roi_rectified[1] - pad, roi_rectified[0] - pad]
+    rightbottom = [roi_rectified[3] + pad, roi_rectified[2] + pad]
+    extremes = np.array([lefttop, rightbottom])
+    projected = calibrateCamera.projectPoints(extremes, R_CW, t_CW, K)
+    drawPoints(projected, undistorted_rolling_leds)
+    roi_rectified_px = [projected[0, 1], projected[0, 0], projected[1, 1], projected[1, 0]]
+    print("rectified top left bottom right {} in pixels".format(roi_rectified_px))
 
-    # 4. find the tilted side of the LED light clusters, and fit a quadratic curve to it, denote the curve by C.
+    # get circle distance in pixels in the rectified image
+    circle_dist_x = (roi_rectified_px[2] - roi_rectified_px[0]) / (roi_rectified[2] - roi_rectified[0])
+    circle_dist_y = (roi_rectified_px[3] - roi_rectified_px[1]) / (roi_rectified[3] - roi_rectified[1])
+    circle_distance = (circle_dist_x + circle_dist_y) * 0.5
+    print("Circle distance in the rectified image along x {} along y {} mean {}".format(circle_dist_x, circle_dist_y, circle_distance))
+
+    # TODO(jhuai): Binliang crop the image with roi_rectified_px, and work on the cropped image from now on.
+    # Because cropping does not affect the line delay estimate.
+
+    # TODO(jhuai): Binliang Select the red channel, and threshold to get the bright circles.
+    # if len(image.shape) < 3:
+    #     crop_red = image
+    # elif image.shape[2] == 1:
+    #     crop_red = image[:, :, 0]
+    # else:
+    #     crop_red = image[:, :, 2]
+    # cv2.threshold(red_channel, 127, 255, cv2.THRESH_OTSU) # Binliang, try THRESH_BINARY, and THRESH_TRIANGLE to get the best result.
+
+    # Binliang: find the circle centers that are bright,
+    # the circle center coordinates in the world frame are [l, t], [l+1, t], ..., [l, t+1], ... [r, b],
+    # where [t, l, b, r] is roi_rectified.
+    # the circle center coordinates in the image can be computed by projectPoints
+    # find these circles whose centers are bright, say, c0, c1, ck,
+    # pointList = np.array([[c0[0], c0[1]], [c1[0], c1[1]],, ..., [ck[0], ck[1]]])
+    # then fit the min area rect to the these bright circles by cv2.minAreaRect
+    # rect = cv2.minAreaRect(pointList)
+    # box = cv2.boxPoints(rect)
+    # compute the initial theta and intercept by using the above box.
+
+
+    # Binliang: initialize the boundary search with theta and intercept.
+    # refine the boundary line by scipy optimize
+
+    # Once the boundary line is found, the line delay can be computed by
+    # d = t_led / (tan(\theta) * circle_distance)
+    # where \theta is the angle between the line and the x axis from left to right.
+
     coef_c = np.array([0.0, 1.0, 0.0])
-    res = minimize(find_boundary, coef_c, (image, xmin, xmax, ymin, ymax), method='powell', options={'xtol': 1e-4, 'disp': True})
-    # res = minimize(rosen, x0, image, method='nelder-mead', options={'xtol': 1e-8, 'disp': True})
-    drawlines_cv([coef_a, coef_b, res.x], image, [xy_a[0,0], xy_b[0,0], 0], [xy_a[-1,0], xy_b[-1,0], width])
-    print(res.x)
+    res = minimize(find_boundary, coef_c, (crop_red), method='powell', options={'xtol': 1e-4, 'disp': True})
 
-    # 5. find the intersection of column A and curve C, denoted by (r1, c1), and the intersection of column B and curve C,
-    #  denoted by (r2, c2), then the line_delay * (r2 - r1) = led_time * (B - A)
-    coef_a_ = np.polyfit(xy_a[:,0], xy_a[:,1], 1)
-    coef_b_ = np.polyfit(xy_b[:,0], xy_b[:,1], 1)
-    c1, r1 = get_intersection(coef_a, res.x, 0, width, coef_a_)
-    c2, r2 = get_intersection(coef_b, res.x, 0, width, coef_b_)
-
-    # calculate the result
-    A = col_a
-    B = col_b
-    if r1==-1 or r2==-1:
-        print(r1)
-        print(r2)
-        print('Error!')
-        return -1
-    # r2 = 430
-    # r1 = 120
-    # B = 8
-    # A = 1
-    linedelay = led_time * (B - A) / (r2 - r1)
+    linedelay = led_time
     return linedelay
 
 
@@ -333,7 +364,6 @@ def main():
     :return:
     """
     global DEBUG
-
     parser = ArgumentParser()
     args = parser.parse_args()
     DEBUG = args.debug
@@ -341,13 +371,45 @@ def main():
         print('argument --debug_dir requires --debug')
         sys.exit()
 
-    image = cv2.imread(args.img)
-    cv2.imshow("raw image", image)
-    cv2.waitKey(0)
+    video_manager = VideoManager.VideoManager(args.video)
+    if not video_manager.isOpened():
+        video_manager.close()
+        print("Failed to open video {}".format(args.video))
+        return
 
-    linedelay = compute_line_delay(image, args.led_time, args.debug_dir)
+    frame_all_led_on_id = video_manager.rate * args.frame_all_led_on
+    frame_rolling_led_id = video_manager.rate * args.frame_rolling_led
+
+    _, image_all_led = video_manager.frameAt(frame_all_led_on_id)
+    _, image_rolling_led = video_manager.frameAt(frame_rolling_led_id)
+
+    winname = "Please drag the bounding box, then press q to quit."
+    if args.roi and len(args.roi) == 4:
+        pass
+    else:
+        boundingbox_widget = BoundingBoxWidget(image_all_led, winname)
+        while True:
+            cv2.imshow(winname, boundingbox_widget.show_image())
+            key = cv2.waitKey(1)
+
+            # Close program with keyboard 'q'
+            if key == ord('q'):
+                cv2.destroyAllWindows()
+                break
+
+        left = boundingbox_widget.image_coordinates[-2][0]
+        top = boundingbox_widget.image_coordinates[-2][1]
+        right = boundingbox_widget.image_coordinates[-1][0]
+        bottom = boundingbox_widget.image_coordinates[-1][1]
+        args.roi = [top, left, bottom, right]
+    print("args roi {}".format(args.roi))
+
+    linedelay = compute_line_delay(image_all_led, image_rolling_led, args.led_time, args.roi, args.debug_dir)
     if DEBUG:
         print('Found line delay {} for {}'.format(linedelay, args.img))
+
+    video_manager.close()
+    cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':

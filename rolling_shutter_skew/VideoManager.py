@@ -12,6 +12,7 @@ class VideoManager(object):
         if rate < 5:
             rate = 25
         rate *= rate_multiplier
+        self.rate = rate
         self.interval_ms = int(math.floor(1000 / rate))
 
         start_id = 0
@@ -33,10 +34,26 @@ class VideoManager(object):
                 break
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-
             cv2.imshow('frame', gray)
             if cv2.waitKey(self.interval_ms) & 0xFF == ord('q'):
                 break
+
+    def frameAt(self, frameId):
+        """
+
+        :param frameId: zero based frame index in the video
+        :return: status, frame
+        """
+        self.cap.set(cv2.CAP_PROP_POS_FRAMES, frameId)
+        ret, frame = self.cap.read()
+        h, w = frame.shape[:2]
+        if h > w:
+            frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        if frame is None:
+            print('Cannot read frame at {} in the video.'.format(frameId))
+            return False, None
+        return True, frame
+
 
     def isOpened(self):
         return self.cap.isOpened()

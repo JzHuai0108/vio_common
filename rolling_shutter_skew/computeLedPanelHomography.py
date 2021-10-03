@@ -108,7 +108,7 @@ def computeLedPanelHomography(video, circle_dist=45, num_accumulated_images = 7)
         return
     draw_img = None
     accumulated_circles = None
-    dxy = []
+    circleCenterDist = None
     for image_index in range(num_accumulated_images):
         _, img = video_manager.nextFrame()
         draw_img = img
@@ -130,7 +130,7 @@ def computeLedPanelHomography(video, circle_dist=45, num_accumulated_images = 7)
         for index, c in enumerate(accumulated_circles):
             centers[index, 0] = c.pt[0]
             centers[index, 1] = c.pt[1]
-        coordinates, dxy = kNearestNeighbor.assignCoordinatesToPoints(centers, circle_dist)
+        coordinates, circleCenterDist = kNearestNeighbor.assignCoordinatesToPoints(centers, circle_dist)
         # kNearestNeighbor.drawCoordinates(accumulated_circles, coordinates, img)
 
     # filter circles by size percentile,
@@ -195,7 +195,7 @@ def computeLedPanelHomography(video, circle_dist=45, num_accumulated_images = 7)
     with open(homography_txt, "a") as stream:
         stream.write("#Homography computed with image from {} to {} with #correspondences {} "
                      "and average circle distances (col: {:.2f}, row: {:.2f}) \n".format(
-            0, num_accumulated_images-1, len(circles_for_homography), dxy[0], dxy[1]))
+            0, num_accumulated_images-1, len(circles_for_homography), circleCenterDist, circleCenterDist))
         for row in actual_h:
             stream.write('{}\n'.format(' '.join(map(str, row))))
         print('Homography saved to {}'.format(homography_txt))
