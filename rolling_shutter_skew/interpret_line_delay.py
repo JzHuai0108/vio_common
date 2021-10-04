@@ -151,6 +151,12 @@ def drawlines_cv(coef_list, img, xmin_list, xmax_list):
 
 
 def drawPoints(pts, img):
+    """
+
+    :param pts: NX2 numpy array
+    :param img:
+    :return:
+    """
     radius = 2
     # color in BGR
     color = (0, 255, 0)
@@ -247,6 +253,59 @@ class BoundingBoxWidget(object):
         return self.clone
 
 
+class TiltedBlock(object):
+    """
+    The block represents the left and right contours of bright blocks tilted to the right.
+    """
+    def __init__(self, frontierRow, frontier):
+        self.frontierRow = 0   # row of the frontier
+        self.frontier = [0, 100]  # the segment belonging to this block on the frontier row
+        self.leftPointList = []
+        self.rightPointList = []
+
+    def getLeftContour(self):
+        return np.array(self.leftPointList)
+
+    def getRightContour(self):
+        return np.array(self.rightPointList)
+
+    def belongToBlock(self, rowId, newSegment, maxShift):
+        """
+        Does the new segment belong to this block?
+        :param rowId:
+        :param newSegment:
+        :return:
+        """
+        # check distance between the newSegment and frontier
+        return True
+
+    def updateFrontier(self, rowId, newSegment = None):
+        """
+
+        :param rowId:
+        :param newSegment:
+        :return:
+        """
+        assert rowId == self.frontier + 1
+        if newSegment:
+            # remember that moving to the right is allowed, but not left,
+            self.frontier = newSegment
+            # also record the left and right points where moves to the right occur.
+            # These left points (right points) are contours used for finding the min area rects.
+
+
+def findSegmentsInRow(grayimage, row, mingap, minlen):
+    """
+    Find the bright segments in a row of grayimage, two segments should have minimum gap, otherwise, they are merged.
+    The segment list may be empty for a row if all its pixels are dark.
+    :param grayimage: maybe binary image?
+    :param row:
+    :param mingap: minimum gap between consecutive segments
+    :param minlen: the minimum length of a segment. A small segment should be dismissed, like a single bright pixel.
+    :return: segmentlist = [segment0, segment1]; segment0 = [l0, r0], segment1 = [l1, r1]
+    """
+    return [[0, 10], [50, 80]]
+
 
 def compute_line_delay(image_all_leds_on, image_rolling_leds, led_time, roi, debug_dir):
     """
@@ -332,17 +391,24 @@ def compute_line_delay(image_all_leds_on, image_rolling_leds, led_time, roi, deb
     #     crop_red = image[:, :, 2]
     # cv2.threshold(red_channel, 127, 255, cv2.THRESH_OTSU) # Binliang, try THRESH_BINARY, and THRESH_TRIANGLE to get the best result.
 
-    # Binliang: find the circle centers that are bright,
-    # the circle center coordinates in the world frame are [l, t], [l+1, t], ..., [l, t+1], ... [r, b],
-    # where [t, l, b, r] is roi_rectified.
-    # the circle center coordinates in the image can be computed by projectPoints
-    # find these circles whose centers are bright, say, c0, c1, ck,
-    # pointList = np.array([[c0[0], c0[1]], [c1[0], c1[1]],, ..., [ck[0], ck[1]]])
-    # then fit the min area rect to the these bright circles by cv2.minAreaRect
-    # rect = cv2.minAreaRect(pointList)
-    # box = cv2.boxPoints(rect)
-    # compute the initial theta and intercept by using the above box.
+    # Binliang:
+    # blocklists = []
+    # for each row of the rectified ROI
+    #   find the bright segments assuming that the segments are separated by at least two circle distances,
+    #   segmentlist = findSegmentsInRow
+    #   if segmentlist:
+    #      merge the segmentlist to blocklists, i.e., update frontiers of blocks or initialize blocks
 
+    # for each block
+    #    get the left contour, and fit the min area rect to the contour by cv2.minAreaRect
+    #    rect = cv2.minAreaRect(pointList)
+    #    box = cv2.boxPoints(rect)
+    #    compute theta and intercept
+    #    get the right contour, and fit the min area rect to the contour by cv2.minAreaRect
+    #    rect = cv2.minAreaRect(pointList)
+    #    box = cv2.boxPoints(rect)
+    #    compute theta and intercept.
+    #    check the two theta's.
 
     # Binliang: initialize the boundary search with theta and intercept.
     # refine the boundary line by scipy optimize
