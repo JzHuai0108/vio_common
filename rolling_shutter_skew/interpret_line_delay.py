@@ -51,7 +51,7 @@ class ArgumentParser(object):
                   'be specified along with this argument.'))
         self.__parser.add_argument(
             '--roi',
-            nargs="+",
+            nargs=4,
             type=int,
             help=('region of interest: top, left, bottom, right. '
                   'Note for opencv image coordinates x axis is from left to right, y top to bottom.\n'
@@ -67,6 +67,9 @@ class ArgumentParser(object):
             type=float,
             default=20.0,
             help=('Time of a frame with columns of LEDs rolling in the video. (default: %(default)s)'))
+        
+        self.__parser.add_argument('--frame_pair', type=str, nargs=2, help=('path of the image with all leds on, and path of the image with rolling LEDs columnwise'))
+        # --frame_pair image.jpg rolling.jpg --roi 260 328 632 714
 
 
     def parse_args(self):
@@ -121,12 +124,13 @@ def drawlines(coef, hegiht, width):
     plt.show()
 
 def drawlines_cv(coef_list, img, xmin_list, xmax_list):
+    # x = row; y = col
     image = img.copy()
     height = image.shape[0]
     width = image.shape[1]
     # print(xmax_list)
 
-    print(height)
+    # print(height)
     ind_coef = 0
     for coef in coef_list:
         x = np.arange(xmin_list[ind_coef], xmax_list[ind_coef], 0.5)
@@ -139,8 +143,8 @@ def drawlines_cv(coef_list, img, xmin_list, xmax_list):
                 # print('({:.0f},{:.0f})'.format(x_pre, y_pre))
             else:
                 # print('({:.0f},{:.0f})'.format(x_pre, y_pre))
-                if y_pre<float(height) and y_fit[index]<float(height):
-                    cv2.line(image, (int(x_pre), int(y_pre)), (int(xi), int(y_fit[index])), (0,255,0), 1, 4)
+                if y_pre<float(width) and y_fit[index]<float(width):
+                    cv2.line(image, (int(y_pre), int(x_pre)), (int(y_fit[index]), int(xi)), (0,255,0), 1, 4)
                 x_pre = xi
                 y_pre = y_fit[index]
         ind_coef += 1
@@ -187,15 +191,28 @@ def find_boundary(coef, grey_img):
 
     # TODO(jhuai): implement as the pseudo code (binliang)
     for r in range(0, height, 1): # for each row, given the line equation, compute the intersection point on the row, say [c, r]
+        c = int(np.polyval(coef, r) +0.5)
+        cmin = max(c-50, 0)
+        cmax = min(c+50, width)
         # if [c -50, c+ 50] overlap the row r with more than 50 pixels:
+        m_bright = 0
+        m_dark = 0
+        if cmax-cmin > 50 and c-cmin > 20 and cmax-c > 20:
             # the left side from [c-50, r] to [c, r] is the bright side (check the image boundary), get the mean m_bright
             # the right side from [c, r] to [c+50, r] is the dark side, get the mean m_dark
+            for i in range(cmin, cmax, 1):
+                if i < c:
+                    m_bright += grey_img[r, i]
+                else:
+                    m_dark += grey_img[r, i]
             # compute the difference d = m_bright - m_dark
-
+            d = m_bright/float(c-cmin) - m_dark/float(cmax-c)
             total_diff += d
             rows += 1
     # compute the average overall difference
-    avg_diff = total_diff / rows
+    if rows <= 0 or total_diff <= 0:
+        return 1000.0
+    avg_diff = 1.0/(total_diff / rows)
     return avg_diff
 
 
@@ -258,10 +275,10 @@ class TiltedBlock(object):
     The block represents the left and right contours of bright blocks tilted to the right.
     """
     def __init__(self, frontierRow, frontier):
-        self.frontierRow = 0   # row of the frontier
-        self.frontier = [0, 100]  # the segment belonging to this block on the frontier row
-        self.leftPointList = []
-        self.rightPointList = []
+        self.frontierRow = frontierRow   # row of the frontier
+        self.frontier = frontier  # the segment belonging to this block on the frontier row
+        self.leftPointList = [[frontierRow, frontier[0]]]
+        self.rightPointList = [[frontierRow, frontier[1]]]
 
     def getLeftContour(self):
         return np.array(self.leftPointList)
@@ -277,6 +294,12 @@ class TiltedBlock(object):
         :return:
         """
         # check distance between the newSegment and frontier
+        dm = newSegment[0]+newSegment[1] - (self.frontier[0]+self.frontier[1])
+        # IOU = (min(newSegment[1],self.frontier[1]) - max(newSegment[0],self.frontier[0])) / \
+        #     (max(newSegment[1],self.frontier[1]) - min(newSegment[0],self.frontier[0]))
+        # print(IOU)
+        if abs(dm) > maxShift:
+            return False
         return True
 
     def updateFrontier(self, rowId, newSegment = None):
@@ -286,12 +309,19 @@ class TiltedBlock(object):
         :param newSegment:
         :return:
         """
-        assert rowId == self.frontier + 1
+        assert rowId >= self.frontierRow + 1
+        self.frontierRow = rowId
         if newSegment:
             # remember that moving to the right is allowed, but not left,
+            # if newSegment[0] < self.frontier[0] + 10:
+            #     return
+            # print(self.frontierRow)
             self.frontier = newSegment
             # also record the left and right points where moves to the right occur.
             # These left points (right points) are contours used for finding the min area rects.
+            self.leftPointList.append([rowId, newSegment[0]])
+            self.rightPointList.append([rowId, newSegment[1]])
+
 
 
 def findSegmentsInRow(grayimage, row, mingap, minlen):
@@ -304,7 +334,31 @@ def findSegmentsInRow(grayimage, row, mingap, minlen):
     :param minlen: the minimum length of a segment. A small segment should be dismissed, like a single bright pixel.
     :return: segmentlist = [segment0, segment1]; segment0 = [l0, r0], segment1 = [l1, r1]
     """
-    return [[0, 10], [50, 80]]
+    Segments = []
+    width = grayimage.shape[1]
+    beg = -1
+    for c in range(width):
+        if grayimage[row, c] == 0:
+            if beg != -1:
+                if c - beg > minlen:
+                    Segments.append([beg, c-1])
+                beg = -1
+            continue
+        if beg == -1:
+            beg = c
+    
+    result = []
+    for i in range(len(Segments)):
+        if i == 0:
+            result.append(Segments[i])
+            continue
+        if Segments[i][0]-result[-1][1] < mingap:
+            result[-1][1] = Segments[i][1]
+        else:
+            result.append(Segments[i])
+
+            
+    return result
 
 
 def compute_line_delay(image_all_leds_on, image_rolling_leds, led_time, roi, debug_dir):
@@ -355,7 +409,7 @@ def compute_line_delay(image_all_leds_on, image_rolling_leds, led_time, roi, deb
     for i in range(numPoints):
         objp[0, i, :2] = coordinates[i, :]
         corners[0, i, :] = centers[i, :]
-    K, D, R_CW, t_CW = calibrateCamera.calibrate_camera(objp, corners, (width, height))
+    K, D, R_CW, t_CW = calibrateCamera.calibrate_camera(objp, corners, (height, width))
     undistorted_rolling_leds = calibrateCamera.undistort(K, D, R_CW, image_rolling_leds)
 
     # Visualize circles in the rectified image.
@@ -381,47 +435,103 @@ def compute_line_delay(image_all_leds_on, image_rolling_leds, led_time, roi, deb
 
     # TODO(jhuai): Binliang crop the image with roi_rectified_px, and work on the cropped image from now on.
     # Because cropping does not affect the line delay estimate.
+    image=undistorted_rolling_leds[int(roi_rectified_px[0]):int(roi_rectified_px[2]),
+                    int(roi_rectified_px[1]):int(roi_rectified_px[3])]
 
     # TODO(jhuai): Binliang Select the red channel, and threshold to get the bright circles.
-    # if len(image.shape) < 3:
-    #     crop_red = image
-    # elif image.shape[2] == 1:
-    #     crop_red = image[:, :, 0]
-    # else:
-    #     crop_red = image[:, :, 2]
-    # cv2.threshold(red_channel, 127, 255, cv2.THRESH_OTSU) # Binliang, try THRESH_BINARY, and THRESH_TRIANGLE to get the best result.
+    crop_red = image[:, :, 0]
+    if len(image.shape) < 3:
+        crop_red = image
+    elif image.shape[2] == 1:
+        crop_red = image[:, :, 0]
+    else:
+        crop_red = image[:, :, 2]
+    
+    _, binary_red = cv2.threshold(crop_red, 127, 255, cv2.THRESH_TRIANGLE) # Binliang, try THRESH_BINARY, and THRESH_TRIANGLE to get the best result.
+    cv2.imshow("binary_red", binary_red)
+    cv2.waitKey()
+    rectangle_red = cv2.cvtColor(binary_red, cv2.COLOR_GRAY2BGR)
 
     # Binliang:
-    # blocklists = []
+    rows = binary_red.shape[0]
+    cols = binary_red.shape[1]
+    maxshift = 50
+    blocklists = [] 
     # for each row of the rectified ROI
-    #   find the bright segments assuming that the segments are separated by at least two circle distances,
-    #   segmentlist = findSegmentsInRow
-    #   if segmentlist:
-    #      merge the segmentlist to blocklists, i.e., update frontiers of blocks or initialize blocks
+    for r in range(rows):
+        # print(r)
+        # find the bright segments assuming that the segments are separated by at least two circle distances,
+        segmentlist = findSegmentsInRow(binary_red, r, 2*circle_distance, 10)
+        # print(segmentlist)
+        if segmentlist:
+            # cv2.rectangle(rectangle_red, (segmentlist[-1][0], r), (segmentlist[-1][1], r), (0,255,0))
+            # cv2.imshow("rectangle", rectangle_red)
+            # cv2.waitKey()
+            # merge the segmentlist to blocklists, i.e., update frontiers of blocks or initialize blocks
+            if not blocklists:
+                for seg in segmentlist:
+                    blocklists.append(TiltedBlock(r, seg))
+            else:
+                for seg in segmentlist:
+                    mark=0
+                    for block in blocklists:
+                        if block.belongToBlock(r, seg, maxshift):
+                            mark=1
+                            block.updateFrontier(r, seg)
+                    if mark==0:
+                        blocklists.append(TiltedBlock(r, seg))
+        else:
+            for block in blocklists:
+                block.updateFrontier(r)
 
-    # for each block
-    #    get the left contour, and fit the min area rect to the contour by cv2.minAreaRect
-    #    rect = cv2.minAreaRect(pointList)
-    #    box = cv2.boxPoints(rect)
-    #    compute theta and intercept
-    #    get the right contour, and fit the min area rect to the contour by cv2.minAreaRect
-    #    rect = cv2.minAreaRect(pointList)
-    #    box = cv2.boxPoints(rect)
-    #    compute theta and intercept.
-    #    check the two theta's.
 
     # Binliang: initialize the boundary search with theta and intercept.
+    # for each block
+    coef_c = np.array([1.0, 0.0])
+    coef1 = [0.0] *2
+    coef2 = [0.0] *2
+    for block in blocklists:
+        # get the left contour, and fit the min area rect to the contour by cv2.minAreaRect
+        # and compute theta and intercept
+        pointList = np.array(block.leftPointList)
+        rect1 = cv2.minAreaRect(pointList)
+        box1 = cv2.boxPoints(rect1)
+        cv2.drawContours(rectangle_red, [box1[:,[1,0]].astype(int)], 0, (0,255,0), 2)
+        cv2.imshow("rectangle", rectangle_red)
+        cv2.waitKey()
+
+        # get the right contour, and fit the min area rect to the contour by cv2.minAreaRect
+        # and compute theta and intercept.
+        pointList = np.array(block.rightPointList)
+        rect2 = cv2.minAreaRect(pointList)
+        box2 = cv2.boxPoints(rect2)
+        cv2.drawContours(rectangle_red, [box2[:,[1,0]].astype(int)], 0, (0,255,0), 2)
+        cv2.imshow("rectangle", rectangle_red)
+        cv2.waitKey()
+
+        print('{},{}'.format(rect1[2],rect2[2]))
+        # check the two theta's.
+        if abs(rect1[2]-rect2[2]) < 5 and rect1[2] < -10:
+            coef1[0] = ((box1[0][1]+box1[3][1])-(box1[1][1]+box1[2][1])) / \
+                ((box1[0][0]+box1[3][0])-(box1[1][0]+box1[2][0]))
+            coef1[1] = (box1[0][1]+box1[3][1])/2 - coef1[0]*(box1[0][0]+box1[3][0])/2
+            coef2[0] = ((box2[0][1]+box2[3][1])-(box2[1][1]+box2[2][1])) / \
+                ((box2[0][0]+box2[3][0])-(box2[1][0]+box2[2][0]))
+            coef2[1] = (box2[0][1]+box2[3][1])/2 - coef2[0]*(box2[0][0]+box2[3][0])/2
+            # coef_c[0] = (coef1[0]+coef2[0])/2
+            # coef_c[1] = (coef1[1]+coef2[1])/2
+            coef_c = coef2
+            break
+
+
     # refine the boundary line by scipy optimize
-
-    # Once the boundary line is found, the line delay can be computed by
-    # d = t_led / (tan(\theta) * circle_distance)
-    # where \theta is the angle between the line and the x axis from left to right.
-
-    coef_c = np.array([0.0, 1.0, 0.0])
+    drawlines_cv([coef_c], image, [0], [height])
     # Use bounds to limit the search region.
     res = minimize(find_boundary, coef_c, (crop_red), method='powell', options={'xtol': 1e-4, 'disp': True})
+    drawlines_cv([res.x], image, [0], [height])
 
-    linedelay = led_time
+    # d = t_led / (tan(theta) * circle_distance)
+    linedelay = led_time / (coef_c[0] * circle_distance)
     return linedelay
 
 
@@ -437,19 +547,24 @@ def main():
     if not DEBUG and args.debug_dir:
         print('argument --debug_dir requires --debug')
         sys.exit()
+    if args.video:
+        video_manager = VideoManager.VideoManager(args.video)
+        if not video_manager.isOpened():
+            video_manager.close()
+            print("Failed to open video {}".format(args.video))
+            return
 
-    video_manager = VideoManager.VideoManager(args.video)
-    if not video_manager.isOpened():
+        frame_all_led_on_id = video_manager.rate * args.frame_all_led_on
+        frame_rolling_led_id = video_manager.rate * args.frame_rolling_led
+
+        _, image_all_led = video_manager.frameAt(frame_all_led_on_id)
+        _, image_rolling_led = video_manager.frameAt(frame_rolling_led_id)
+
         video_manager.close()
-        print("Failed to open video {}".format(args.video))
-        return
-
-    frame_all_led_on_id = video_manager.rate * args.frame_all_led_on
-    frame_rolling_led_id = video_manager.rate * args.frame_rolling_led
-
-    _, image_all_led = video_manager.frameAt(frame_all_led_on_id)
-    _, image_rolling_led = video_manager.frameAt(frame_rolling_led_id)
-
+    elif args.frame_pair:
+        image_all_led = cv2.imread(args.frame_pair[0])
+        image_rolling_led = cv2.imread(args.frame_pair[1])
+    
     winname = "Please drag the bounding box, then press q to quit."
     if args.roi and len(args.roi) == 4:
         pass
@@ -475,7 +590,6 @@ def main():
     if DEBUG:
         print('Found line delay {} for {}'.format(linedelay, args.img))
 
-    video_manager.close()
     cv2.destroyAllWindows()
 
 
