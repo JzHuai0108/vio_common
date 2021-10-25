@@ -10,8 +10,10 @@ namespace vio {
 class LinePattern {
   virtual std::ostream &print(std::ostream &) const = 0;
   virtual std::istream &read(std::istream &) = 0;
-
+protected:
+  char delim_; // delimiter used in the line.
 public:
+  LinePattern(char delim = ' ') : delim_(delim) {}
   friend std::ostream &operator<<(std::ostream &os, const LinePattern &rhs) {
     return rhs.print(os);
   }
@@ -45,6 +47,56 @@ inline bool fileExists(const std::string &name) {
   return (stat(name.c_str(), &buffer) == 0);
 }
 
+// https://stackoverflow.com/questions/18100097/portable-way-to-check-if-directory-exists-windows-linux-c
+inline bool validDir(const std::string &pathname) {
+  struct stat info;
+  if (stat(pathname.c_str(), &info) != 0) {
+    return false;
+  } else if (info.st_mode & S_IFDIR) { // S_ISDIR() doesn't exist on my windows
+    return true;
+  } else {
+    return false;
+  }
+}
+
+inline bool validFile(const std::string &pathname) {
+  struct stat info;
+  if (stat(pathname.c_str(), &info) != 0) {
+    return false;
+  } else if (info.st_mode & S_IFDIR) { // S_ISDIR() doesn't exist on my windows
+    return false;
+  } else {
+    return true;
+  }
+}
+
+inline bool endswith(std::string const &fullString, std::string const &ending) {
+  if (fullString.length() >= ending.length()) {
+    return (0 == fullString.compare(fullString.length() - ending.length(),
+                                    ending.length(), ending));
+  } else {
+    return false;
+  }
+}
+
+inline std::string dirname(const std::string &str) {
+  size_t found;
+  found = str.find_last_of("/\\");
+  return str.substr(0, found);
+}
+
+inline std::string filename(const std::string &str) {
+  size_t found;
+  found = str.find_last_of("/\\");
+  return str.substr(found + 1);
+}
+
+inline std::string basename(const std::string &str) {
+  size_t found;
+  found = str.find_last_of("/\\");
+  size_t found2 = str.find_last_of(".");
+  return str.substr(found + 1, found2);
+}
 }  // namespace vio
 
 #endif  // CSVREADER_H

@@ -73,6 +73,38 @@ std::istream &OkvisOutputPattern::read(std::istream &is) {
   return is;
 }
 
+TumTrajPattern::TumTrajPattern(char delim) : LinePattern(delim) {}
+
+double TumTrajPattern::timestamp() const { return sec_ + nsec_ * 1e-9; }
+
+std::ostream &TumTrajPattern::print(std::ostream &os) const {
+  char delim = delim_;
+  os << sec_ << "." << std::setw(9) << std::setfill('0') << nsec_ << delim
+     << std::setprecision(8) << p_WS_[0] << delim
+     << p_WS_[1] << delim << p_WS_[2] << delim << q_WS_.x() << delim
+     << q_WS_.y() << delim << q_WS_.z() << delim << q_WS_.w();
+  return os;
+}
+
+std::istream &TumTrajPattern::read(std::istream &is) {
+  getline(is, time_, delim_);
+  double time = atof(time_.c_str());
+
+  sec_ = uint32_t(floor(time));
+  nsec_ = (time - sec_) * 1e9;
+
+  if (delim_ == ' ') {
+    is >> p_WS_[0] >> p_WS_[1] >> p_WS_[2] >> q_WS_.x() >> q_WS_.y() >>
+        q_WS_.z() >> q_WS_.w();
+  } else {
+    char delim;
+    is >> p_WS_[0] >> delim >> p_WS_[1] >> delim >> p_WS_[2] >>
+        delim >> q_WS_.x() >> delim >> q_WS_.y() >> delim >> q_WS_.z() >>
+        delim >> q_WS_.w();
+  }
+  return is;
+}
+
 ViclamOutputPattern::ViclamOutputPattern() {}
 
 std::ostream &ViclamOutputPattern::print(std::ostream &os) const {

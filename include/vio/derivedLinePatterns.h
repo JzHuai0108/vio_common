@@ -304,6 +304,55 @@ class OkvisOutputPattern : public LinePattern {
   Eigen::Quaterniond q_SC_;
 };
 
+
+class TumTrajPattern : public LinePattern {
+ public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  TumTrajPattern(char delim = ' ');
+
+  virtual ~TumTrajPattern() {}
+
+  std::ostream &print(std::ostream &) const override;
+
+  /**
+   * @brief read one line of the csv file:
+   * timestamp(sec) tx ty tz qx qy qz qw
+   * @return
+   */
+  std::istream &read(std::istream &) override;
+
+  double timestamp() const override;
+
+  static TumTrajPattern Random() {
+    TumTrajPattern pat;
+
+    pat.sec_ = rand() / 4;
+    pat.nsec_ = rand() / 4;
+    std::stringstream ss;
+    ss << pat.sec_ << "." << std::setw(9) << std::setfill('0') << pat.nsec_;
+    pat.time_ = ss.str();
+    pat.p_WS_.setRandom();
+    pat.q_WS_.coeffs().setRandom();
+    pat.q_WS_.normalize();
+    return pat;
+  }
+
+  bool equal(const TumTrajPattern &rhs) {
+    double precision = 1e-7;
+    return time_ == rhs.time_ && sec_ == rhs.sec_ && nsec_ == rhs.nsec_ &&
+           p_WS_.isApprox(rhs.p_WS_, precision) &&
+           q_WS_.isApprox(rhs.q_WS_, precision);
+  }
+
+ public:
+  std::string time_;
+  uint32_t sec_;
+  uint32_t nsec_;
+  Eigen::Vector3d p_WS_;
+  Eigen::Quaterniond q_WS_;
+};
+
+
 class ViclamOutputPattern : public LinePattern {
  public:
   ViclamOutputPattern();
