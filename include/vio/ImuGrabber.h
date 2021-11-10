@@ -127,7 +127,7 @@ class IMUGrabber : DataGrabber {
   bool getObservation(double tk);
   void print(const std::string message = "");
 
-  RawImuMeasurementVector getMeasurement() { return measurement; }
+  const RawImuMeasurementVector &getMeasurement() const { return measurement; }
 
  private:
   Eigen::Matrix<double, 7, 1> transMat;  // temporary IMU reading container
