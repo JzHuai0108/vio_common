@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from itertools import islice
 import os
 import subprocess
 import sys
@@ -56,6 +57,32 @@ def subprocess_cmd(command):
     print(proc_stdout)
 
 
+def subprocess_parallel(commands, max_workers=2):
+    """
+    https://stackoverflow.com/questions/14533458/python-threading-multiple-bash-subprocesses
+    max_workers = 2  # no more than 2 concurrent processes
+    """
+    processes = (subprocess.Popen(cmd, shell=True) for cmd in commands)
+    running_processes = list(islice(processes, max_workers))  # start new processes
+    while running_processes:
+        for i, process in enumerate(running_processes):
+            if process.poll() is not None:  # the process has finished
+                running_processes[i] = next(processes, None)  # start new process
+                if running_processes[i] is None: # no new processes
+                    del running_processes[i]
+                    break
+
+
+def wget_file_parallel(links, path_prefix):
+    print('Downloading files to {}'.format(path_prefix))
+    commands = []
+    for link in links:
+        cmd = 'cd {}; wget {};'.format(path_prefix, link)
+        commands.append(cmd)
+    subprocess_parallel(commands, 10)
+    print('Downloading finishes!')
+
+
 def wget_file_series(links, path_prefix):
     # create wget script
     link_file = os.path.join(path_prefix, 'links.txt')
@@ -86,4 +113,4 @@ if __name__ == "__main__":
     print('Found links:\n{}'.format('\n'.join(file_links)))
 
     # download all files
-    wget_file_series(file_links, save_to_path)
+    wget_file_parallel(file_links, save_to_path)
