@@ -40,18 +40,18 @@ FrameGrabber::FrameGrabber(const std::string visualDataPath,
     } else {
       mnDownScale = 1;
     }
-    std::cout << "Reading in video " << mVideoFile << " prop_frame_width "
+    std::cout << "Reading video " << mVideoFile << " prop_frame_width "
               << width << " prop_frame_height " << height << " mnDownScale "
-              << mnDownScale << std::endl;
+              << mnDownScale << "." << std::endl;
   } else {
     mImageFolder = visualDataPath;
     mnDownScale = 1;
     experim = Tsukuba;
-    std::cout << "Reading in images in folder " << mImageFolder << std::endl;
+    std::cout << "Reading images in folder " << mImageFolder << std::endl;
   }
 
-  std::cout << "start and finish index " << startFrameIndex << " "
-            << finishFrameIndex << std::endl;
+  std::cout << "Frame start index " << startFrameIndex << ", finish index "
+            << finishFrameIndex << ".\n";
 }
 
 bool FrameGrabber::is_open() {

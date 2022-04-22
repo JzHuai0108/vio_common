@@ -76,7 +76,7 @@ bool isHeaderLine(const std::string& line) {
 int countHeaderLines(const std::string& filename) {
   std::ifstream stream(filename);
   if (!stream.is_open()) {
-    std::cerr << "Unable to open " << filename << std::endl;
+    std::cerr << "countHeaderLines failed to open file:" << filename << ".\n";
     return -1;
   }
   int count = countHeaderLines(&stream);

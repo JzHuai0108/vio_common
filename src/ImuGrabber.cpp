@@ -189,12 +189,15 @@ IMUGrabber::IMUGrabber(const std::string &filename, IMUFileType ft)
 }
 
 void IMUGrabber::init() {
+  if (!stream.is_open()) {
+    return;
+  }
   int header_lines = countHeaderLines(file);
   std::string tempStr;
   for (int i = 0; i < header_lines; ++i)
     getline(stream, tempStr);  // remove explanatory header
-  std::cout << "Reading in imu file " << file << " as type " << file_type
-            << std::endl;
+  std::cout << "Reading imu file '" << file << "' as type " << file_type
+            << "." << std::endl;
 }
 
 void IMUGrabber::print(const std::string message) {

@@ -25,7 +25,7 @@ CsvReader::CsvReader(const std::string file,
                      std::shared_ptr<LinePattern> pattern, int headerLines)
     : stream_(file.c_str()), pattern_(pattern) {
   if (!stream_.is_open()) {
-    std::cerr << "Cannot open file: " << file << "." << std::endl;
+    std::cerr << "CsvReader failed to open file:" << file << ".\n";
   } else {
     for (int i = 0; i < headerLines; ++i) {
       std::string tempStr;

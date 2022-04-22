@@ -16,7 +16,7 @@ class DataGrabber {
         stream(file.c_str()),
         tkm1(-1) {
     if (!stream.is_open())
-      std::cerr << "Cannot open file at " << file << "." << std::endl;
+      std::cerr << "DataGrabber failed to open file:" << file << ".\n";
   }
 
   DataGrabber(const DataGrabber &) =
