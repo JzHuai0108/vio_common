@@ -93,7 +93,6 @@ if(${USE_GPSTK})
   target_link_libraries(${PROJECT_NAME} ${GPSTK_LIB})
 endif()
 
-# Tests
 add_executable(test_gps_grabber test/test_gps_grabber.cpp)
 target_link_libraries(test_gps_grabber ${PROJECT_NAME})
 # set_target_properties(test_gps_grabber PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
@@ -101,6 +100,9 @@ target_link_libraries(test_gps_grabber ${PROJECT_NAME})
 add_executable(video2image app/video2images_kalibr.cpp )
 target_link_libraries(video2image ${OpenCV_LIBS})
 # set_target_properties(video2image PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+add_executable(maplab2tumtraj app/maplab2tumtraj.cpp)
+target_link_libraries(maplab2tumtraj ${PROJECT_NAME})
 
 if(CATKIN_ENABLE_TESTING)
   catkin_add_gtest(vio_common_test test/test_main.cpp

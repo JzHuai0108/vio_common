@@ -75,6 +75,15 @@ std::istream &OkvisOutputPattern::read(std::istream &is) {
 
 TumTrajPattern::TumTrajPattern(char delim) : LinePattern(delim) {}
 
+TumTrajPattern::TumTrajPattern(const MaplabVertexPattern &vertex)
+    : LinePattern(), sec_(vertex.time_ns / 1000000000),
+      nsec_(vertex.time_ns % 1000000000), p_WS_(vertex.p_WS_),
+      q_WS_(vertex.q_WS_) {
+  std::stringstream ss;
+  ss << sec_ << "." << std::setw(9) << std::setfill('0') << nsec_;
+  time_ = ss.str();
+}
+
 double TumTrajPattern::timestamp() const { return sec_ + nsec_ * 1e-9; }
 
 std::ostream &TumTrajPattern::print(std::ostream &os) const {

@@ -308,7 +308,9 @@ class OkvisOutputPattern : public LinePattern {
 class TumTrajPattern : public LinePattern {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  TumTrajPattern(char delim = ' ');
+  explicit TumTrajPattern(char delim = ' ');
+
+  explicit TumTrajPattern(const MaplabVertexPattern &vertex);
 
   virtual ~TumTrajPattern() {}
 
@@ -379,7 +381,7 @@ class ViclamOutputPattern : public LinePattern {
 
 // use CsvReader to load data from a csv file.
 template <class Pattern>
-void loadCsvData(
+void loadCsv(
     std::string csvFile,
     std::vector<Pattern, Eigen::aligned_allocator<Pattern>> &csvData,
     int headerLines = 1, double startTime = 0.0, double finishTime = 1e20) {
@@ -395,6 +397,32 @@ void loadCsvData(
   }
 }
 
+template <class Pattern>
+void loadCsvData(
+    std::string csvFile,
+    std::vector<Pattern, Eigen::aligned_allocator<Pattern>> &csvData,
+    int headerLines = 1, double startTime = 0.0, double finishTime = 1e20) {
+  loadCsv(csvFile, csvData, headerLines, startTime, finishTime);
+}
+
+/**
+ * @brief save to csv file
+ * @param outfile
+ * @param data [time(sec) tx ty tz qx qy qz qw] list
+ * @param header header row
+ */
+template <class Pattern>
+void saveCsv(
+    const std::vector<Pattern, Eigen::aligned_allocator<Pattern>> &data,
+    std::string outfile, std::string header = "") {
+  std::ofstream ofs(outfile, std::ofstream::out);
+  ofs << header << "\n";
+  for (const auto &pat : data) {
+    pat.print(ofs);
+    ofs << "\n";
+  }
+  ofs.close();
+}
 }  // namespace vio
 
 #endif  // DERIVED_LINE_PATTERNS_H
