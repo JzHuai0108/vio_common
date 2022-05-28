@@ -4,8 +4,8 @@ from __future__ import print_function
 import os
 import sys
 import argparse
-import csv
 import math
+import re
 
 import rosbag
 import rospy
@@ -176,10 +176,10 @@ def get_cam_folders_from_dir(input_dir):
     """Generates a list of all folders that start with cam e.g. cam0"""
     cam_folders = list()
     if os.path.exists(input_dir):
-        for _, folders, _ in os.walk(input_dir):
+        for rootdir, folders, _ in os.walk(input_dir):
             for folder in folders:
                 if folder[0:3] == "cam":
-                    cam_folders.append(folder)
+                    cam_folders.append(os.path.join(rootdir, folder))
     return cam_folders
 
 
@@ -388,9 +388,11 @@ def loadtimestamps(time_file):
     """Except for the header, each row has the timestamp in nanosec
     as its first component"""
     frame_rostimes = list()
-    with open(time_file, 'r') as csvfile:
-        reader = csv.reader(csvfile, delimiter=',')
-        for row in reader:
+
+    # https://stackoverflow.com/questions/41847146/multiple-delimiters-in-single-csv-file
+    with open(time_file, 'r') as stream:
+        for line in stream:
+            row = re.split(' |,|[|]', line)
             if utility_functions.is_header_line(row[0]):
                 continue
             secs, nsecs = utility_functions.parse_time(row[0], 'ns')
@@ -406,9 +408,10 @@ def load_local_and_remote_times(time_file):
     :return: list of tuples (local time, remote time)
     """
     frame_rostimes = list()
-    with open(time_file, 'r') as csvfile:
-        reader = csv.reader(csvfile, delimiter=',')
-        for row in reader:
+
+    with open(time_file, 'r') as stream:
+        for line in stream:
+            row = re.split(' |,|[|]', line)
             if utility_functions.is_header_line(row[0]):
                 continue
             secs, nsecs = utility_functions.parse_time(row[0], 'ns')
@@ -429,11 +432,12 @@ def write_imufile_to_rosbag(bag, imufile, timerange=None, buffertime=5, topic="/
     :return:
     """
     utility_functions.check_file_exists(imufile)
-    with open(imufile, 'r') as csvfile:
-        reader = csv.reader(csvfile, delimiter=',')
+
+    with open(imufile, 'r') as stream:
         rowcount = 0
         imucount = 0
-        for row in reader:  # note a row is a list of strings.
+        for line in stream:
+            row = re.split(' |,|[|]', line)  # note a row is a list of strings.
             if utility_functions.is_header_line(row[0]):
                 continue
             imumsg, timestamp = create_imu_message_time_string(
@@ -461,11 +465,12 @@ def write_imufile_remotetime_to_rosbag(bag, imufile, timerange=None, buffertime=
     :return:
     """
     utility_functions.check_file_exists(imufile)
-    with open(imufile, 'r') as csvfile:
-        reader = csv.reader(csvfile, delimiter=',')
+
+    with open(imufile, 'r') as stream:
         rowcount = 0
         imucount = 0
-        for row in reader:  # note a row is a list of strings.
+        for line in stream:
+            row = re.split(' |,|[|]', line)  # note a row is a list of strings.
             if utility_functions.is_header_line(row[0]):
                 continue
             local_timestamp = rospy.Time.from_sec(float(row[0]))
@@ -545,15 +550,15 @@ def main():
     elif parsed.folder is not None:
         # write images
         camfolders = get_cam_folders_from_dir(parsed.folder)
-        for camfolder in camfolders:
-            camdir = parsed.folder + "/{0}".format(camfolder)
+        for camdir in camfolders:
+            camid = os.path.basename(camdir)
             image_files = get_image_files_from_dir(camdir)
             for image_filename in image_files:
                 image_msg, timestamp = load_image_to_ros_msg(image_filename)
-                bag.write("/{0}/image_raw".format(camfolder), image_msg,
+                bag.write("/{0}/image_raw".format(camid), image_msg,
                           timestamp)
             print("Saved #images {} of {} to bag".format(
-                len(image_files), camfolder))
+                len(image_files), camid))
     else:
         raise Exception('Invalid/Empty video file and image folder')
 
@@ -565,9 +570,9 @@ def main():
         imufiles = get_imu_csv_files(parsed.folder)
         for imufile in imufiles:
             topic = os.path.splitext(os.path.basename(imufile))[0]
-            with open(imufile, 'r') as csvfile:
-                reader = csv.reader(csvfile, delimiter=',')
-                for row in reader:
+            with open(imufile, 'r') as stream:
+                for line in stream:
+                    row = re.split(' |,|[|]', line)
                     if utility_functions.is_header_line(row[0]):
                         continue
                     imumsg, timestamp = create_imu_message_time_string(
