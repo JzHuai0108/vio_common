@@ -3,25 +3,24 @@ import subprocess
 import sys
 
 if __name__ == "__main__":
-    """Examine status of bags listed in bagnames_file which are
-    stored under bags_dir without subfolders."""  # pylint: disable=pointless-string-statement
+    """Examine status of bags under bags_dir."""
 
-    if len(sys.argv) < 3:
-        print('Usage: {} bagnames_file bags_dir'.format(sys.argv[0]))
+    if len(sys.argv) < 2:
+        print('Usage: {} bags_dir'.format(sys.argv[0]))
         sys.exit(1)
-    script, bagname_file, output_dir = sys.argv
+    _, bags_dir = sys.argv
 
     bagname_list = []
-    with open(bagname_file, 'r') as stream:
-        for line in stream:
-            line = line.strip()
-            if line:
-                bagname = os.path.basename(line)
-                bagname_list.append(os.path.join(output_dir, bagname))
+    for root, dirs, files in os.walk(bags_dir, topdown=False):
+        for name in files:
+            if name.endswith('.bag'):
+                bagname_list.append(os.path.join(root, name))
 
-    print('Found #bagnames: {}'.format(len(bagname_list)))
+    print('Found #bags: {}'.format(len(bagname_list)))
+    for i, bag in enumerate(bagname_list):
+        print("{}: {}".format(i, bag))
 
-    for bagname in bagname_list:
+    for i, bagname in enumerate(bagname_list):
         # Run command with arguments and return its output as a byte string.
         try:
             status = subprocess.check_output(['rosbag', 'info', bagname],
@@ -29,6 +28,7 @@ if __name__ == "__main__":
                                              stderr=None,
                                              shell=False,
                                              universal_newlines=False)
-            # print(status)
+            print("{} {}: OK".format(i, bagname))
         except Exception as inst:
-            print(inst.args)
+            print("{} {}: {}".format(i, bagname, inst.args))
+
