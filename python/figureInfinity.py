@@ -7,9 +7,9 @@ from matplotlib import animation
 
 class FigureInfinity():
     """figure lemniscate of Gerono"""
-    def __init__(self):
-        self.scale = 2
-        self.omega = 0.7
+    def __init__(self, omega = 1.0):
+        self.scale = 2.0
+        self.omega = omega
         self.period = 2 * np.pi / self.omega
 
     def x(self, t):
@@ -37,8 +37,17 @@ class FigureInfinity():
         return self.omega * t
 
     def omegaBody(self, t):
-        """only works with one t"""
-        return self.omega
+        """only works with one t
+        return omega z
+        """
+        theta = self.omega * t
+        ct = np.cos(theta)
+        st = np.sin(theta)
+        s2t = np.sin(2 * theta)
+        return self.omega * (ct + st * s2t) / (st * st - s2t * s2t + 1)
+
+    def tangentialAngle(self, t):
+        return np.arctan2(self.doty(t), self.dotx(t))
 
     def R_WB(self, t):
         """only works with one t"""
@@ -48,12 +57,14 @@ class FigureInfinity():
         return np.array([[ct, -st, 0], [st, ct, 0], [0, 0, 1]])
 
     def velocityBody(self, t):
-        """only works with one t"""
+        """only works with one t
+        return vx, since vy and vz are zero
+        """
         R = self.R_WB(t)
         vW = np.array([[self.dotx(t)], [self.doty(t)], [self.dotz(t)]])
         vB = np.matmul(R.T, vW)
         assert (abs(vB[1]) < 1e-6 and abs(vB[2]) < 1e-6)
-        return vB
+        return vB[0, 0]
 
 
 def main():
@@ -65,7 +76,7 @@ def main():
         ax = fig.add_subplot()
 
     # create the parametric curve
-    curve = FigureInfinity()
+    curve = FigureInfinity(0.7)
     steps = 100
     t = np.arange(0, curve.period, curve.period / steps)
     x = curve.x(t)
@@ -94,9 +105,10 @@ def main():
         point.set_data(np.array([x[n], y[n]]))
         if plot3d:
             point.set_3d_properties(z[n], 'z')
-        vB = curve.velocityBody(t[n])
-        print('step {}:{}, angular rate body {:.3f}, velocity body {:.3f}.'.format(
-            n, steps, curve.omegaBody(t[n]), vB[0, 0]))
+        angularRate = curve.omegaBody(t[n])
+        vx = curve.velocityBody(t[n])
+
+        print('step {}:{}, velocity body {:.3f}, angular rate body {:.3f}.'.format(n, steps, vx, angularRate))
         return point
 
     ani=animation.FuncAnimation(fig, update_point, 99, fargs=(x, y, z, point))
