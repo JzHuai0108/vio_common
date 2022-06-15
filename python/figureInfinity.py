@@ -7,8 +7,8 @@ from matplotlib import animation
 
 class FigureInfinity():
     """figure lemniscate of Gerono"""
-    def __init__(self, omega = 1.0):
-        self.scale = 2.0
+    def __init__(self, omega = 1.0, scale = 2.0):
+        self.scale = scale
         self.omega = omega
         self.period = 2 * np.pi / self.omega
 
@@ -67,6 +67,56 @@ class FigureInfinity():
         return vB[0, 0]
 
 
+class Circle(object):
+    def __init__(self, velocitybody=2.0, radius=2.0):
+        self.radius = radius
+        self.omega = velocitybody / radius
+        self.period = 2 * np.pi / self.omega
+        self.scale = self.radius
+
+    def velocityBody(self, t):
+        return self.omega * self.radius
+
+    def omegaBody(self, t):
+        return self.omega
+
+    def x(self, t):
+        theta = self.omega * t
+        return self.radius * np.cos(theta)
+
+    def y(self, t):
+        theta = self.omega * t
+        return self.radius * np.sin(theta)
+
+    def z(self, t):
+        return np.zeros((len(t)))
+
+
+class LineSegment(object):
+    def __init__(self, omega = 1.0, scale = 1.0):
+        self.omega = omega
+        self.scale = scale
+        self.period = np.pi * 2 / omega
+
+    def x(self, t):
+        return self.scale * (t - np.sin(self.omega * t) / self.omega - self.period * 0.5)
+
+    def y(self, t):
+        return np.zeros((len(t)))
+
+    def z(self, t):
+        return np.zeros((len(t)))
+
+    def velocityBody(self, t):
+        return self.scale * (1 - np.cos(self.omega * t))
+
+    def accelBody(self, t):
+        return self.scale * self.omega * np.sin(self.omega * t)
+
+    def omegaBody(self, t):
+        return 0
+
+
 def main():
     fig = plt.figure()
     plot3d = True
@@ -76,7 +126,9 @@ def main():
         ax = fig.add_subplot()
 
     # create the parametric curve
-    curve = FigureInfinity(0.7)
+    curve = LineSegment(1.3, 1.5)
+    # curve = FigureInfinity(0.7)
+    # curve = Circle(0.7)
     steps = 100
     t = np.arange(0, curve.period, curve.period / steps)
     x = curve.x(t)
@@ -111,7 +163,7 @@ def main():
         print('step {}:{}, velocity body {:.3f}, angular rate body {:.3f}.'.format(n, steps, vx, angularRate))
         return point
 
-    ani=animation.FuncAnimation(fig, update_point, 99, fargs=(x, y, z, point))
+    ani=animation.FuncAnimation(fig, update_point, steps, fargs=(x, y, z, point))
     plt.show()
 
 
