@@ -198,7 +198,7 @@ class ImuOutputPattern : public LinePattern {
   std::ostream &print(std::ostream &os) const override {
     char delim = ',';
     os << sec_ << std::setw(9) << std::setfill('0') << nsec_ << delim
-       << std::setprecision(6) << a_[0] << delim << a_[1] << delim << a_[2] 
+       << std::setprecision(8) << a_[0] << delim << a_[1] << delim << a_[2]
        << delim << w_[0] << delim << w_[1] << delim << w_[2];
     return os;
   }

@@ -2,6 +2,48 @@
 
 #include <gtest/gtest.h>
 
+TEST(CsvReader, dirname) {
+  std::string path = "/path/to/basename.ext";
+  std::string b = vio::dirname(path);
+  EXPECT_TRUE(b == "/path/to");
+  std::string path2 = "/path/to/";
+  std::string b2 = vio::dirname(path2);
+  EXPECT_TRUE(b2 == "/path/to");
+  std::string path3 = "basename.ext";
+  std::string b3 = vio::dirname(path3);
+  EXPECT_TRUE(b3 == "");
+}
+
+TEST(CsvReader, filename) {
+  std::string path = "/path/to/basename.ext";
+  std::string b = vio::filename(path);
+  EXPECT_TRUE(b == "basename.ext");
+  std::string path2 = "/path/to/basename";
+  std::string b2 = vio::filename(path2);
+  EXPECT_TRUE(b2 == "basename");
+  std::string path3 = "basename.ext";
+  std::string b3 = vio::filename(path3);
+  EXPECT_TRUE(b3 == "basename.ext");
+  std::string path4 = "basename";
+  std::string b4 = vio::filename(path4);
+  EXPECT_TRUE(b4 == "basename");
+}
+
+TEST(CsvReader, basename) {
+  std::string path = "/path/to/basename.ext";
+  std::string b = vio::basename(path);
+  EXPECT_TRUE(b == "basename");
+  std::string path2 = "/path/to/basename";
+  std::string b2 = vio::basename(path2);
+  EXPECT_TRUE(b2 == "basename");
+  std::string path3 = "basename.ext";
+  std::string b3 = vio::basename(path3);
+  EXPECT_TRUE(b3 == "basename");
+  std::string path4 = "basename";
+  std::string b4 = vio::basename(path4);
+  EXPECT_TRUE(b4 == "basename");
+}
+
 TEST(CsvReader, LoadOkvisOutput) {
   const std::string csvFile = "../test/data/okvis_output.csv";
   std::vector<vio::OkvisOutputPattern,

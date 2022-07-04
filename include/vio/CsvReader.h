@@ -87,7 +87,11 @@ inline bool endswith(std::string const &fullString, std::string const &ending) {
 inline std::string dirname(const std::string &str) {
   size_t found;
   found = str.find_last_of("/\\");
-  return str.substr(0, found);
+  if (found == std::string::npos) {
+    return std::string();
+  } else {
+    return str.substr(0, found);
+  }
 }
 
 /**
@@ -98,7 +102,11 @@ inline std::string dirname(const std::string &str) {
 inline std::string filename(const std::string &str) {
   size_t found;
   found = str.find_last_of("/\\");
-  return str.substr(found + 1);
+  if (found == std::string::npos) {
+    return str;
+  } else {
+    return str.substr(found + 1);
+  }
 }
 
 /**
@@ -110,8 +118,21 @@ inline std::string basename(const std::string &str) {
   size_t found;
   found = str.find_last_of("/\\");
   size_t found2 = str.find_last_of(".");
-  return str.substr(found + 1, found2 - found - 1);
+  if (found == std::string::npos) {
+    if (found2 == std::string::npos) {
+      return str;
+    } else {
+      return str.substr(0, found2);
+    }
+  } else {
+    if (found2 == std::string::npos) {
+      return str.substr(found + 1);
+    } else {
+      return str.substr(found + 1, found2 - found - 1);
+    }
+  }
 }
+
 }  // namespace vio
 
 #endif  // CSVREADER_H
