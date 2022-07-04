@@ -79,23 +79,38 @@ inline bool endswith(std::string const &fullString, std::string const &ending) {
   }
 }
 
+/**
+ * @brief dirname
+ * @param str
+ * @return directory name without trailing slashes.
+ */
 inline std::string dirname(const std::string &str) {
   size_t found;
   found = str.find_last_of("/\\");
   return str.substr(0, found);
 }
 
+/**
+ * @brief filename
+ * @param str
+ * @return filename including extension.
+ */
 inline std::string filename(const std::string &str) {
   size_t found;
   found = str.find_last_of("/\\");
   return str.substr(found + 1);
 }
 
+/**
+ * @brief basename
+ * @param str
+ * @return basename without extension.
+ */
 inline std::string basename(const std::string &str) {
   size_t found;
   found = str.find_last_of("/\\");
   size_t found2 = str.find_last_of(".");
-  return str.substr(found + 1, found2);
+  return str.substr(found + 1, found2 - found - 1);
 }
 }  // namespace vio
 
