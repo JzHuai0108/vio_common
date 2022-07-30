@@ -24,6 +24,34 @@ def print_image_info(cv_img):
         h, w, dtype, channels))
 
 
+def createImagePath(outputdir, datatype, index, bundleFusionLayout):
+    """
+    bundleFusionLayout true bundleFusion rgbd file structure
+        false open3d rgbd file structure
+    """
+    if bundleFusionLayout:
+        if datatype == 'color':
+            return os.path.join(outputdir, 'frame-{:06d}.color.jpg'.format(index))
+        elif datatype == 'depth':
+            return os.path.join(outputdir, 'frame-{:06d}.depth.png'.format(index))
+        else:
+            return os.path.join(outputdir, 'frame-{:06d}.{}.txt'.format(index, datatype))
+    else: # open3d layout
+        return os.path.join(outputdir, datatype, '{:06d}.png'.format(index))
+
+
+def createTimePath(outputdir, datatype, bundleFusionLayout):
+    if bundleFusionLayout:
+        return os.path.join(outputdir, 'timestamps.{}.txt'.format(datatype))
+    else:
+        return os.path.join(outputdir, datatype, "timestamps.txt")
+
+def saveIdentityPose(posefile):
+    stream = open(posefile, 'w')
+    stream.write("1 0 0 0\n0 1 0 0\n0 0 1 0\n0 0 0 1")
+    stream.close()
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Extract synced rgb and depth images from a ROS bag. "
@@ -46,11 +74,16 @@ def main():
                         default=2000,
                         help='Time tolerance in microseconds to consider two frames from '
                          'two topics match well in time. (default: %(default)s)')
+    parser.add_argument("--bundle_fusion_layout",
+                        action='store_true',
+                        help='save the rgb and depth images in the bundle fusion layout, '
+                        'otherwise by default, in the open3d layout.')
     args = parser.parse_args()
 
     in_bag = rosbag.Bag(args.bag_file, "r")
     startTime = in_bag.get_start_time()
 
+    bundleFusionLayout = args.bundle_fusion_layout
     topic_list = in_bag.get_type_and_topic_info()[1].keys()
     print('Topics {} are in {}'.format(topic_list, args.bag_file))
 
@@ -72,7 +105,16 @@ def main():
 
     bridge = CvBridge()
 
-    outputbasenames = [topic.strip('/').split('/')[0] for topic in args.image_topics]
+    basenames = [topic.strip('/').split('/')[0] for topic in args.image_topics]
+    outputbasenames = []
+    for id, bn in enumerate(basenames):
+        if bn.startswith('depth'):
+            outputbasenames.append('depth')
+        elif bn.startswith('rgb'):
+            outputbasenames.append('color')
+        else:
+            outputbasenames.append(bn)
+
     time_streams = []
     msgCounts = []
     lastMessageOfTopics = []
@@ -81,7 +123,7 @@ def main():
         msgCounts.append(0)
         lastMessageOfTopics.append(None)
         subdir = os.path.join(outputdir, outputbasenames[tid])
-        if not os.path.exists(subdir):
+        if not bundleFusionLayout and not os.path.exists(subdir):
             os.mkdir(subdir)
 
     maxGapUnderTol = rospy.Duration(0, 0)
@@ -97,7 +139,7 @@ def main():
             print_image_info(cv_img)
 
             for id, bn in enumerate(outputbasenames):
-                time_streams[id] = open(os.path.join(outputdir, bn, "timestamps.txt"), 'w')
+                time_streams[id] = open(createTimePath(outputdir, bn, bundleFusionLayout), 'w')
                 time_streams[id].write('#index, sensor time, host time\n')
         matched = False
         if lastMessageOfTopics[otherid]:
@@ -113,12 +155,17 @@ def main():
             time_streams[tid].write('{},{},{}\n'.format(matchCount, msg.header.stamp, t))
             time_streams[otherid].write('{},{},{}\n'.format(matchCount, lastMessageOfTopics[otherid][1].header.stamp, lastMessageOfTopics[otherid][2]))
             
-            imagename = os.path.join(outputdir, outputbasenames[tid], '{:06d}.png'.format(matchCount))
+            imagename = createImagePath(outputdir, outputbasenames[tid], matchCount, bundleFusionLayout)
             cv2.imwrite(imagename, cv_img)
             
             cv_img = bridge.imgmsg_to_cv2(lastMessageOfTopics[otherid][1], desired_encoding="passthrough")
-            imagename = os.path.join(outputdir, outputbasenames[otherid], '{:06d}.png'.format(matchCount))
+            imagename = createImagePath(outputdir, outputbasenames[otherid], matchCount, bundleFusionLayout)
             cv2.imwrite(imagename, cv_img)
+
+            if bundleFusionLayout:
+                posename = createImagePath(outputdir, 'pose', matchCount, bundleFusionLayout)
+                saveIdentityPose(posename)
+
             matchCount += 1
             for id, bn in enumerate(outputbasenames):
                 lastMessageOfTopics[id] = None
