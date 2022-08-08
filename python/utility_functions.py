@@ -20,6 +20,7 @@ def parse_time(timestamp_str, time_unit):
     """
     secs = 0
     nsecs = 0
+    timestamp_str = timestamp_str.strip()
     if '.' in timestamp_str:
         if 'e' in timestamp_str:
             stamp = float(timestamp_str)

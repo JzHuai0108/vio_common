@@ -392,6 +392,7 @@ def loadtimestamps(time_file):
     # https://stackoverflow.com/questions/41847146/multiple-delimiters-in-single-csv-file
     with open(time_file, 'r') as stream:
         for line in stream:
+            line = line.strip()
             row = re.split(' |,|[|]', line)
             if utility_functions.is_header_line(row[0]):
                 continue
@@ -458,7 +459,7 @@ def write_imufile_remotetime_to_rosbag(bag, imufile, timerange=None, buffertime=
     """
 
     :param bag: output bag stream.
-    :param imufile: each line: time(sec), ax, ay, az, gx, gy, gz, device-time(sec), and others
+    :param imufile: each line: time(sec), gx, gy, gz, ax, ay, az, mx, my, mz, device-time(sec), and others
     :param timerange: only write imu data within this local time range to the bag, in seconds.
     :param buffertime: time to pad the timerange, in seconds.
     :param topic: imu topic
@@ -469,12 +470,17 @@ def write_imufile_remotetime_to_rosbag(bag, imufile, timerange=None, buffertime=
     with open(imufile, 'r') as stream:
         rowcount = 0
         imucount = 0
+        lastRemoteTime = rospy.Time(0, 0)
         for line in stream:
             row = re.split(' |,|[|]', line)  # note a row is a list of strings.
             if utility_functions.is_header_line(row[0]):
                 continue
             local_timestamp = rospy.Time.from_sec(float(row[0]))
-            remote_timestamp = rospy.Time.from_sec(float(row[7]))
+            remote_timestamp = rospy.Time.from_sec(float(row[10]))
+            assert remote_timestamp > lastRemoteTime, \
+                "remote time is not increasing in {}. Is the index of the remote time 10?".format(imufile)
+            lastRemoteTime = remote_timestamp
+
             imumsg = create_imu_message(remote_timestamp, row[1:4], row[4:7])
             timestampinsec = local_timestamp.to_sec()
             rowcount += 1
