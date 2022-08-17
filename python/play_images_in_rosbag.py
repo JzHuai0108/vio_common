@@ -61,7 +61,7 @@ def main():
     time_stream = None
     for _, msg, t in in_bag.read_messages(topics=[args.image_topic], start_time=rospy.Time(startTime + args.time_from_to[0]),
                                           end_time=rospy.Time(startTime + args.time_from_to[1])):
-        cv_img = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough"
+        cv_img = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         if count == 0:
             print('Video frame info:')
             print_image_info(cv_img)
@@ -74,8 +74,9 @@ def main():
             time_stream.write('{},{}\n'.format(msg.header.stamp, t))
         image_local_time[1] = t
         image_remote_time[1] = msg.header.stamp
-        imagename = os.path.join(args.outputdir, '{}.jpg'.format(msg.header.stamp))
-        cv2.imwrite(imagename, cv_img)
+        if args.outputdir:
+            imagename = os.path.join(args.outputdir, '{}.jpg'.format(msg.header.stamp))
+            cv2.imwrite(imagename, cv_img)
 
         cv2.imshow('Frame', cv_img)
         if cv2.waitKey(1) & 0xFF == ord('q'):
