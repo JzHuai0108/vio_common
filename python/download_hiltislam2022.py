@@ -32,6 +32,20 @@ if __name__ == "__main__":
              "https://storage.googleapis.com/hsc2022/cad/Phasma25.step",
              "https://storage.googleapis.com/hsc2022/cad/Phasma25.stl",
              "https://storage.googleapis.com/hsc2022/cad/Phasma25_GOM_high_res.stl"]
+    
+    links_new = ["https://storage.googleapis.com/hsc2022/additional/exp10_cupola_2.bag",
+             "https://storage.googleapis.com/hsc2022/groundtruth/exp10_cupola_2_imu_3dof.txt",
+             "https://storage.googleapis.com/hsc2022/additional/exp14_basement_2.bag",
+             "https://storage.googleapis.com/hsc2022/groundtruth/exp14_basement_2_imu.txt",
+             "https://storage.googleapis.com/hsc2022/additional/exp16_attic_to_upper_gallery_2.bag",
+             "https://storage.googleapis.com/hsc2022/groundtruth/exp16_attic_to_upper_gallery_2_imu.txt",
+             "https://storage.googleapis.com/hsc2022/additional/exp18_corridor_lower_gallery_2.bag",
+             "https://storage.googleapis.com/hsc2022/groundtruth/exp18_corridor_lower_gallery_2_imu_3dof.txt",
+             "https://storage.googleapis.com/hsc2022/additional/exp23_the_sheldonian_slam_part_0.bag",
+             "https://storage.googleapis.com/hsc2022/additional/exp23_the_sheldonian_slam_part_1.bag",
+             "https://storage.googleapis.com/hsc2022/additional/exp23_the_sheldonian_slam_part_2.bag",
+             "https://storage.googleapis.com/hsc2022/groundtruth/exp23_the_sheldonian_slam_imu_3dof.txt"]
+
     print('Downloading {} files'.format(len(links)))
     for l, link in enumerate(links):
         print("{}:{}".format(l, link))
