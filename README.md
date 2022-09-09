@@ -19,16 +19,16 @@ you may build them from source.
 cd workspace
 git clone https://github.com/JzHuai0108/vio_common.git vio_common
 mkdir build && cd build
-#cmake .. -DOpenCV_DIR=/folder/of/OpenCVConfig.cmake -DEIGEN_INCLUDE_DIR=/folder/of/Eigen -DCMAKE_INSTALL_PREFIX=$HOME/workspace/local_install/vio_common
+#cmake .. -DOpenCV_DIR=/folder/of/OpenCVConfig.cmake -DEIGEN_INCLUDE_DIR=/folder/of/Eigen -DCMAKE_INSTALL_PREFIX=$HOME/workspace/local_install/vio_common -DUSE_ROS=OFF
 #e.g.,
-cmake .. -DOpenCV_DIR=$HOME/workspace/local_install/opencv/share/OpenCV -DEIGEN_INCLUDE_DIR=$HOME/workspace/local_install/eigen -DCMAKE_INSTALL_PREFIX=$HOME/workspace/local_install/vio_common
+cmake .. -DOpenCV_DIR=$HOME/workspace/local_install/opencv/share/OpenCV -DEIGEN_INCLUDE_DIR=$HOME/workspace/local_install/eigen -DCMAKE_INSTALL_PREFIX=$HOME/workspace/local_install/vio_common -DUSE_ROS=OFF
 make
 make install
 ```
 
 ### With ROS
 ```
-catkin build vio_common -DUSE_ROS=ON -DCMAKE_BUILD_TYPE=Release -j4
+catkin build vio_common -DCMAKE_BUILD_TYPE=Release -j4
 ```
 
 ## Build and run gtests

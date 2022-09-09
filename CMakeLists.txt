@@ -9,7 +9,7 @@ endif()
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake_modules/")
 
-option(USE_ROS "Build this package with catkin?" OFF)
+option(USE_ROS "Build this package with catkin?" ON)
 set(USE_GPSTK_MSG "Build the package with the gpstk library. If true, "
     "the GPSTK_INCLUDE_DIRS and GPSTK_LIB need to be provided.\nEg."
     "-DGPSTK_INCLUDE_DIRS /workspace/gpstk/include -DGPSTK_LIB "
