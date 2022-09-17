@@ -17,7 +17,7 @@ set(USE_GPSTK_MSG "Build the package with the gpstk library. If true, "
 option(USE_GPSTK "${USE_GPSTK_MSG}" OFF)
 
 # Set build flags. Set IS_ARM on odroid board as environment variable
-set(CMAKE_CXX_FLAGS "-Wall -D_LINUX -D_REENTRANT -march=native -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unknown-pragmas")
+set(CMAKE_CXX_FLAGS "-Wall -D_LINUX -D_REENTRANT -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unknown-pragmas")
 if(DEFINED ENV{ARM_ARCHITECTURE})
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpu=neon -march=armv7-a")
 else()
@@ -28,7 +28,6 @@ if(CMAKE_COMPILER_IS_GNUCC)
 else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 endif()
-# set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -fsee -fomit-frame-pointer -fno-signed-zeros -fno-math-errno -funroll-loops")
 
 # Add plain cmake packages 
 find_package(OpenCV REQUIRED)
