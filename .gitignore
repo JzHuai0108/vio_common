@@ -49,3 +49,5 @@ CATKIN_IGNORE
 python/\.idea/
 
 rolling_shutter_skew/.idea/
+
+.idea/
