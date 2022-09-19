@@ -1,8 +1,9 @@
 #include <iomanip>
 #include "vio/GpsGrabber.h"
+#include "test/test_config.h"
 
 int main() {
-  const std::string gps_file = "../test/data/rtklib_output.pos";
+  const std::string gps_file = std::string(DATASET_PATH) + "/rtklib_output.pos";
   std::vector<Eigen::Matrix<double, 7, 1>,
               Eigen::aligned_allocator<Eigen::Matrix<double, 7, 1> > >
       gpsdata;

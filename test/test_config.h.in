@@ -1,0 +1,3 @@
+#pragma once
+
+#define DATASET_PATH "@TEST_DATA_PATH@"

@@ -1,0 +1,11 @@
+#Camera frame timestamp source according to CameraCharacteristics.SENSOR_INFO_TIMESTAMP_SOURCE is SENSOR_INFO_TIMESTAMP_SOURCE_REALTIME.
+#If SENSOR_INFO_TIMESTAMP_SOURCE is SENSOR_INFO_TIMESTAMP_SOURCE_REALTIME, then camera frame timestamps of the attribute CaptureResult.SENSOR_TIMESTAMP
+#and IMU reading timestamps of the field SensorEvent.timestamp are on the same timebase CLOCK_BOOTTIME which is used by elapsedRealtimeNanos().
+#In this case, no offline sync is necessary.
+#Otherwise, the camera frame timestamp is assumed to be on the timebase of CLOCK_MONOTONIC which is generally used by nanoTime().
+#In this case, offline sync is usually necessary unless the difference is really small, e.g., <1000 nanoseconds.
+#To help sync camera frames to the IMU offline, the timestamps according to the two time basis at the start and end of a recording session are recorded.
+#IMU data clock	SENSOR_INFO_TIMESTAMP_SOURCE_UNKNOWN camera clock	Difference
+#elapsedRealtimeNanos()	nanoTime()	Difference
+28670397307611	6350964830800	22319432476811
+28671214197194	6351781703716	22319432493478

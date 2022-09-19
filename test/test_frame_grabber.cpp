@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "vio/FrameGrabber.h"
+#include "test/test_config.h"
 
 void playVideoOnConsole(const std::string videoFile,
                         const std::string timeFile) {
@@ -18,37 +19,13 @@ void playVideoOnConsole(const std::string videoFile,
   }
 }
 
-TEST(FrameGrabber, ReadVideoWithTimeFileHonor) {
-  std::string videoFile =
-      "/home/jhuai/Desktop/temp_android/2019_06_16_12_19_40_honor10/movie.mp4";
-  std::string timeFile =
-      "/home/jhuai/Desktop/temp_android/2019_06_16_12_19_40_honor10/"
-      "frame_timestamps.txt";
+TEST(FrameGrabber, ReadVideoWithTimeFile) {
+  std::string videoFile = std::string(DATASET_PATH) + "/honorv10/movie.mp4";
+  std::string timeFile = std::string(DATASET_PATH) + "/honorv10/frame_timestamps.txt";
   playVideoOnConsole(videoFile, timeFile);
 }
 
 TEST(FrameGrabber, ReadVideo) {
-  std::string videoFile =
-      "/home/jhuai/Desktop/temp_android/2019_06_16_12_03_45_phab2/movie.mp4";
-  std::string timeFile = "";
-  playVideoOnConsole(videoFile, timeFile);
-}
-
-TEST(FrameGrabber, ReadVideoWithTimeFile) {
-  std::string videoFile =
-      "/home/jhuai/Desktop/temp_android/2019_06_16_12_03_45_phab2/movie.mp4";
-  std::string timeFile =
-      "/home/jhuai/Desktop/temp_android/2019_06_16_12_03_45_phab2/"
-      "frame_timestamps.txt";
-  playVideoOnConsole(videoFile, timeFile);
-}
-
-TEST(FrameGrabber, ReadVideoWithMetadataFile) {
-  std::string videoFile =
-      "/media/jhuai/OldWin8OS/iphone6s_visual_inertial_data/"
-      "2019_06_16_14_49_53_6s/IMG_4302.MP4";
-  std::string metadataFile =
-      "/media/jhuai/OldWin8OS/iphone6s_visual_inertial_data/"
-      "2019_06_16_14_49_53_6s/movie_metadata.csv";
-  playVideoOnConsole(videoFile, metadataFile);
+  std::string videoFile = std::string(DATASET_PATH) + "/honorv10/movie.mp4";
+  playVideoOnConsole(videoFile, "");
 }

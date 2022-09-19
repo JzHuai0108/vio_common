@@ -1,4 +1,5 @@
 #include "vio/derivedLinePatterns.h"
+#include "test/test_config.h"
 
 #include <gtest/gtest.h>
 
@@ -45,7 +46,7 @@ TEST(CsvReader, basename) {
 }
 
 TEST(CsvReader, LoadOkvisOutput) {
-  const std::string csvFile = "../test/data/okvis_output.csv";
+  const std::string csvFile = std::string(DATASET_PATH) + "/okvis_output.csv";
   std::vector<vio::OkvisOutputPattern,
               Eigen::aligned_allocator<vio::OkvisOutputPattern>>
       csvData;

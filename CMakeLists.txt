@@ -103,6 +103,10 @@ target_link_libraries(video2image ${OpenCV_LIBS})
 add_executable(maplab2tumtraj app/maplab2tumtraj.cpp)
 target_link_libraries(maplab2tumtraj ${PROJECT_NAME})
 
+set(TEST_DATA_PATH "${CMAKE_CURRENT_SOURCE_DIR}/test/data")
+configure_file(test/test_config.h.in test/test_config.h)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
 if(CATKIN_ENABLE_TESTING)
   catkin_add_gtest(vio_common_test test/test_main.cpp
     test/test_csv_reader.cpp
