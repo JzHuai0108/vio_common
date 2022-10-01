@@ -4,7 +4,7 @@ import os
 import subprocess
 import sys
 import requests
-from bs4 import BeautifulSoup
+
 
 """First crawl the webpage to extract all links and then download files sequentially.
 To install requirements,
@@ -19,6 +19,7 @@ def has_all_keys(url, key_list):
 
 def get_file_links(archive_url, key_list):
     """create response object"""
+    from bs4 import BeautifulSoup
     r = requests.get(archive_url)
 
     # create beautiful-soup object
