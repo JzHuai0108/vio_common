@@ -9,14 +9,13 @@ def extract(bagfile, imu_topic, out_filename):
     f.write('# timestamp ang_vel_x ang_vel_y ang_vel_z lin_acc_x lin_acc_y lin_acc_z\n')    
     with rosbag.Bag(bagfile, 'r') as bag:
         for (topic, msg, ts) in bag.read_messages(topics=str(imu_topic)):
-            f.write('%d %.12f %.12f %.12f %.12f %.12f %.12f %.12f\n' % 
-                    (n,
-                     msg.header.stamp.to_sec(),
+            f.write('%d.%09d %.8f %.8f %.8f %.8f %.8f %.8f\n' % 
+                    (msg.header.stamp.secs, msg.header.stamp.nsecs,
                      msg.angular_velocity.x, msg.angular_velocity.y, msg.angular_velocity.z,
                      msg.linear_acceleration.x, msg.linear_acceleration.y, msg.linear_acceleration.z))
             n += 1
     print('wrote ' + str(n) + ' imu messages to the file: ' + out_filename)
-          
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='''
     Extracts IMU messages from bagfile.
