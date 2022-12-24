@@ -50,7 +50,7 @@ def main():
         output_count.append(0)
     in_bag = rosbag.Bag(parsed.image_bag, "r")
     totalFrames = in_bag.get_message_count(parsed.image_topic)
-    winsize = totalFrames // parsed.frames_per_split
+    winsize = int(round(totalFrames / float(parsed.frames_per_split)))
     if winsize < parsed.splits_to_save:
         print("Warn: there are too few frames in the bag. #Frames {}, #required frames {}".
               format(totalFrames, parsed.frames_per_split * parsed.splits_to_save))
@@ -63,7 +63,7 @@ def main():
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
         res = count % winsize
-        if res < parsed.splits_to_save:
+        if res < parsed.splits_to_save and output_count[-1] < parsed.frames_per_split:
             output_bags[res].write(parsed.image_topic, msg, t)
             output_count[res] += 1
         count += 1

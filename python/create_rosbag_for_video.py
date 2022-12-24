@@ -41,7 +41,12 @@ def parseArgs():
                         type=float,
                         default=1.0,
                         help="Select a portion of all frames at ratio in [0, 1.0].")
-
+    parser.add_argument(
+        '--downscalefactor',
+        type=int,
+        default=1,
+        help='A video frame will be downsampled by this factor. (default: %(default)s)',
+        required=False)
     args = parser.parse_args()
     return args
 
@@ -68,7 +73,7 @@ def main():
         first_frame_imu_time,
         rostimestamps,
         frame_remote_timestamps=None,
-        max_video_frame_height=100000,
+        downscalefactor=args.downscalefactor,
         shift_in_time=0.0,
         topic=args.image_topic,
         ratio=args.ratio)
