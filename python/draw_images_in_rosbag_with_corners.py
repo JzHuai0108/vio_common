@@ -52,12 +52,27 @@ def getObjectAndImagePoints(board, corners):
 
     return opts, ipts
 
+def blurMetric(image, thresh = 1.5):
+    """
+
+    :param image: gray scale image
+    :return:
+    """
+    image_canny = cv2.Canny(image, 175, 225)
+    nonzero_ratio = np.count_nonzero(image_canny) * 1000.0 / image_canny.size
+
+    # < 1.5 = blurred, in movement
+    # in [1.5, 6] = acceptable
+    # > 6 =stable, sharp
+    return nonzero_ratio, nonzero_ratio < thresh
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Display images in a ROS bag. compressedImage is not supported.")
     parser.add_argument("bag_file", help="Input ROS bag.")
     parser.add_argument("matdir", type=str, default="/path/to/boardandcorners",
-                      help="the folder containing board.mat and corners.mat")
+                      help="the folder containing board.mat and corners.mat extracted by tartancalib.")
 
     parser.add_argument("--image_topic",
                         help="Display images from which topic.",
@@ -115,6 +130,7 @@ def main():
         if args.outputdir:
             imagename = os.path.join(args.outputdir, '{}.jpg'.format(msg.header.stamp))
             cv2.imwrite(imagename, cv_img)
+        metric, isblur = blurMetric(cv_img, 5.0)
         if abs(t.to_sec() - origtimes[0, k]) < tol:
             qtime = origtimes[0, k]
             blank = np.zeros((1, 1))
@@ -134,12 +150,21 @@ def main():
                                       cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
             blobs = blobs[int(round(max(minrc[0] - 100, 0))):int(round(min(maxrc[0] + 100, imgsize[0]))),
                     int(round(max(minrc[1] - 100, 0))):int(round(min(maxrc[1] + 100, imgsize[1])))]
-            text = "Time {}, #Keypoints {}".format(qtime, len(keypoints))
+            text = "Frame {}, time {:.3f}, #Keypoints {}, blur score {:.2f}, is blur {}".format(
+                count, qtime, len(keypoints), metric, isblur)
             cv2.putText(blobs, text, (20, 20),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 100, 255), 2)
             k += 1
             cv2.imshow("Detected corners", blobs)
             if cv2.waitKey(2500) & 0xFF == ord('q') or k == origtimes.shape[1]:
+                break
+        else:
+            text = "Frame {}, time {}, #Keypoints 0, blur score {:.2f}, is blur {}".format(
+                count, t, metric, isblur)
+            cv2.putText(cv_img, text, (20, 20),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 100, 255), 2)
+            cv2.imshow("Non detected corners", cv_img)
+            if cv2.waitKey(2500) & 0xFF == ord('q'):
                 break
         count += 1
     if time_stream:

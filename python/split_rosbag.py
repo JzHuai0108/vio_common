@@ -4,6 +4,7 @@ split a rosbag into several segments
 import argparse
 import os
 import sys
+import random
 
 import rospy
 import rosbag
@@ -50,22 +51,37 @@ def main():
         output_count.append(0)
     in_bag = rosbag.Bag(parsed.image_bag, "r")
     totalFrames = in_bag.get_message_count(parsed.image_topic)
-    winsize = int(round(totalFrames / float(parsed.frames_per_split)))
-    if winsize < parsed.splits_to_save:
-        print("Warn: there are too few frames in the bag. #Frames {}, #required frames {}".
-              format(totalFrames, parsed.frames_per_split * parsed.splits_to_save))
+    frames_per_split = parsed.frames_per_split
+    if totalFrames < frames_per_split * parsed.splits_to_save:
+        frames_per_split = totalFrames // parsed.splits_to_save
+    print("total frames: {}, frames per split: {}".format(totalFrames, frames_per_split))
+
+    idlist = list(range(totalFrames))
+    random.shuffle(idlist)
+    windows = [idlist[i * frames_per_split : (i + 1) * frames_per_split] for i in range(parsed.splits_to_save)]
+
+    for i, w in enumerate(windows):
+        windows[i] = sorted(w)
+        print("window: {}, #frames {} first {} last {}".format(
+            i, len(windows[i]), windows[i][0], windows[i][-1]))
 
     bridge = CvBridge()
     count = 0
+    lastindices = [0 for _ in windows]
+
     for _, msg, t in in_bag.read_messages(topics=[parsed.image_topic]):
         cv_img = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         cv2.imshow('Frame', cv_img)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
-        res = count % winsize
-        if res < parsed.splits_to_save and output_count[-1] < parsed.frames_per_split:
-            output_bags[res].write(parsed.image_topic, msg, t)
-            output_count[res] += 1
+        for wid, index in enumerate(lastindices):
+            if index >= len(windows[wid]):
+                continue
+            if count == windows[wid][index]:
+                output_bags[wid].write(parsed.image_topic, msg, t)
+                output_count[wid] += 1
+                lastindices[wid] += 1
+                break
         count += 1
     in_bag.close()
 
