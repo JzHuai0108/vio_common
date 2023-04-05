@@ -91,11 +91,10 @@ def parse_args():
                         'timestamp in nanosec as its first component',
                         required=False)
     parser.add_argument(
-        '--max_video_frame_height',
+        '--downscalefactor',
         type=int,
-        default=100000,
-        help='For a video frame, if min(rows, cols) > %(default)s, '
-        'it will be downsampled by 2. If the resultant bag is '
+        default=1,
+        help='A video frame will be downsampled by this factor. If the resultant bag is '
         'used for photogrammetry, the original focal_length and '
         'principal_point should be half-sized, but the '
         'distortion parameters should not be changed. (default: %(default)s)',
@@ -163,7 +162,7 @@ def get_image_files_from_dir(input_dir):
     if os.path.exists(input_dir):
         for path, _, files in os.walk(input_dir):
             for f in files:
-                if os.path.splitext(f)[1] in ['.bmp', '.png', '.jpg', '.pnm']:
+                if os.path.splitext(f)[1] in ['.bmp', '.png', '.jpg', '.pnm', '.JPG']:
                     image_files.append(os.path.join(path, f))
                     timestamps.append(os.path.splitext(f)[0])
     # sort by timestamp
@@ -196,8 +195,20 @@ def get_imu_csv_files(input_dir):
     return imu_files
 
 
-def load_image_to_ros_msg(filename, timestamp=None):
+def load_image_to_ros_msg(filename, timestamp=None, downscalefactor=1):
+    """
+
+    :param filename:
+    :param timestamp:
+    :param downscalefactor: should be powers of 2.
+    :return:
+    """
     image_np = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
+    while downscalefactor > 1:
+        downscalefactor = downscalefactor // 2
+        h, w = image_np.shape[:2]
+        image_np = cv2.pyrDown(image_np, dstsize=(w // 2, h // 2))
+
     if timestamp is None:
         timestamp_nsecs = os.path.splitext(os.path.basename(filename))[0]
         timestamp = rospy.Time(secs=int(timestamp_nsecs[0:-9]),
@@ -215,7 +226,7 @@ def load_image_to_ros_msg(filename, timestamp=None):
     return rosimage, timestamp
 
 
-def create_rosbag_for_images_in_dir(data_dir, output_bag, topic = "/cam0/image_raw"):
+def create_rosbag_for_images_in_dir(data_dir, output_bag, topic = "/cam0/image_raw", downscalefactor=1):
     """
     Find all images recursively in data_dir, and put them in a rosbag under topic.
     The timestamp for each image is determined by its index.
@@ -229,9 +240,9 @@ def create_rosbag_for_images_in_dir(data_dir, output_bag, topic = "/cam0/image_r
     print('Found #images {} under {}'.format(len(image_files), data_dir))
     bag = rosbag.Bag(output_bag, 'w')
     for index, image_filename in enumerate(image_files):
-        image_msg, timestamp = load_image_to_ros_msg(image_filename, rospy.Time(index + 1, 0))
+        image_msg, timestamp = load_image_to_ros_msg(image_filename, rospy.Time(index + 1, 0), downscalefactor)
         bag.write(topic, image_msg, timestamp)
-    print("Saved #images {} of to bag".format(len(image_files)))
+    print("Saved #images {} in {} to bag {}.".format(len(image_files), data_dir, output_bag))
     bag.close()
 
 
@@ -259,7 +270,7 @@ def write_video_to_rosbag(bag,
                           first_frame_imu_time=0.0,
                           frame_timestamps=None,
                           frame_remote_timestamps=None,
-                          max_video_frame_height=100000,
+                          downscalefactor=1,
                           shift_in_time=0.0,
                           topic="/cam0/image_raw",
                           ratio=1.0):
@@ -272,7 +283,7 @@ def write_video_to_rosbag(bag,
     Also it is used for frame local time if frame_timestamps is empty.
     :param frame_timestamps: Frame timestamps by the host clock.
     :param frame_remote_timestamps: Frame timestamps by the remote device clock.
-    :param max_video_frame_height:
+    :param downscalefactor: should be powers of 2
     :param shift_in_time: The time shift to apply to the resulting local (host) timestamps.
     :param ratio: ratio of output frames / input frames
     :return: rough video time range in imu clock.
@@ -313,6 +324,10 @@ def write_video_to_rosbag(bag,
     current_id = start_id
     framecount = 0
     last_frame_remote_time = 0
+    downscaletimes = 0
+    while downscalefactor > 1:
+        downscalefactor = downscalefactor // 2
+        downscaletimes += 1
     while cap.isOpened():
         if current_id > finish_id:
             print('Exceeding finish_id %d' % finish_id +
@@ -337,9 +352,10 @@ def write_video_to_rosbag(bag,
             break
 
         image_np = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        h, w = image_np.shape[:2]
-        if min(w, h) > max_video_frame_height:
+        for d in range(downscaletimes):
+            h, w = image_np.shape[:2]
             image_np = cv2.pyrDown(image_np, dstsize=(w // 2, h // 2))
+        h, w = image_np.shape[:2]
         if w < h:
             image_np = cv2.rotate(image_np, cv2.ROTATE_90_COUNTERCLOCKWISE)
         cv2.imshow('frame', image_np)
@@ -371,9 +387,9 @@ def write_video_to_rosbag(bag,
             rosimage.data = image_np.tostring()
             bag.write(topic, rosimage, local_time)
             framecount += 1
-        else:
-            print('Skip frame of id {}, is dud? {} ratio status? {} start_id {} framecount {}.'.format(
-                current_id, is_dud, ratiostatus, start_id, framecount))
+        # else:
+        #     print('Skip frame of id {}, is dud? {} ratio status? {} start_id {} framecount {}.'.format(
+        #         current_id, is_dud, ratiostatus, start_id, framecount))
 
         current_id += 1
 
@@ -549,7 +565,7 @@ def main():
             first_frame_imu_time,
             frame_timestamps,
             frame_remote_timestamps=None,
-            max_video_frame_height=parsed.max_video_frame_height,
+            downscalefactor=parsed.downscalefactor,
             shift_in_time=parsed.shift_secs,
             topic="/cam0/image_raw")
 
