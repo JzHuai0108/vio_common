@@ -51,9 +51,11 @@ TEST(CsvReader, LoadOkvisOutput) {
               Eigen::aligned_allocator<vio::OkvisOutputPattern>>
       csvData;
   double startTime = 0, finishTime = 1e10;
-  if (!vio::fileExists(csvFile))
+  if (!vio::fileExists(csvFile)) {
+    std::cerr << "Unable to locate " << csvFile << std::endl;
     return;
-  vio::loadCsvData(csvFile, csvData, 1, startTime, finishTime);
+  }
+  vio::loadCsvData(csvFile, csvData, startTime, finishTime);
   vio::OkvisOutputPattern front, back;
   front.time_ = "512936278663280";
   front.sec_ = 512936;
