@@ -1,13 +1,16 @@
 #ifndef DERIVED_LINE_PATTERNS_H
 #define DERIVED_LINE_PATTERNS_H
 
-#include <Eigen/Dense>
-#include <Eigen/Geometry>
-#include <Eigen/StdVector>
+
 #include "vio/CsvReader.h"
+#include "vio/utils.h"
 
 #include <iomanip>
 #include <vector>
+
+#include <Eigen/Dense>
+#include <Eigen/Geometry>
+#include <Eigen/StdVector>
 
 namespace vio {
 
@@ -384,8 +387,9 @@ template <class Pattern>
 void loadCsv(
     std::string csvFile,
     std::vector<Pattern, Eigen::aligned_allocator<Pattern>> &csvData,
-    int headerLines = 1, double startTime = 0.0, double finishTime = 1e20) {
+    double startTime = 0.0, double finishTime = 1e20) {
   if (finishTime <= 0) finishTime = 1e20;
+  int headerLines = countHeaderLines(csvFile);
   CsvReader reader(csvFile, std::shared_ptr<LinePattern>(new Pattern()),
                    headerLines);
   while (reader.getNextObservation()) {
@@ -401,8 +405,8 @@ template <class Pattern>
 void loadCsvData(
     std::string csvFile,
     std::vector<Pattern, Eigen::aligned_allocator<Pattern>> &csvData,
-    int headerLines = 1, double startTime = 0.0, double finishTime = 1e20) {
-  loadCsv(csvFile, csvData, headerLines, startTime, finishTime);
+    double startTime = 0.0, double finishTime = 1e20) {
+  loadCsv(csvFile, csvData, startTime, finishTime);
 }
 
 /**

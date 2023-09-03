@@ -62,12 +62,13 @@ if __name__ == '__main__':
     parser.add_argument('topic', help='Topic')
     parser.add_argument('--msg_type', default='PoseStamped',
                         help='message type')
-    parser.add_argument('--output', default='stamped_poses.txt',
+    parser.add_argument('--output', default='',
                         help='output filename')
     args = parser.parse_args()
 
-    out_dir = os.path.dirname(os.path.abspath(args.bag))
-    out_fn = os.path.join(out_dir, args.output)
+    out_fn = args.output
+    if args.output == '':
+        out_fn = args.bag[:-4] + '_gt.txt'
 
     print('Extract pose from bag '+args.bag+' in topic ' + args.topic)
     print('Saving to file '+out_fn)

@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
   std::vector<vio::MaplabVertexPattern,
               Eigen::aligned_allocator<vio::MaplabVertexPattern>>
       maplabvertices;
-  vio::loadCsv(maplabfile, maplabvertices, 1);
+  vio::loadCsv(maplabfile, maplabvertices);
 
   std::vector<vio::TumTrajPattern,
               Eigen::aligned_allocator<vio::TumTrajPattern>>

@@ -24,16 +24,14 @@ else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mmmx -msse -msse -msse2 -msse3 -mssse3")
 endif()
 if(CMAKE_COMPILER_IS_GNUCC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 endif()
 
-# Add plain cmake packages 
 find_package(OpenCV REQUIRED)
 find_package(Eigen REQUIRED)
 
-# Include dirs
 list(APPEND vio_common_INCLUDE_DIR
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${EIGEN_INCLUDE_DIR}
@@ -116,7 +114,7 @@ if(CATKIN_ENABLE_TESTING)
     test/test_imu_grabber.cpp
     test/test_eigen_utils.cpp
     test/test_vimap_container.cpp)
-  target_link_libraries(vio_common_test ${PROJECT_NAME})
+  target_link_libraries(vio_common_test ${PROJECT_NAME} glog)
 endif()
 
 ################################################################################

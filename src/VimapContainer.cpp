@@ -55,22 +55,22 @@ void VimapContainer::loadVimapFromFolder(std::string vimap_folder) {
     imu_csv = vimap_folder + "/imu0.csv";
   }
   if (fileExists(vertices_csv)) {
-    loadCsvData(vertices_csv, vertices_, 1);
+    loadCsvData(vertices_csv, vertices_);
   }
   if (fileExists(tracks_csv)) {
-    loadCsvData(tracks_csv, tracks_, 1);
+    loadCsvData(tracks_csv, tracks_);
     numberCameras_ = tracks_.back().frame_index + 1;
   }
   if (fileExists(landmarks_csv)) {
-    loadCsvData(landmarks_csv, landmarks_, 1);
+    loadCsvData(landmarks_csv, landmarks_);
     checkLandmarkIndicesConsecutive();
   }
   if (fileExists(observations_csv)) {
-    loadCsvData(observations_csv, observations_, 1);
+    loadCsvData(observations_csv, observations_);
     createValidKeypoints();
   }
   if (fileExists(imu_csv)) {
-    vio::loadCsvData(imu_csv, imuData_, 1);
+    vio::loadCsvData(imu_csv, imuData_);
   }
 }
 
@@ -131,6 +131,10 @@ std::vector<int64_t> VimapContainer::vertexTimestamps() const {
 bool VimapContainer::createValidKeypoints() {
   size_t maxVertexIndex = tracks_.back().vertex_index;
   size_t maxCameraIndex = tracks_.back().frame_index;
+  size_t minVertexIndex = tracks_.front().vertex_index;
+  if (minVertexIndex != 0) {
+    std::cerr << "min vertex index should be zero but is " << minVertexIndex << "!\n";
+  }
   size_t numCameras = maxCameraIndex + 1;
   constexpr size_t expectedKeypoints = 500u;
   validKeypoints_.resize((maxVertexIndex + 1) * (maxCameraIndex + 1));

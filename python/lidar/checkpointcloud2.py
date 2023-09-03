@@ -19,7 +19,7 @@ else:
         sensor = 'velodyne'
     elif 'hesai' in pointcloudtopic:
         sensor = 'hesai'
-    elif 'ouster' in pointcloudtopic:
+    elif 'os1' in pointcloudtopic:
         sensor = 'ouster'
     else:
         sensor = sys.argv[2]
@@ -45,6 +45,15 @@ for topic, msg, t in bag.read_messages(topics=[pointcloudtopic]):
         # For every point in hesai pointcloud2, its timestamp in seconds is its actual firing time.
         for p in hesai_gen:
             print(" x : %f  y: %f  z: %f intensity: %f ring: %d time %f sec" % (p[0], p[1], p[2], p[3], p[5], p[4]))
+            j += 1
+            if j > 5:
+                break
+    elif sensor == "ouster": # coloradar 64beam ouster
+        ouster64_coloradar_gen = pc2.read_points(msg, field_names=
+            ("x", "y", "z", "intensity", "t", "reflectivity", "ring", "noise", "range"), skip_nans=True)
+        for p in ouster64_coloradar_gen:
+            print("x: %f y: %f z: %f intensity: %f t: %f reflectivity: %f ring: %d noise: %f range: %f" % (
+                p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8]))
             j += 1
             if j > 5:
                 break
