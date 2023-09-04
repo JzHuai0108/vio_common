@@ -27,6 +27,23 @@ def wgs2korea5187(lat, lon, alt):
     x, y, z = transformer.transform(lon, lat, alt)
     return x, y, z
 
+def extract_positions(bagfile, position_topic, out_filename):
+    pn = 0
+    positions = []
+    with rosbag.Bag(bagfile, 'r') as bag:
+        for (topic, msg, ts) in bag.read_messages([position_topic]):
+            if topic == position_topic:
+                x, y, z = wgs2korea5187(msg.latitude, msg.longitude, msg.altitude)
+                positions.append([msg.header.stamp.to_sec(), x, y, z])
+                pn += 1
+    print('position messages {}'.format(pn))
+    with open(out_filename, 'w') as f:
+        f.write('# timestamp korea5187_p_antenna_x korea5187_p_antenna_y korea5187_p_antenna_z\n')
+        for i, p in enumerate(positions):
+            f.write('%.9f %.8f %.8f %.8f\n' %
+                    (p[0], p[1], p[2], p[3]))
+    print('wrote ' + str(pn) + ' position messages to the file: ' + out_filename)
+
 def extract(bagfile, position_topic, orientation_topic, out_filename):
     pn = 0
     rn = 0
@@ -105,3 +122,5 @@ if __name__ == '__main__':
         print('processing {}'.format(bag))
         outputtextfile = bag[:-4] + '_gt.txt'
         extract(bag, args.position_topic, args.rotation_topic, outputtextfile)
+        outputfile = bag[:-4] + '_zed_f9p_gps.txt'
+        extract_positions(bag, "/ublox_gps/fix", outputfile)
