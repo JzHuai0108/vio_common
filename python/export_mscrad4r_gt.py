@@ -48,7 +48,7 @@ def extract_positions(bagfile, position_topic, out_filename):
                     (p[0], p[1], p[2], p[3], geographiccoords[i][1], geographiccoords[i][2], geographiccoords[i][3]))
     print('wrote ' + str(pn) + ' position messages to the file: ' + out_filename)
 
-def extract(bagfile, position_topic, orientation_topic, out_filename):
+def extract(bagfile, position_topic, orientation_topic, out_filename, logstream):
     pn = 0
     rn = 0
 
@@ -146,13 +146,24 @@ def extract(bagfile, position_topic, orientation_topic, out_filename):
         positions_body.append([p[0], E_p_B[0], E_p_B[1], E_p_B[2]])
 
     with open(out_filename, 'w') as f:
-        f.write('#timestamp,utm52s_p_antenna_e,utm52s_p_antenna_n,utm52s_p_antenna_u,'
+        f.write('#timestamp,utm52s_p_MTi_e,utm52s_p_MTi_n,utm52s_p_MTi_u,'
                 'LocalENU_q_MTi_x,LocalENU_q_MTi_y,LocalENU_q_MTi_z,LocalENU_q_MTi_w,lat_antenna,lon_antenna,wgs84_ellipsoid_height_antenna\n')
         for i, p in enumerate(positions_body):
             f.write('%.9f,%.8f,%.8f,%.8f,%.9f,%.9f,%.9f,%.9f,%.9f,%.9f,%.5f\n' %
                     (p[0], p[1], p[2], p[3],
                      intorientations[i][1], intorientations[i][2], intorientations[i][3], 
                      intorientations[i][4], geographiccoords[i][1], geographiccoords[i][2], geographiccoords[i][3]))
+    dist = 0
+    for i, p in enumerate(positions_body):
+        if i == 0:
+            continue
+        else:
+            prev = positions_body[i - 1]
+        delta = (p[1] - prev[1]) * (p[1] - prev[1]) + (p[2] - prev[2]) * (p[2] - prev[2]) + (p[3] - prev[3]) * (p[3] - prev[3])
+        delta = math.sqrt(delta)
+        dist += delta
+    dura = positions_body[-1][0] - positions_body[0][0]
+    logstream.write('{} {} {}\n'.format(bagfile, dist, dura))
     print('wrote ' + str(pn) + ' pose messages to the file: ' + out_filename)
 
 
@@ -178,9 +189,12 @@ if __name__ == '__main__':
     # but the magnetic declination compensation does not work well,
     # so we use the least squares to estimate the magnetic declination.
     magneticdeclination = 0 # -9.09 * math.pi / 180.0 is from https://www.ngdc.noaa.gov/geomag/calculators/magcalc.shtml#declination
+    logfile = os.path.join(os.path.dirname(os.path.dirname(allbags[0])), 'gt.log')
+    stream = open(logfile, 'w')
     for bag in allbags:
         print('processing {}'.format(bag))
         outputtextfile = bag[:-4] + '_gt.txt'
-        extract(bag, args.position_topic, args.rotation_topic, outputtextfile)
+        extract(bag, args.position_topic, args.rotation_topic, outputtextfile, stream)
         outputfile = bag[:-4] + '_zed_f9p_gps.txt'
         extract_positions(bag, "/ublox_gps/fix", outputfile)
+    stream.close()
