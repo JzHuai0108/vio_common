@@ -1,0 +1,20 @@
+<launch>
+  <!--Extract compressed images from a bag file, per https://wiki.ros.org/rosbag/Tutorials/Exporting%20image%20and%20video%20data.-->
+  <!--The resulting images will be at ~/.ros/frame*.jpg -->
+  <!--roslaunch bag_to_images.launch -->
+  <arg name="topic" default="/zed/zed_node/left_raw/image_raw_gray/compressed"/>
+  <arg name="basetopic" default="/zed/zed_node/left_raw/image_raw_gray"/>
+  <arg name="uncompressed_topic" default="/zed/zed_node/left_raw/image_raw_gray_unc"/>
+  <arg name="bagfile" default="test.bag"/>
+  <arg name="start" default="0"/>
+  <arg name="duration" default="1e9"/>
+
+  <node pkg="rosbag" type="play" name="rosbag" args="$(arg bagfile) -s $(arg start) -u $(arg duration)"/>
+
+  <node name="extract" pkg="image_view" type="extract_images" respawn="false" output="screen" cwd="ROS_HOME">
+    <remap from="image" to="$(arg uncompressed_topic)"/>
+  </node>
+
+  <node name="uncompress" pkg="image_transport" type="republish" 
+    args="compressed in:=$(arg basetopic) raw out:=$(arg uncompressed_topic)" output="screen"/>
+</launch>
