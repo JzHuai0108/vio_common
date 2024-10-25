@@ -19,6 +19,20 @@ def extract(bagfile, imu_topic, out_filename):
     print('wrote ' + str(n) + ' imu messages to the file: ' + out_filename)
     f.close()
 
+def extract_encoder(bagfile, encoder_topic, out_filename):
+    n = 0
+    f = open(out_filename, 'w')
+    f.write('#remote_timestamp angle(rad) host_time\n')
+    with rosbag.Bag(bagfile, 'r') as bag:
+        for (_, msg, ts) in bag.read_messages(topics=str(encoder_topic)):
+            f.write('%d.%09d %.9f %.9f %.9f %d.%09d\n' %
+                    (msg.header.stamp.secs, msg.header.stamp.nsecs,
+                     msg.vector.x, msg.vector.y, msg.vector.z, ts.secs, ts.nsecs))
+            n += 1
+    print('wrote ' + str(n) + ' encoder messages to the file: ' + out_filename)
+    f.close()
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='''
     Extracts IMU messages from a bagfile.
