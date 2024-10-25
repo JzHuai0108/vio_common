@@ -273,7 +273,7 @@ def write_video_to_rosbag(bag,
                           downscalefactor=1,
                           shift_in_time=0.0,
                           topic="/cam0/image_raw",
-                          ratio=1.0):
+                          ratio=1.0, gray=False):
     """
     :param bag: opened bag stream writing to
     :param video_filename:
@@ -351,7 +351,10 @@ def write_video_to_rosbag(bag,
             print('Empty frame, break the video stream')
             break
 
-        image_np = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        if gray:
+            image_np = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        else:
+            image_np = frame
         for d in range(downscaletimes):
             h, w = image_np.shape[:2]
             image_np = cv2.pyrDown(image_np, dstsize=(w // 2, h // 2))
