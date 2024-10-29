@@ -264,6 +264,21 @@ def create_imu_message(timestamp, omega, alpha):
     return rosimu
 
 
+def frame_to_rosimage(frame, remote_time, gray=False):
+    rosimage = Image()
+    rosimage.header.stamp = remote_time
+    rosimage.height, rosimage.width = frame.shape[:2]
+    rosimage.step = rosimage.width * (1 if gray else 3)  # for mono8, step is width; for RGB, it's width * 3
+
+    if gray:
+        rosimage.encoding = "mono8"
+    else:
+        rosimage.encoding = "bgr8"  # OpenCV uses BGR by default, so "bgr8" matches that format
+
+    rosimage.data = frame.tobytes()
+    return rosimage
+
+
 def write_video_to_rosbag(bag,
                           video_filename,
                           video_from_to,
@@ -381,13 +396,7 @@ def write_video_to_rosbag(bag,
             last_frame_remote_time = remote_time
         ratiostatus = (current_id - start_id) * ratio >= framecount
         if ratiostatus and not is_dud:
-            rosimage = Image()
-            rosimage.header.stamp = remote_time
-            rosimage.height = image_np.shape[0]
-            rosimage.width = image_np.shape[1]
-            rosimage.step = rosimage.width
-            rosimage.encoding = "mono8"
-            rosimage.data = image_np.tostring()
+            rosimage = frame_to_rosimage(frame, remote_time, gray)
             bag.write(topic, rosimage, local_time)
             framecount += 1
         # else:
