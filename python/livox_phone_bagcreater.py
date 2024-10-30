@@ -31,12 +31,36 @@ def create_video_bag(seq_dir):
         sys.exit(1)
 
 
-def correct_livox_times(bag_path, topic, known_interval_ms, correct_time):
+def check_largest_gap(bag_path, topic, gap_tol_ms):
+    gap_tol = rospy.Duration.from_sec(gap_tol_ms / 1000)
+    host_times = []
+    with Bag(bag_path, 'r') as mid_bag:
+        for topic, msg, t in mid_bag.read_messages(topics=[topic]):
+            host_times.append(msg.header.stamp)
+
+    gaps = [host_times[i+1] - host_times[i] for i in range(len(host_times) - 1)]
+    largest_gap_index, largest_gap = max(enumerate(gaps), key=lambda x: x[1])
+    if largest_gap > gap_tol:
+        start_time = host_times[0]  # First timestamp in the original list
+        end_time = host_times[largest_gap_index]  # Last timestamp before the gap
+        gap_duration = end_time - start_time
+        print("Warn: Skipping the data segment from {}.{:09d} to {}.{:09d} of {:.3f} secs".format(
+            start_time.secs, start_time.nsecs,
+            end_time.secs, end_time.nsecs,
+            gap_duration.to_sec()))
+        return host_times[largest_gap_index + 1]
+    else:
+        return host_times[0]
+
+
+def correct_livox_times(bag_path, topic, known_interval_ms, correct_time, start_time):
     host_times = []
     sensor_times = [rospy.Time(100, 0)]
     with Bag(bag_path, 'r') as mid_bag:
         num_msg = 0
         for topic, msg, t in mid_bag.read_messages(topics=[topic]):
+            if msg.header.stamp < start_time:
+                continue
             host_times.append(msg.header.stamp)
             sensor_times.append(sensor_times[-1] + rospy.Duration(0, known_interval_ms * 1000000))
             num_msg += 1
@@ -44,6 +68,7 @@ def correct_livox_times(bag_path, topic, known_interval_ms, correct_time):
         return host_times
 
     sensor_times.pop()
+
     # sanity checks
     true_duration = host_times[-1] - host_times[0]
     sensor_duration = sensor_times[-1] - sensor_times[0]
@@ -79,8 +104,9 @@ def merge_mid360_bag(seq_dir, correct_time):
     lidar_interval_ms = 100 # ms
     imu_interval_ms = 5 # ms
 
-    corrected_lidar_times = correct_livox_times(mid_bag_path, "/livox/lidar", lidar_interval_ms, correct_time)
-    corrected_imu_times = correct_livox_times(mid_bag_path, "/livox/imu", imu_interval_ms, correct_time)
+    start_time = check_largest_gap(mid_bag_path, "/livox/lidar", lidar_interval_ms * 2)
+    corrected_lidar_times = correct_livox_times(mid_bag_path, "/livox/lidar", lidar_interval_ms, correct_time, start_time)
+    corrected_imu_times = correct_livox_times(mid_bag_path, "/livox/imu", imu_interval_ms, correct_time, start_time)
 
     movie_bag_path = os.path.join(seq_dir, 'movie.bag')
 
@@ -88,6 +114,8 @@ def merge_mid360_bag(seq_dir, correct_time):
         with Bag(mid_bag_path, 'r') as mid_bag, Bag(movie_bag_path, 'a') as movie_bag:
             num_msg = 0
             for topic, msg, t in mid_bag.read_messages(topics=["/livox/lidar"]):
+                if msg.header.stamp < start_time:
+                    continue
                 msg.header.stamp = corrected_lidar_times[num_msg]
                 movie_bag.write(topic, msg, corrected_lidar_times[num_msg])
                 num_msg += 1
@@ -95,6 +123,8 @@ def merge_mid360_bag(seq_dir, correct_time):
             print("Finished writing {} lidar messages to movie.bag".format(num_msg))
             num_msg = 0
             for topic, msg, t in mid_bag.read_messages(topics=["/livox/imu"]):
+                if msg.header.stamp < start_time:
+                    continue
                 msg.header.stamp = corrected_imu_times[num_msg]
                 movie_bag.write(topic, msg, corrected_imu_times[num_msg])
                 num_msg += 1
