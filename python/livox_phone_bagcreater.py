@@ -109,6 +109,7 @@ def merge_mid360_bag(seq_dir, correct_time):
     corrected_imu_times = correct_livox_times(mid_bag_path, "/livox/imu", imu_interval_ms, correct_time, start_time)
 
     movie_bag_path = os.path.join(seq_dir, 'movie.bag')
+    gnorm = 9.805 # https://github.com/Livox-SDK/LIO-Livox/blob/master/include/IMUIntegrator/IMUIntegrator.h#L84
 
     try:
         with Bag(mid_bag_path, 'r') as mid_bag, Bag(movie_bag_path, 'a') as movie_bag:
@@ -126,6 +127,9 @@ def merge_mid360_bag(seq_dir, correct_time):
                 if msg.header.stamp < start_time:
                     continue
                 msg.header.stamp = corrected_imu_times[num_msg]
+                msg.linear_acceleration.x *= gnorm
+                msg.linear_acceleration.y *= gnorm
+                msg.linear_acceleration.z *= gnorm
                 movie_bag.write(topic, msg, corrected_imu_times[num_msg])
                 num_msg += 1
             assert num_msg == len(corrected_imu_times), "Inconsistent IMU messages and timestamps!"

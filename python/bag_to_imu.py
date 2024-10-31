@@ -56,7 +56,7 @@ if __name__ == '__main__':
     parser.add_argument('--outputfile', help='Output file', default="")
     args = parser.parse_args()
     if args.outputfile == "":
-        outputfile = args.bag[:-4] + "_" + os.path.basename(args.topic) + ".txt"
+        outputfile = args.bag[:-4] + args.topic.replace('/', '_') + ".txt"
     else:
         outputfile = args.outputfile
     print(outputfile)
