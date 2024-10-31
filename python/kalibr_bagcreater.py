@@ -396,7 +396,7 @@ def write_video_to_rosbag(bag,
             last_frame_remote_time = remote_time
         ratiostatus = (current_id - start_id) * ratio >= framecount
         if ratiostatus and not is_dud:
-            rosimage = frame_to_rosimage(frame, remote_time, gray)
+            rosimage = frame_to_rosimage(image_np, remote_time, gray)
             bag.write(topic, rosimage, local_time)
             framecount += 1
         # else:
