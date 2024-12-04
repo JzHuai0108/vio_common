@@ -5,7 +5,10 @@ import sys
 from rosbag import Bag
 import rospy
 
-sys.path.append('../timestamp_corrector/build')
+# Assuming the working directory is vio_common/python
+mypath = os.path.abspath('../timestamp_corrector/build')  # Make it an absolute path
+if mypath not in sys.path:
+    sys.path.append(mypath)
 import TimestampCorrector as TC
 
 
@@ -17,11 +20,12 @@ def create_video_bag(seq_dir):
     output_bag_path = os.path.join(seq_dir, 'movie.bag')
 
     kalibr_command = [
-        'python', 'kalibr_bagcreater.py',
+        'python3', 'kalibr_bagcreater.py',
         '--video', video_path,
         '--imu', imu_path,
         '--video_time_file', video_time_file_path,
-        '--output_bag', output_bag_path
+        '--output_bag', output_bag_path,
+        '--sync_to_unix'
     ]
 
     try:
@@ -36,7 +40,7 @@ def check_largest_gap(bag_path, topic, gap_tol_ms):
     host_times = []
     with Bag(bag_path, 'r') as mid_bag:
         for topic, msg, t in mid_bag.read_messages(topics=[topic]):
-            host_times.append(msg.header.stamp)
+            host_times.append(t)
 
     gaps = [host_times[i+1] - host_times[i] for i in range(len(host_times) - 1)]
     largest_gap_index, largest_gap = max(enumerate(gaps), key=lambda x: x[1])
@@ -55,19 +59,17 @@ def check_largest_gap(bag_path, topic, gap_tol_ms):
 
 def correct_livox_times(bag_path, topic, known_interval_ms, correct_time, start_time):
     host_times = []
-    sensor_times = [rospy.Time(100, 0)]
+    sensor_times = []
     with Bag(bag_path, 'r') as mid_bag:
         num_msg = 0
         for topic, msg, t in mid_bag.read_messages(topics=[topic]):
-            if msg.header.stamp < start_time:
+            if t < start_time:
                 continue
-            host_times.append(msg.header.stamp)
-            sensor_times.append(sensor_times[-1] + rospy.Duration(0, known_interval_ms * 1000000))
+            host_times.append(t)
+            sensor_times.append(msg.header.stamp)
             num_msg += 1
     if not correct_time:
         return host_times
-
-    sensor_times.pop()
 
     # sanity checks
     true_duration = host_times[-1] - host_times[0]
@@ -112,25 +114,31 @@ def merge_mid360_bag(seq_dir, correct_time):
     gnorm = 9.805 # https://github.com/Livox-SDK/LIO-Livox/blob/master/include/IMUIntegrator/IMUIntegrator.h#L84
 
     try:
-        with Bag(mid_bag_path, 'r') as mid_bag, Bag(movie_bag_path, 'a') as movie_bag:
+        outputmode = 'a'
+        if os.path.isfile(movie_bag_path) and os.path.getsize(movie_bag_path) > 100:
+            outputmode = 'a'
+        else:
+            outputmode = 'w'
+
+        with Bag(mid_bag_path, 'r') as mid_bag, Bag(movie_bag_path, outputmode) as movie_bag:
             num_msg = 0
             for topic, msg, t in mid_bag.read_messages(topics=["/livox/lidar"]):
-                if msg.header.stamp < start_time:
+                if t < start_time:
                     continue
                 msg.header.stamp = corrected_lidar_times[num_msg]
-                movie_bag.write(topic, msg, corrected_lidar_times[num_msg])
+                movie_bag.write(topic, msg, msg.header.stamp)
                 num_msg += 1
             assert num_msg == len(corrected_lidar_times), "Inconsistent lidar messages and timestamps!"
             print("Finished writing {} lidar messages to movie.bag".format(num_msg))
             num_msg = 0
             for topic, msg, t in mid_bag.read_messages(topics=["/livox/imu"]):
-                if msg.header.stamp < start_time:
+                if t < start_time:
                     continue
                 msg.header.stamp = corrected_imu_times[num_msg]
                 msg.linear_acceleration.x *= gnorm
                 msg.linear_acceleration.y *= gnorm
                 msg.linear_acceleration.z *= gnorm
-                movie_bag.write(topic, msg, corrected_imu_times[num_msg])
+                movie_bag.write(topic, msg, msg.header.stamp)
                 num_msg += 1
             assert num_msg == len(corrected_imu_times), "Inconsistent IMU messages and timestamps!"
             print("Finished writing {} imu messages to movie.bag".format(num_msg))

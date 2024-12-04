@@ -46,11 +46,6 @@ def extract_pcd_times(bagfile, topic, starttime, endtime, outfile):
     count = 0
     for topic, msg, t in bag.read_messages(topics=[topic]):
         if t >= msgstarttime and t <= msgendtime:
-            gen = pc2.read_points(msg, skip_nans=True)
-            int_data = list(gen)
-            xyz = np.array([[0, 0, 0]])
-            for x in int_data:
-                xyz = np.append(xyz, [[x[0], x[1], x[2]]], axis=0)
             stream.write('%d.%09d %d.%09d\n' %
                     (msg.header.stamp.secs, msg.header.stamp.nsecs, t.secs, t.nsecs))
             count += 1

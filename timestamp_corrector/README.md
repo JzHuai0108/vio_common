@@ -1,7 +1,7 @@
 # Install pybind11
 ```
 sudo apt -y install python3-pybind11 # ubnntu 20
-# sudo apt -y install python-pybind11 # ubnntu 18
+sudo apt -y install python-pybind11 # ubnntu 18
 ```
 
 # build TimestampCorrector
@@ -14,5 +14,8 @@ make
 # test TimestampCorrector
 ```
 python3 test.py
+
+cd vio_common/python
+python3 lidar/livox_phone_bagcreater.py
 ```
 

@@ -27,6 +27,13 @@ import utility_functions
 # The video time file has the timestamp for every video frame per IMU clock.
 # The saved bag will use the IMU clock to timestamp IMU and image messages.
 
+# Assuming the working directory is vio_common/python
+mypath = os.path.abspath('../timestamp_corrector/build')  # Make it an absolute path
+if mypath not in sys.path:
+    sys.path.append(mypath)
+
+import TimestampCorrector as TC
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -106,6 +113,9 @@ def parse_args():
         help="shift all the measurement timestamps by this amount "
         "to avoid ros time starting from 0."
         "Only for case 4, see help.")
+
+    parser.add_argument("--sync_to_unix", action="store_true",
+                        help="Sync to Unix host time? If not, sensor times will be used by default.")
 
     if len(sys.argv) < 2:
         msg = 'Example usage 1: {} --folder kalibr/format/dataset ' \
@@ -443,14 +453,55 @@ def load_local_and_remote_times(time_file):
             row = re.split(' |,|[|]', line)
             if utility_functions.is_header_line(row[0]):
                 continue
-            secs, nsecs = utility_functions.parse_time(row[0], 'ns')
+            secs, nsecs = utility_functions.parse_time(row[0], 's')
             remote_time = rospy.Time(secs, nsecs)
-            local_time = rospy.Time.from_sec(float(row[-1]))
+            secs, nsecs = utility_functions.parse_time(row[-1], 's')
+            local_time = rospy.Time(secs, nsecs)
             frame_rostimes.append((local_time, remote_time))
     return frame_rostimes
 
+def correct_times(fn, known_interval_ms=100):
+    """
+    :param fn: filename to timestamped data, each row: sensor time(sec), data ..., host time(sec)
+    first row is a header line, all data fields are separated by comma.
+    :param known_interval_ms:
+    :return:smooth host times
+    """
+    local_remote_times = load_local_and_remote_times(fn)
+    host_times = [v[0] for v in local_remote_times]
+    sensor_times = [v[1] for v in local_remote_times]
 
-def write_imufile_to_rosbag(bag, imufile, timerange=None, buffertime=5, topic="/imu0"):
+    # sanity checks
+    true_duration = host_times[-1] - host_times[0]
+    sensor_duration = sensor_times[-1] - sensor_times[0]
+    gap = sensor_duration - true_duration
+    gap_ms = gap.to_sec() * 1000
+    if abs(gap_ms) > known_interval_ms:
+        print('Warn: There may be missing sensor data, the host duration {}.{:09d}, '
+              'the sensor duration {}.{:09d}, the gap {:.3f} ms, nominal interval {} ms'.format(
+            true_duration.secs, true_duration.nsecs, sensor_duration.secs, sensor_duration.nsecs,
+            gap_ms, known_interval_ms
+        ))
+
+    host_time_ref = host_times[0] - rospy.Time(100)
+    host_times_float = [(ti - host_time_ref).to_sec() for ti in host_times]
+    sensor_times_float = [ti.to_sec() for ti in sensor_times]
+    TCor = TC.TimestampCorrector()
+    host_times_corrected = []
+    n = len(host_times_float)
+    for i in range(n):
+        TCor.correctTimestamp(sensor_times_float[i], host_times_float[i])
+    for i in range(n):
+        d = rospy.Duration.from_sec(TCor.getLocalTime(sensor_times_float[i]))
+        host_times_corrected.append(host_time_ref + d)
+    print('{} back time before correction {}.{:09d} after {}.{:09d}'.format(
+        fn, host_times[-1].secs, host_times[-1].nsecs,
+        host_times_corrected[-1].secs, host_times_corrected[-1].nsecs))
+    return host_times_corrected
+
+
+
+def write_imufile_to_rosbag(bag, imufile, timerange=None, buffertime=5, topic="/imu0", sync_to_unix=False):
     """
 
     :param bag: output bag stream.
@@ -461,6 +512,10 @@ def write_imufile_to_rosbag(bag, imufile, timerange=None, buffertime=5, topic="/
     :return:
     """
     utility_functions.check_file_exists(imufile)
+    if sync_to_unix:
+        smooth_host_times = correct_times(imufile, known_interval_ms=100)
+    else:
+        smooth_host_times = None
 
     with open(imufile, 'r') as stream:
         rowcount = 0
@@ -471,6 +526,9 @@ def write_imufile_to_rosbag(bag, imufile, timerange=None, buffertime=5, topic="/
                 continue
             imumsg, timestamp = create_imu_message_time_string(
                 row[0], row[1:4], row[4:7])
+            if sync_to_unix:
+                imumsg.header.stamp = smooth_host_times[rowcount]
+                timestamp = smooth_host_times[rowcount]
             timestampinsec = timestamp.to_sec()
             rowcount += 1
             if timerange and \
@@ -567,6 +625,8 @@ def main():
             aligned_timestamps = [time + rospy.Duration.from_sec(parsed.video_file_time_offset)
                                   for time in frame_timestamps]
             frame_timestamps = aligned_timestamps
+            if parsed.sync_to_unix:
+                frame_timestamps = correct_times(parsed.video_time_file, 100)
             print('Loaded {} timestamps for frames'.format(
                 len(frame_timestamps)))
             first_frame_imu_time = frame_timestamps[0].to_sec()
@@ -613,7 +673,7 @@ def main():
                         row[0], row[1:4], row[4:7])
                     bag.write("/{0}".format(topic), imumsg, timestamp)
     elif len(parsed.imu) == 1:
-        write_imufile_to_rosbag(bag, parsed.imu[0], videotimerange, 5, "/imu0")
+        write_imufile_to_rosbag(bag, parsed.imu[0], videotimerange, 5, "/imu0", parsed.sync_to_unix)
     else:
         write_gyro_accel_to_rosbag(bag, parsed.imu, videotimerange, 5, "/imu0", parsed.shift_secs)
 
