@@ -5,6 +5,8 @@ import sys
 from rosbag import Bag
 import rospy
 
+from typing import Dict, List, Tuple
+
 # Assuming the working directory is vio_common/python
 mypath = os.path.abspath('../timestamp_corrector/build')  # Make it an absolute path
 if mypath not in sys.path:
@@ -100,6 +102,103 @@ def correct_livox_times(bag_path, topic, known_interval_ms, correct_time, start_
     return host_times_corrected
 
 
+def merge_and_sort(host_times: Dict[str, List[float]]) -> Tuple[List[float], List[Tuple[str, int]]]:
+    """
+    Merges and sorts timestamps from multiple topics.
+
+    Parameters:
+        host_times (Dict[str, List[float]]): Dictionary with topic names as keys and lists of timestamps as values.
+
+    Returns:
+        Tuple[List[float], List[Tuple[str, int]]]:
+            - all_host_times: Sorted list of all timestamps.
+            - orig_topic_indices: List of tuples indicating the original topic and index of each timestamp.
+    """
+    all_host_times = []
+    orig_topic_indices = []
+    for topic, timestamps in host_times.items():
+        for idx, time in enumerate(timestamps):
+            all_host_times.append(time)
+            orig_topic_indices.append((topic, idx))
+
+    combined = list(zip(all_host_times, orig_topic_indices))
+    combined.sort(key=lambda x: x[0])
+    all_host_times_sorted, orig_topic_indices_sorted = zip(*combined) if combined else ([], [])
+    return list(all_host_times_sorted), list(orig_topic_indices_sorted)
+
+
+def correct_livox_times2(bag_path, topics, known_intervals_ms, correct_time, start_time):
+    """
+    assume these topics messages have the same sensor clock.
+    """
+    host_times = {}
+    sensor_times = {}
+    num_msgs = {}
+    for t in topics:
+        host_times[t] = []
+        sensor_times[t] = []
+        num_msgs[t] = 0
+    
+    with Bag(bag_path, 'r') as mid_bag:
+        for topic, msg, t in mid_bag.read_messages(topics=topics):
+            if t < start_time:
+                continue
+            host_times[topic].append(t)
+            sensor_times[topic].append(msg.header.stamp)
+            num_msgs[topic] += 1
+    if not correct_time:
+        return host_times
+
+    # sanity checks
+    for ti, topic in enumerate(topics):
+        true_duration = host_times[topic][-1] - host_times[topic][0]
+        sensor_duration = sensor_times[topic][-1] - sensor_times[topic][0]
+        gap = sensor_duration - true_duration
+        gap_ms = gap.to_sec() * 1000
+        if abs(gap_ms) > known_intervals_ms[ti]:
+            print('Warn: There may be missing sensor data on topic {}, the host duration {}.{:09d}, '
+                'the sensor duration {}.{:09d}, the gap {:.3f} ms, nominal interval {} ms'.format(
+                topic, true_duration.secs, true_duration.nsecs, sensor_duration.secs, sensor_duration.nsecs,
+                gap_ms, known_intervals_ms[ti]
+            ))
+
+    all_sensor_times, orig_topic_indices = merge_and_sort(sensor_times)
+    all_host_times = []
+    for tp in orig_topic_indices:
+        all_host_times.append(host_times[tp[0]][tp[1]])
+
+    host_time_ref = all_host_times[0] - rospy.Time(100)
+    host_times_float = [(ti - host_time_ref).to_sec() for ti in all_host_times]
+    sensor_times_float = [ti.to_sec() for ti in all_sensor_times]
+    TCor = TC.TimestampCorrector()
+    host_times_corrected = []
+    n = len(host_times_float)
+    for i in range(n):
+        TCor.correctTimestamp(sensor_times_float[i], host_times_float[i])
+    for i in range(n):
+        d = rospy.Duration.from_sec(TCor.getLocalTime(sensor_times_float[i]))
+        host_times_corrected.append(host_time_ref + d)
+    
+    print('{} front time before correction {}.{:09d} after {}.{:09d}'.format(
+        topics, all_host_times[0].secs, all_host_times[0].nsecs,
+        host_times_corrected[0].secs, host_times_corrected[0].nsecs))
+
+    print('{} back time before correction {}.{:09d} after {}.{:09d}'.format(
+        topics, all_host_times[-1].secs, all_host_times[-1].nsecs,
+        host_times_corrected[-1].secs, host_times_corrected[-1].nsecs))
+    
+    # recover host_times for each topic
+    topic_host_times_corr = {}
+    for topic in topics:
+        topic_host_times_corr[topic] = [None] * len(host_times[topic])
+    for ti, tp in enumerate(orig_topic_indices):
+        topic_host_times_corr[tp[0]][tp[1]] = host_times_corrected[ti]
+    for topic in topics:
+        assert all(time_corr is not None for time_corr in topic_host_times_corr[topic]), \
+            f"One or more None values found in topic '{topic}'"
+    return topic_host_times_corr
+
+
 def merge_mid360_bag(seq_dir, correct_time):
     # Step 2: Read messages from mid360.bag and write to movie.bag
     mid_bag_path = os.path.join(seq_dir, 'mid360.bag')
@@ -107,8 +206,13 @@ def merge_mid360_bag(seq_dir, correct_time):
     imu_interval_ms = 5 # ms
 
     start_time = check_largest_gap(mid_bag_path, "/livox/lidar", lidar_interval_ms * 2)
-    corrected_lidar_times = correct_livox_times(mid_bag_path, "/livox/lidar", lidar_interval_ms, correct_time, start_time)
-    corrected_imu_times = correct_livox_times(mid_bag_path, "/livox/imu", imu_interval_ms, correct_time, start_time)
+    # corrected_lidar_times = correct_livox_times(mid_bag_path, "/livox/lidar", lidar_interval_ms, correct_time, start_time)
+    # corrected_imu_times = correct_livox_times(mid_bag_path, "/livox/imu", imu_interval_ms, correct_time, start_time)
+
+    corrected_times = correct_livox_times2(mid_bag_path, ["/livox/lidar", "/livox/imu"], 
+                                           [lidar_interval_ms, imu_interval_ms], correct_time, start_time)
+    corrected_lidar_times = corrected_times["/livox/lidar"]
+    corrected_imu_times = corrected_times["/livox/imu"]
 
     movie_bag_path = os.path.join(seq_dir, 'movie.bag')
     gnorm = 9.805 # https://github.com/Livox-SDK/LIO-Livox/blob/master/include/IMUIntegrator/IMUIntegrator.h#L84
@@ -157,6 +261,17 @@ if __name__ == "__main__":
     print(f"Sequence Directory: {args.seq_dir}")
     print(f"Time correction: {args.correct_time}")
 
-    create_video_bag(args.seq_dir)
-    merge_mid360_bag(args.seq_dir, args.correct_time)
+    seq_list = []
+    for root, dirs, files in os.walk(args.seq_dir):
+        for fn in files:
+            if fn == 'mid360.bag':
+                seq_list.append(root)
+    print(f'Found {len(seq_list)} sequences in {args.seq_dir}')
+    for index, folder in enumerate(seq_list, start=1):
+        print(f'{index}: {folder}')
 
+    numseqs = len(seq_list)
+    for s, folder in enumerate(seq_list):
+        print(f'Processing {s}/{numseqs} {folder}')
+        create_video_bag(folder)
+        merge_mid360_bag(folder, args.correct_time)
