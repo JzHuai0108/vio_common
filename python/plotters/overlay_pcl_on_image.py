@@ -119,7 +119,7 @@ def overlay(C_T_L, proj_intrinsics, radtan_coeffs, pcdfile, imagefile, outputfil
     C_T_L np array 4x4
     proj_intrinsics [fx fy cx cy]
     radtan_coeffs [k1 k2 p1 p2]
-    pcdfile
+    pcdfile: colored pcd file, with fields x y z rgb, rgb is stored as a 4 byte float
     imagefile
     outputfile: output image file
     """
