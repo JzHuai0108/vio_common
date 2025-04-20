@@ -1,10 +1,38 @@
 
-
+import os
 import rosbag
 import rospy
 import sensor_msgs.point_cloud2 as pc2
 import numpy as np
 import open3d as o3d
+
+
+def save_pcd_xyz_intensity(filename, points, intensities):
+    """
+    Save a PCD file with XYZ and intensity fields.
+    
+    :param filename: Output PCD filename.
+    :param points: Nx3 NumPy array of XYZ coordinates.
+    :param intensities: N-length NumPy array of intensity values.
+    """
+    num_points = points.shape[0]
+    
+    with open(filename, 'w') as f:
+        # Write PCD header
+        f.write("VERSION 0.7\n")
+        f.write("FIELDS x y z intensity\n")
+        f.write("SIZE 4 4 4 4\n")  # 4 bytes per float (float32)
+        f.write("TYPE F F F F\n")  # All are floats
+        f.write("COUNT 1 1 1 1\n")
+        f.write(f"WIDTH {num_points}\n")
+        f.write("HEIGHT 1\n")
+        f.write("VIEWPOINT 0 0 0 1 0 0 0\n")
+        f.write(f"POINTS {num_points}\n")
+        f.write("DATA ascii\n")
+        
+        # Write point data
+        for i in range(num_points):
+            f.write(f"{points[i,0]} {points[i,1]} {points[i,2]} {intensities[i]}\n")
 
 
 def aggregate_static_scans(bagname, outpcdfile, starttime=0, endtime=10000, topic="/livox/lidar"):
@@ -51,6 +79,8 @@ def aggregate_static_scans(bagname, outpcdfile, starttime=0, endtime=10000, topi
     pcd.points = o3d.utility.Vector3dVector(points_np[:, :3])
     pcd.colors = o3d.utility.Vector3dVector(colors_np)
 
+    save_pcd_xyz_intensity(outpcdfile, points_np, intensities_np)
     # Save the point cloud to a PCD file
-    o3d.io.write_point_cloud(outpcdfile, pcd)
+    colorpcdfile = os.path.join(os.path.dirname(outpcdfile), os.path.splitext(os.path.basename(outpcdfile))[0] + '_rgb.pcd')
+    o3d.io.write_point_cloud(colorpcdfile, pcd)
     print(f"Saved aggregated point cloud to {outpcdfile}")

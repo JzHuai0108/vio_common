@@ -2,6 +2,7 @@
 import os
 import subprocess
 import sys
+import numpy as np
 from rosbag import Bag
 import rospy
 
@@ -196,7 +197,64 @@ def correct_livox_times2(bag_path, topics, known_intervals_ms, correct_time, sta
     for topic in topics:
         assert all(time_corr is not None for time_corr in topic_host_times_corr[topic]), \
             f"One or more None values found in topic '{topic}'"
-    return topic_host_times_corr
+    return topic_host_times_corr, TCor, host_time_ref
+
+
+def load_timed_file(timed_file):
+    """
+    Load a timed file where each line contains a timestamp followed by other variables.
+    
+    :param timed_file: Path to the file containing time values.
+    :return: NumPy array with parsed time values and associated data.
+    """
+    data = []
+    with open(timed_file, 'r') as f:
+        for line in f:
+            if line.startswith('#'):
+                continue
+            parts = line.strip().split()
+            if parts:  # Ensure the line is not empty
+                data.append([float(parts[0])] + parts[1:]) 
+
+    return np.array(data, dtype=object)  # Use dtype=object to handle mixed types
+
+
+def save_timed_file(data, filename):
+    """
+    Saves the corrected time data to a file with rospy.Time formatted as sec.nsec.
+    
+    :param data: List or NumPy array containing time-corrected data.
+    :param filename: Path to the output file.
+    """
+    with open(filename, 'w') as f:
+        for row in data:
+            formatted_time = f"{row[0].secs}.{row[0].nsecs:09d}"
+            other_values = " ".join(map(str, row[1:]))
+            f.write(f"{formatted_time} {other_values}\n")
+
+
+def correct_lidar_traj_times(TCor, host_time_ref, sensor_timed_file, host_timed_file):
+    """
+    Adjusts sensor timestamps using a time correction function and saves corrected times.
+
+    :param TCor: A time correction object that provides getLocalTime().
+    :param host_time_ref: A rospy.Time object representing the reference host time.
+    :param sensor_timed_file: Path to the input sensor-timed file.
+    :param host_timed_file: Path to the output corrected-timed file.
+    """
+    # Load sensor time data
+    sensor_timed_data = load_timed_file(sensor_timed_file)
+    sensor_times = sensor_timed_data[:, 0].astype(float)  # Convert first column to float
+    n = len(sensor_times)
+
+    host_times = [
+        host_time_ref + rospy.Duration.from_sec(TCor.getLocalTime(sensor_times[i]))
+        for i in range(n)
+    ]
+
+    # Combine corrected times with original data (excluding old timestamps)
+    host_timed_data = np.column_stack((host_times, sensor_timed_data[:, 1:]))
+    save_timed_file(host_timed_data, host_timed_file)
 
 
 def merge_mid360_bag(seq_dir, correct_time):
@@ -209,8 +267,10 @@ def merge_mid360_bag(seq_dir, correct_time):
     # corrected_lidar_times = correct_livox_times(mid_bag_path, "/livox/lidar", lidar_interval_ms, correct_time, start_time)
     # corrected_imu_times = correct_livox_times(mid_bag_path, "/livox/imu", imu_interval_ms, correct_time, start_time)
 
-    corrected_times = correct_livox_times2(mid_bag_path, ["/livox/lidar", "/livox/imu"], 
+    corrected_times, TCor, host_time_ref = correct_livox_times2(mid_bag_path, ["/livox/lidar", "/livox/imu"], 
                                            [lidar_interval_ms, imu_interval_ms], correct_time, start_time)
+    correct_lidar_traj_times(TCor, host_time_ref, os.path.join(seq_dir, 'faster_lio_traj.txt'), os.path.join(seq_dir, 'faster_lio_traj_synced.txt'))
+
     corrected_lidar_times = corrected_times["/livox/lidar"]
     corrected_imu_times = corrected_times["/livox/imu"]
 

@@ -221,7 +221,7 @@ def load_image_to_ros_msg(filename, timestamp=None, downscalefactor=1):
 
     if timestamp is None:
         timestamp_nsecs = os.path.splitext(os.path.basename(filename))[0]
-        timestamp = rospy.Time(secs=int(timestamp_nsecs[0:-9]),
+        timestamp = rospy.Time(secs=int(timestamp_nsecs[0:-10]),
                                nsecs=int(timestamp_nsecs[-9:]))
 
     rosimage = Image()
@@ -250,7 +250,7 @@ def create_rosbag_for_images_in_dir(data_dir, output_bag, topic = "/cam0/image_r
     print('Found #images {} under {}'.format(len(image_files), data_dir))
     bag = rosbag.Bag(output_bag, 'w')
     for index, image_filename in enumerate(image_files):
-        image_msg, timestamp = load_image_to_ros_msg(image_filename, rospy.Time(index + 1, 0), downscalefactor)
+        image_msg, timestamp = load_image_to_ros_msg(image_filename, None, downscalefactor)
         bag.write(topic, image_msg, timestamp)
     print("Saved #images {} in {} to bag {}.".format(len(image_files), data_dir, output_bag))
     bag.close()

@@ -114,34 +114,15 @@ def fake_color(value):
 
     return tuple(color)  # Return as (B, G, R)
 
-def overlay(pcdfile, imagefile, outputfile):
-    # we assume the radial tangential distortion for now.
-    # resolution: 1280 x 720(h)
-    intrinsics = [519.4588780362625, 519.032899533456, 644.395939609842, 362.3814704200585]
-    ratio = [1.0, 1.0]
-    intrinsics = [intrinsics[0] * ratio[0], intrinsics[1] * ratio[0], intrinsics[2], intrinsics[3]]
-
-    distortion_coeffs = [0.019442915619071716, -0.012026334544560754, -0.0003783904135957078, 0.0005456090834102392]
-    pointsize = 1
-    # C_T_L is given by C_T_I * I_T_L
-    cam_T_livoximu = np.array([
-        [-0.9993787053340518, 0.03516807894897209, -0.0023258434756262165, 0.08726182551675578],
-        [-0.007733824175670411, -0.2831992241798044, -0.9590299199647404, -0.03528605760568212],
-        [-0.034385917007607375, -0.9584160921264812, 0.2832952577516083, 0.010855668614364086],
-        [0.0, 0.0, 0.0, 1.0]
-    ])
-    livoximu_R_lidar = np.array([
-        [0.999987525559687, 0.002667093232845, 0.004223190583018],
-        [-0.00266998490789, 0.999996204910806, 0.000679223510758],
-        [-0.004221363003204, -0.000690490892945, 0.999990851616514]
-    ])
-    livoximu_p_lidar = np.array([-0.011, -0.02329, 0.04412])
-    livoximu_T_lidar = np.eye(4)
-    livoximu_T_lidar[:3, :3] = livoximu_R_lidar
-    livoximu_T_lidar[:3, 3] = livoximu_p_lidar
-
-    C_T_L = cam_T_livoximu @ livoximu_T_lidar
-
+def overlay(C_T_L, proj_intrinsics, radtan_coeffs, pcdfile, imagefile, outputfile):
+    """
+    C_T_L np array 4x4
+    proj_intrinsics [fx fy cx cy]
+    radtan_coeffs [k1 k2 p1 p2]
+    pcdfile: colored pcd file, with fields x y z rgb, rgb is stored as a 4 byte float
+    imagefile
+    outputfile: output image file
+    """
     # Load PCD and image
     points, intensities = load_pcd(pcdfile) # intensities Nx3 are in range [0, 1], scale to uint8 by 255
     image = cv2.imread(imagefile)
@@ -156,7 +137,10 @@ def overlay(pcdfile, imagefile, outputfile):
     intensities = intensities[mask, 0]
     distances = distances[mask]
 
-    points_2d = project_points(transformed_points, intrinsics, distortion_coeffs)
+    pointsize = 1
+    ratio = [1.0, 1.0]
+    proj_intrinsics = [proj_intrinsics[0] * ratio[0], proj_intrinsics[1] * ratio[0], proj_intrinsics[2], proj_intrinsics[3]]
+    points_2d = project_points(transformed_points, proj_intrinsics, radtan_coeffs)
 
     # Determine coloring method (intensity or distance)
     intensity_color = False  # Set to True for intensity-based coloring
@@ -173,3 +157,57 @@ def overlay(pcdfile, imagefile, outputfile):
     print(f"Result saved to {outputfile}")
 
 
+
+import numpy as np
+import argparse
+
+if __name__ == "__main__":
+    proj_intrinsics = [519.4588780362625, 519.032899533456, 644.395939609842, 362.3814704200585]
+    radtan_coeffs = [0.019442915619071716, -0.012026334544560754, -0.0003783904135957078, 0.0005456090834102392]
+
+    if False:
+        # C_T_L is given by C_T_I * I_T_L
+        # Transformation obtained from Kalibr
+        cam_T_livoximu = np.array([
+            [-0.9993787053340518, 0.03516807894897209, -0.0023258434756262165, 0.08726182551675578],
+            [-0.007733824175670411, -0.2831992241798044, -0.9590299199647404, -0.03528605760568212],
+            [-0.034385917007607375, -0.9584160921264812, 0.2832952577516083, 0.010855668614364086],
+            [0.0, 0.0, 0.0, 1.0]
+        ])
+
+        # Rotation from Livox IMU to Lidar (from td_rot_calib)
+        livoximu_R_lidar = np.array([
+            [0.999987525559687, 0.002667093232845, 0.004223190583018],
+            [-0.00266998490789, 0.999996204910806, 0.000679223510758],
+            [-0.004221363003204, -0.000690490892945, 0.999990851616514]
+        ])
+
+        # Translation from Livox IMU to Lidar (from CAD nominal values)
+        livoximu_p_lidar = np.array([-0.011, -0.02329, 0.04412])
+
+        livoximu_T_lidar = np.eye(4)
+        livoximu_T_lidar[:3, :3] = livoximu_R_lidar
+        livoximu_T_lidar[:3, 3] = livoximu_p_lidar
+
+        C_T_L = cam_T_livoximu @ livoximu_T_lidar
+    else:
+        C_T_L = np.array([
+            [-0.99969, 0.0234939, -0.0082261, 0.129556],
+            [0.000865588, -0.297457, -0.954735, -0.0821372],
+            [-0.0248773, -0.954446, 0.297345, 0.0484067],
+            [0, 0, 0, 1]
+        ])
+
+    # Argument parser
+    parser = argparse.ArgumentParser(description="Overlay points from PCD onto an image given camera intrinsics and extrinsic parameters")
+    parser.add_argument("pcdfile", type=str, help="Path to the input PCD file")
+    parser.add_argument("imagefile", type=str, help="Path to the input image file")
+    parser.add_argument("outputimg", type=str, help="Path to save the output image")
+    parser.add_argument("--proj_intrinsics", nargs=4, type=float, default=proj_intrinsics, help="Camera projection intrinsics (fx, fy, cx, cy)")
+    parser.add_argument("--radtan_coeffs", nargs=4, type=float, default=radtan_coeffs, help="Radial and tangential distortion coefficients")
+    parser.add_argument("--C_T_L_file", type=str, help="Path to a file containing a 4x4 transformation matrix (comma-separated)")
+
+    args = parser.parse_args()
+    if args.C_T_L_file:
+        C_T_L = np.loadtxt(args.C_T_L_file, delimiter=',')
+    overlay(C_T_L, args.proj_intrinsics, args.radtan_coeffs, args.pcdfile, args.imagefile, args.outputimg)
