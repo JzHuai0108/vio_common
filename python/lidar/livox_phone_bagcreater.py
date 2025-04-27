@@ -260,6 +260,8 @@ def correct_lidar_traj_times(TCor, host_time_ref, sensor_timed_file, host_timed_
 def merge_mid360_bag(seq_dir, correct_time):
     # Step 2: Read messages from mid360.bag and write to movie.bag
     mid_bag_path = os.path.join(seq_dir, 'mid360.bag')
+    if not os.path.isfile(mid_bag_path):
+        mid_bag_path = os.path.join(seq_dir, 'lidar.bag')
     lidar_interval_ms = 100 # ms
     imu_interval_ms = 5 # ms
 
@@ -311,6 +313,99 @@ def merge_mid360_bag(seq_dir, correct_time):
         sys.exit(1)
 
 
+def correct_pandar_bag_times(bagname, corrbagname, topic):
+    import sensor_msgs.point_cloud2 as pc2
+    # from sensor_msgs.msg import PointCloud2, PointField
+    # import std_msgs.msg
+    all_host_times = []
+    all_sensor_times = []
+
+    # 1. Load all host times and sensor times
+    with Bag(bagname, 'r') as bag:
+        for topic_, msg, t in bag.read_messages(topics=[topic]):
+            all_host_times.append(t)
+            all_sensor_times.append(msg.header.stamp)
+
+    if not all_host_times:
+        print(f"No messages found in {bagname} on topic {topic}")
+        return
+
+    host_time_ref = all_host_times[0] - rospy.Duration(100)
+    if all_sensor_times[0].secs > 100:
+        sensor_time_ref = all_sensor_times[0] - rospy.Duration(100)
+    else:
+        sensor_time_ref = rospy.Time(0)
+
+    host_times_float = [(t - host_time_ref).to_sec() for t in all_host_times]
+    sensor_times_float = [(t - sensor_time_ref).to_sec() for t in all_sensor_times]
+
+    TCor = TC.TimestampCorrector()
+    for sensor_t, host_t in zip(sensor_times_float, host_times_float):
+        TCor.correctTimestamp(sensor_t, host_t)
+
+    host_times_corrected = []
+    for sensor_t in sensor_times_float:
+        d = rospy.Duration.from_sec(TCor.getLocalTime(sensor_t))
+        host_times_corrected.append(host_time_ref + d)
+
+    print(f'{topic} front time before correction {all_host_times[0].secs}.{all_host_times[0].nsecs:09d} after {host_times_corrected[0].secs}.{host_times_corrected[0].nsecs:09d}')
+    print(f'{topic} back time before correction {all_host_times[-1].secs}.{all_host_times[-1].nsecs:09d} after {host_times_corrected[-1].secs}.{host_times_corrected[-1].nsecs:09d}')
+
+    # 2. Correct point timestamps and save to new bag
+    with Bag(corrbagname, 'w') as outbag, Bag(bagname, 'r') as bag:
+        idx = 0
+        for topic_, msg, t in bag.read_messages(topics=[topic]):
+            corrected_time = host_times_corrected[idx]
+            fields = msg.fields
+            points = list(pc2.read_points(msg, field_names=["x", "y", "z", "intensity", "timestamp", "ring"], skip_nans=True))
+            
+            updated_points = []
+            for p in points:
+                p = list(p)
+                sensor_time = p[4]  # timestamp field
+                corrected_sensor_time = host_time_ref.to_sec() + TCor.getLocalTime(sensor_time)
+                p[4] = corrected_sensor_time
+                updated_points.append(tuple(p))
+
+            corrected_msg = pc2.create_cloud(msg.header, fields, updated_points)
+            corrected_msg.header.stamp = corrected_time
+
+            outbag.write(topic, corrected_msg, t=corrected_time)
+            idx += 1
+
+
+def need_time_correction(lidar_bagpath, topic="/hesai/pandar", threshold_ns=1e9):
+    with Bag(lidar_bagpath, 'r') as bag:
+        for topic_, msg, t in bag.read_messages(topics=[topic]):
+            ros_time = t
+            header_stamp = msg.header.stamp
+            diff = abs((ros_time - header_stamp).to_nsec())
+            if diff > threshold_ns:
+                return True
+            else:
+                return False
+    return False
+
+
+def merge_pandar_bag(seq_dir):
+    lidar_bagpath = os.path.join(seq_dir, 'lidar.bag')
+    movie_bagpath = os.path.join(seq_dir, 'movie.bag')
+
+    lidar_corr_bagpath = os.path.join(seq_dir, 'lidar_corr.bag')
+    correct_time = need_time_correction(lidar_bagpath, topic="/hesai/pandar")
+
+    if correct_time:
+        correct_pandar_bag_times(lidar_bagpath, lidar_corr_bagpath, "/hesai/pandar")
+        lidar_to_merge = lidar_corr_bagpath
+    else:
+        lidar_to_merge = lidar_bagpath
+
+    with Bag(movie_bagpath, 'a') as movie_bag:
+        with Bag(lidar_to_merge, 'r') as lidar_bag:
+            for topic, msg, t in lidar_bag.read_messages():
+                movie_bag.write(topic, msg, t=t)
+
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Process livox phone sequence with optional time correction.")
@@ -324,7 +419,7 @@ if __name__ == "__main__":
     seq_list = []
     for root, dirs, files in os.walk(args.seq_dir):
         for fn in files:
-            if fn == 'mid360.bag':
+            if fn == 'mid360.bag' or fn == 'lidar.bag':
                 seq_list.append(root)
     print(f'Found {len(seq_list)} sequences in {args.seq_dir}')
     for index, folder in enumerate(seq_list, start=1):
@@ -334,4 +429,16 @@ if __name__ == "__main__":
     for s, folder in enumerate(seq_list):
         print(f'Processing {s}/{numseqs} {folder}')
         create_video_bag(folder)
-        merge_mid360_bag(folder, args.correct_time)
+        lidar_bagpath = os.path.join(folder, 'lidar.bag')
+        with Bag(lidar_bagpath, 'r') as bag:
+            topic_info = bag.get_type_and_topic_info()
+            topics = set(topic_info[1].keys())
+            print(f"Topics in {lidar_bagpath}: {topics}")
+
+        if '/hesai/pandar' in topics:
+            merge_pandar_bag(folder)
+        elif '/livox/lidar' in topics:
+            merge_mid360_bag(folder, args.correct_time)
+        else:
+            print(f"No known lidar topics found in {lidar_bagpath}")
+
