@@ -34,12 +34,15 @@ for topic, msg, t in bag.read_messages(topics=[pointcloudtopic]):
     j = 0
     if sensor == 'velodyne':
         velodyne_gen = pc2.read_points(msg, field_names=("x", "y", "z", "intensity", "ring", "time"), skip_nans=True)
+        a = 0
+        for p in velodyne_gen:
+            a += 1
+        velodyne_gen = pc2.read_points(msg, field_names=("x", "y", "z", "intensity", "ring", "time"), skip_nans=True)
         # For every point in velodyne pointcloud2, its timestamp in seconds + message header timestamp is its firing time..
         for p in velodyne_gen:
-            print(" x : %f  y: %f  z: %f intensity: %f ring: %d time %f sec" % (p[0], p[1], p[2], p[3], p[4], p[5]))
+            if j < 5 or j > a - 5:
+                print("%d, x : %f  y: %f  z: %f intensity: %f ring: %d time %f sec" % (j, p[0], p[1], p[2], p[3], p[4], p[5]))
             j += 1
-            if j > 5:
-                break
     elif sensor == 'hesai':
         hesai_gen = pc2.read_points(msg, field_names=("x", "y", "z", "intensity", "timestamp", "ring"), skip_nans=True)
         # For every point in hesai pointcloud2, its timestamp in seconds is its actual firing time.
@@ -49,7 +52,7 @@ for topic, msg, t in bag.read_messages(topics=[pointcloudtopic]):
         hesai_gen = pc2.read_points(msg, field_names=("x", "y", "z", "intensity", "timestamp", "ring"), skip_nans=True)
         for p in hesai_gen:
             if j < 5 or j > a - 5:
-                print("j: %d, msg time: %d.%09d, x : %f  y: %f  z: %f intensity: %f ring: %d time %.9f sec" % (
+                print("%d, msg time: %d.%09d, x : %f  y: %f  z: %f intensity: %f ring: %d time %.9f sec" % (
                     j, msg.header.stamp.secs, msg.header.stamp.nsecs, p[0], p[1], p[2], p[3], p[5], p[4]))
             j += 1
     elif sensor == "ouster": # coloradar 64beam ouster
