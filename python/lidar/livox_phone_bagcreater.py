@@ -363,7 +363,7 @@ def correct_pandar_bag_times(bagname, corrbagname, topic):
             for p in points:
                 p = list(p)
                 sensor_time = p[4]  # timestamp field
-                corrected_sensor_time = host_time_ref.to_sec() + TCor.getLocalTime(sensor_time)
+                corrected_sensor_time = host_time_ref.to_sec() + TCor.getLocalTime(sensor_time - sensor_time_ref.to_sec())
                 p[4] = corrected_sensor_time
                 updated_points.append(tuple(p))
 

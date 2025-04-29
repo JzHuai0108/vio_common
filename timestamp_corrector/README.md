@@ -9,6 +9,7 @@ sudo apt -y install python-pybind11 # ubnntu 18
 ```
 mkdir build && cd build
 cmake ..
+# cmake -DPYTHON_EXECUTABLE=$(which python3.8) .. # for systems with multiple python3
 make
 ```
 
