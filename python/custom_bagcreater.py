@@ -15,7 +15,7 @@ import sys
 import rospy
 import rosbag
 
-import kalibr_bagcreater
+import kalibr_bagcreator
 import utility_functions
 
 
@@ -98,14 +98,14 @@ def main():
     frame_remote_timestamps = None
 
     if parsed.video_time_file:
-        frame_timestamps = kalibr_bagcreater.load_local_and_remote_times(parsed.video_time_file)
+        frame_timestamps = kalibr_bagcreator.load_local_and_remote_times(parsed.video_time_file)
         aligned_local_timestamps = [time[0] + rospy.Duration.from_sec(parsed.video_file_time_offset)
                                     for time in frame_timestamps]
         frame_local_timestamps = aligned_local_timestamps
         frame_remote_timestamps = [time[1] for time in frame_timestamps]
         print('Loaded {} timestamps for frames'.format(len(frame_timestamps)))
         first_frame_imu_time = frame_local_timestamps[0].to_sec()
-    videotimerange = kalibr_bagcreater.write_video_to_rosbag(
+    videotimerange = kalibr_bagcreator.write_video_to_rosbag(
         bag,
         parsed.video_file,
         parsed.video_from_to,
@@ -118,7 +118,7 @@ def main():
     print('video time range {}'.format(videotimerange))
 
     # write IMU data that falling into the unix time range
-    kalibr_bagcreater.write_imufile_remotetime_to_rosbag(bag, parsed.imu_file, videotimerange, 5, "/imu0")
+    kalibr_bagcreator.write_imufile_remotetime_to_rosbag(bag, parsed.imu_file, videotimerange, 5, "/imu0")
 
     bag.close()
     print('Saved to bag file {}'.format(parsed.output_bag))

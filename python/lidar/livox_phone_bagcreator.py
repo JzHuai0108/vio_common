@@ -16,14 +16,14 @@ import TimestampCorrector as TC
 
 
 def create_video_bag(seq_dir):
-    # Step 1: Call the kalibr_bagcreater.py script with the specified arguments
+    # Step 1: Call the kalibr_bagcreator.py script with the specified arguments
     video_path = os.path.join(seq_dir, 'movie.mp4')
     imu_path = os.path.join(seq_dir, 'gyro_accel.csv')
     video_time_file_path = os.path.join(seq_dir, 'frame_timestamps.txt')
     output_bag_path = os.path.join(seq_dir, 'movie.bag')
 
     kalibr_command = [
-        'python3', 'kalibr_bagcreater.py',
+        'python3', 'kalibr_bagcreator.py',
         '--video', video_path,
         '--imu', imu_path,
         '--video_time_file', video_time_file_path,
@@ -391,7 +391,7 @@ def merge_pandar_bag(seq_dir):
     lidar_bagpath = os.path.join(seq_dir, 'lidar.bag')
     movie_bagpath = os.path.join(seq_dir, 'movie.bag')
 
-    lidar_corr_bagpath = os.path.join(seq_dir, 'lidar_corr.bag')
+    lidar_corr_bagpath = os.path.join(seq_dir, 'lidar_corr_temp.bag')
     correct_time = need_time_correction(lidar_bagpath, topic="/hesai/pandar")
 
     if correct_time:

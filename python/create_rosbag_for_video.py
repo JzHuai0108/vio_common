@@ -10,7 +10,7 @@ import numpy as np
 import rosbag
 import rospy
 
-import kalibr_bagcreater
+import kalibr_bagcreator
 import utility_functions
 
 
@@ -57,7 +57,7 @@ def main():
     utility_functions.check_file_exists(args.video)
     print('Frame time range within the video: {}'.format(video_from_to))
     if args.time_file:
-        rostimestamps = kalibr_bagcreater.loadtimestamps(args.time_file)
+        rostimestamps = kalibr_bagcreator.loadtimestamps(args.time_file)
         print('Loaded {} timestamps for frames'.format(len(rostimestamps)))
         first_frame_imu_time = rostimestamps[0].to_sec()
     else:
@@ -66,7 +66,7 @@ def main():
         print("Timestamps within video will be used for timing frames!")
 
     bag = rosbag.Bag(args.output_bag, 'w')
-    videotimerange = kalibr_bagcreater.write_video_to_rosbag(
+    videotimerange = kalibr_bagcreator.write_video_to_rosbag(
         bag,
         args.video,
         video_from_to,
