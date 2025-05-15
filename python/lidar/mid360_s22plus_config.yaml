@@ -1,0 +1,29 @@
+# The config yaml for the livox_phone/s22plus_livox/20241205 seqs
+cam:
+    id: 0
+    distortion: [0.019442915619071716, -0.012026334544560754, -0.0003783904135957078, 0.0005456090834102392, 0.0]
+    intrinsics: [519.4588780362625, 519.032899533456, 644.395939609842, 362.381470420058]
+    model: "radtan"
+    resolution: [1190, 720] # hack: mask those pixels on the right border of the image as they are on the device.
+    # Note do not change 720 as it is used to compute line delay.
+    name: "s22plus_rear"
+    p_lidar_cam: [0.09165818567908458, 0.024371359183858687,-0.07761523102914086]
+    q_lidar_cam: [-0.006557708581064656, -0.5943650948131397, 0.8041392764010252, 0.006866926180545729] # xyzw
+    # camera time delay relative to lidar clock, so cam msg time + td = cam msg time in lidar clock
+    td: 0.02
+    tr: 9.447638e-3 # camera frame readout time
+    topic: /cam0/image_raw
+    every_k: 2
+    brighten: true
+    maxk: 1000000000
+
+imu:
+    id: 0
+    t_imu_lidar: [ -0.011, -0.02329, 0.04412 ]
+    R_imu_lidar: [ 0.999939593164396, 0.0087930101668, 0.006594921866737,
+                  -0.008846508719717, 0.999927840842429, 0.008127262249273,
+                  -0.006522982883144, -0.008185113340879, 0.999945225806845]
+    topic: /livox/imu
+    td: 0.0 # imu time delay relative to lidar clock, so imu msg time + td = imu msg time in lidar clock
+
+
