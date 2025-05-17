@@ -84,3 +84,44 @@ def aggregate_static_scans(bagname, outpcdfile, starttime=0, endtime=10000, topi
     colorpcdfile = os.path.join(os.path.dirname(outpcdfile), os.path.splitext(os.path.basename(outpcdfile))[0] + '_rgb.pcd')
     o3d.io.write_point_cloud(colorpcdfile, pcd)
     print(f"Saved aggregated point cloud to {outpcdfile}")
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="Aggregate static scans from a ROS bag into a PCD file."
+    )
+    parser.add_argument(
+        "bagfile",
+        help="Input ROS bag file containing point cloud messages."
+    )
+    parser.add_argument(
+        "outpcd",
+        help="Output PCD filename."
+    )
+    parser.add_argument(
+        "--start_time", "-s",
+        type=float,
+        default=0.0,
+        help="Start time in seconds (default: 0.0)."
+    )
+    parser.add_argument(
+        "--end_time", "-e",
+        type=float,
+        default=1e6,
+        help="End time in seconds (default: 1e6)."
+    )
+    parser.add_argument(
+        "--topic", "-t",
+        default="/livox/lidar",
+        help="Point cloud topic to aggregate (default: /livox/lidar)."
+    )
+    args = parser.parse_args()
+
+    aggregate_static_scans(
+        args.bagfile,
+        args.outpcd,
+        args.start_time,
+        args.end_time,
+        topic=args.topic
+    )
