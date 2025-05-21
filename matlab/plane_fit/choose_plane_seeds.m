@@ -1,16 +1,16 @@
 function choose_plane_seeds(pcfile, maxz)
-% This function can be used to pick plane seeds on the gravity and normal
-% aligned point cloud without ceiling.
+% This function is used to pick plane seeds or overall bounding box corners
+% on the gravity and normal aligned point cloud without ceiling.
 close all;
 if nargin < 2
     maxz = 4.5;
 end
 if nargin < 1
-    pcfile = 'F:\jhuai\lidar-phone-construction\labelcloud\pointclouds\tls_transformed.ply'; % basement
-    pcfile = 'F:\jhuai\lidar-phone-construction\labelcloud\pointclouds\mid360_10_30_rgb.pcd'; % corridor pc of 2024_12_05_15_55_11
+    pcfile = '/media/jhuai/ExtremeSSD/jhuai/livox_phone/results/s22plus_xt32/fastlio2/ref_tls/tls_transformed.ply'; % basement
+    % pcfile = '/media/jhuai/ExtremeSSD/jhuai/livox_phone/results/s22plus_livox/20241205/wall-distance/2024_12_05_15_55_11/mid360_10_30_rgb.pcd'; % corridor pc of 2024_12_05_15_55_11
 end
 
-scenario = 'awall'; % floors or walls or awall in corridor
+scenario = 'awall'; % floors or walls or awall. awall is in corridor.
 % note for awall in corridor, we also edit the line in plane_bbox to
 % ymax = max(y) - xy_trim - 0.8;
 
@@ -39,7 +39,25 @@ cullPc = pointCloud( ...
     'Color', pc.Color(mask, :) ...
 );
 
+% pcshow(pc);
 pcshow(cullPc);
+
+% The below limits the basement point cloud for cloud to cloud (c2c) analysis.
+xyz_limits = [-24, 31; -12.5, 19; 2.0, 9.0];
+loc = pc.Location;
+mask = ...
+    loc(:,1) > xyz_limits(1,1) & loc(:,1) < xyz_limits(1,2) & ...  % X within limits
+    loc(:,2) > xyz_limits(2,1) & loc(:,2) < xyz_limits(2,2) & ...  % Y within limits
+    loc(:,3) > xyz_limits(3,1) & loc(:,3) < xyz_limits(3,2);       % Z within limits
+
+% Cull the point cloud
+cullPc2 = pointCloud( ...
+    loc(mask, :), ...
+    'Color', pc.Color(mask, :) ...
+);
+
+% pcshow(cullPc2);
+
 % view(0, 0);
 
 xlabel('X (m)');

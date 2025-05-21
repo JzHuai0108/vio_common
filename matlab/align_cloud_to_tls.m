@@ -1,18 +1,23 @@
-function align_cloud_to_tls(tlsLasFile, lioPcdFile, g_LIO, outdir, lockTls)
+function align_cloud_to_tls(tlsFile, lioFile, g_tls, g_lio, outdir, lockTls)
 % Align a LIO-generated PCD to a TLS-generated LAS using random downsampling,
 % gravity, median shift, normal-based yaw alignment with voxel downsampling,
 % and ICP refinement, with intermediate visualizations and timing messages.
 
 %% Parameters (override by function arguments if needed)
+% g_tls: gravity in the TLS world frame.
 % lockTls: fix TLS point cloud, if false, a yaw rotation will be applied.
-if nargin < 5
-    lioPcdFile = "/media/jhuai/ExtremeSSD/jhuai/livox_phone/results/s22plus_xt32/fastlio2/2025_04_30_11_26_00/aggregated.pcd";
-    tlsLasFile = "/media/jhuai/ExtremeSSD/jhuai/livox_phone/results/s22plus_xt32/fastlio2/ref_tls/basement.las";
-    g_LIO      = [-9.767300, -0.086530, -0.899358];  % gravity in world read from the LIO result or the IMU data of the rosbag stationary section
-    [outdir, n, e] = fileparts(lioPcdFile);
+zshift = 0;
+random_ds = false;
+if nargin < 6
+    lioFile = '/media/jhuai/ExtremeSSD/jhuai/livox_phone/results/s22plus_xt32/fastlio2/2025_04_30_11_26_00/aggregated.pcd';
+    tlsFile = '/media/jhuai/ExtremeSSD/jhuai/livox_phone/results/s22plus_xt32/fastlio2/ref_tls/basement.las';
+    g_tls   = [0, 0, -1];
+    g_lio   = [-9.767300, -0.086530, -0.899358];  % gravity in world read from the LIO result or the IMU data of the rosbag stationary section
+    [outdir, n, e] = fileparts(lioFile);
     lockTls = false;
     zshift = 5; % shift z values by this amount, to avoid negative values,
-    % only takes effectt when lockTls is false.
+    % only takes effect when lockTls is false.
+    random_ds = true;
 end
 
 fprintf('If the yaw alignment does not look good, you may add or subtract pi/2 or pi from the yaw diff angle.\n');
@@ -22,9 +27,14 @@ close all;
 %% 1. Load point clouds
 fprintf('Loading point clouds...\n');
 startTotal = tic;
-dsLAS      = lasFileReader(tlsLasFile);
-tlsPtCloud = readPointCloud(dsLAS);
-lioOrig    = pcread(lioPcdFile);
+[p, n, e] = fileparts(tlsFile);
+if strcmp(e, '.las')
+    dsLAS      = lasFileReader(tlsFile);
+    tlsPtCloud = readPointCloud(dsLAS);
+else
+    tlsPtCloud = pcread(tlsFile);
+end
+lioOrig    = pcread(lioFile);
 fprintf('Loaded TLS (%.0f pts) and LIO (%.0f pts) clouds.\n', tlsPtCloud.Count, lioOrig.Count);
 
 totalLoadTime = toc(startTotal);
@@ -37,14 +47,25 @@ maxPts = 50000;
 % LIO
 pcLIOraw = pointCloud(lioOrig.Location);
 if pcLIOraw.Count > maxPts
-    frac = maxPts / pcLIOraw.Count;
-    pcLIOraw = pcdownsample(pcLIOraw, 'random', frac);
+    if random_ds
+        frac = maxPts / pcLIOraw.Count;
+        pcLIOraw = pcdownsample(pcLIOraw, 'random', frac);
+    else
+        voxelSize = 0.1;
+        pcLIOraw = pcdownsample(pcLIOraw, 'gridNearest', voxelSize);
+    end
+
 end
 % TLS
 pcTLSraw = tlsPtCloud;
 if pcTLSraw.Count > maxPts
-    frac2 = maxPts / pcTLSraw.Count;
-    pcTLSraw = pcdownsample(pcTLSraw, 'random', frac2);
+    if random_ds
+        frac2 = maxPts / pcTLSraw.Count;
+        pcTLSraw = pcdownsample(pcTLSraw, 'random', frac2);
+    else
+        voxelSize = 0.1;
+        pcTLSraw = pcdownsample(pcTLSraw, 'gridNearest', voxelSize);
+    end
 end
 fprintf('Downsampled to LIO: %.0f pts, TLS: %.0f pts.\n', pcLIOraw.Count, pcTLSraw.Count);
 fprintf('Random downsampling done in %.2f s.\n\n', toc(startStep));
@@ -55,33 +76,55 @@ title('Randomly Downsampled Raw LIO (red) vs TLS (green)');
 %% 3. Gravity-vector alignment on LIO
 fprintf('Starting gravity-vector alignment...\n');
 startStep = tic;
-v1      = g_LIO(:)/norm(g_LIO);
+v1      = g_tls(:)/norm(g_tls);
 vDown   = [0;0;-1];
 axisRot = cross(v1, vDown);
 if norm(axisRot)<eps
-    R_grav = eye(3);
+    R_grav_tls = eye(3);
 else
     axisRot = axisRot/norm(axisRot);
     ang     = acos(dot(v1, vDown));
     K       = [0,-axisRot(3),axisRot(2); axisRot(3),0,-axisRot(1); -axisRot(2),axisRot(1),0];
-    R_grav  = eye(3)+sin(ang)*K+(1-cos(ang))*(K*K);
+    R_grav_tls  = eye(3)+sin(ang)*K+(1-cos(ang))*(K*K);
 end
-lioGrav   = (R_grav * pcLIOraw.Location')';
+
+if lockTls || norm(axisRot)<eps
+    tlsGrav = pcTLSraw.Location;
+    pcTLSgrav = pointCloud(tlsGrav);
+else
+    tlsGrav = (R_grav_tls * pcTLSraw.Location')';
+    pcTLSgrav = pointCloud(tlsGrav);
+    figure; pcshowpair(pcTLSgrav, pcTLSraw);
+    title('TLS Gravity Alignment');
+end
+
+v1      = g_lio(:)/norm(g_lio);
+vDown   = [0;0;-1];
+axisRot = cross(v1, vDown);
+if norm(axisRot)<eps
+    R_grav_lio = eye(3);
+else
+    axisRot = axisRot/norm(axisRot);
+    ang     = acos(dot(v1, vDown));
+    K       = [0,-axisRot(3),axisRot(2); axisRot(3),0,-axisRot(1); -axisRot(2),axisRot(1),0];
+    R_grav_lio  = eye(3)+sin(ang)*K+(1-cos(ang))*(K*K);
+end
+lioGrav   = (R_grav_lio * pcLIOraw.Location')';
 fprintf('Gravity alignment done in %.2f s.\n\n', toc(startStep));
-figure; pcshowpair(pointCloud(lioGrav), pcTLSraw);
-title('After Gravity Alignment');
+figure; pcshowpair(pointCloud(lioGrav), pcTLSgrav);
+title('LIO Gravity Alignment');
 
 %% 4. Median-center translation
 fprintf('Starting median-center translation...\n');
 startStep = tic;
-tlsPts    = pcTLSraw.Location;
+tlsPts    = pcTLSgrav.Location;
 medLIO    = median(lioGrav,1);
 medTLS    = median(tlsPts,1);
 shift     = medTLS - medLIO;
 lioTrans  = lioGrav + shift;
 fprintf('Translation vector [%.2f, %.2f, %.2f].\n', shift);
 fprintf('Median shift done in %.2f s.\n\n', toc(startStep));
-figure; pcshowpair(pointCloud(lioTrans), pcTLSraw);
+figure; pcshowpair(pointCloud(lioTrans), pcTLSgrav);
 title('After Median Shift (Translation)');
 
 
@@ -90,10 +133,10 @@ fprintf('Starting normal estimation and voxel downsampling...\n');
 startStep = tic;
 pcLIOtrans   = pointCloud(lioTrans);
 pcLIOtrans.Normal = pcnormals(pcLIOtrans, 20);
-pcTLSraw.Normal = pcnormals(pcTLSraw, 20);
+pcTLSgrav.Normal = pcnormals(pcTLSgrav, 20);
 voxelSize    = 0.1;
 pcLIO_ds     = pcdownsample(pcLIOtrans, 'gridAverage', voxelSize);
-pcTLS_ds     = pcdownsample(pcTLSraw,   'gridAverage', voxelSize);
+pcTLS_ds     = pcdownsample(pcTLSgrav,  'gridAverage', voxelSize);
 fprintf('Downsampled normals: LIO %d pts, TLS %d pts.\n', pcLIO_ds.Count, pcTLS_ds.Count);
 fprintf('Normal & voxel downsampling done in %.2f s.\n\n', toc(startStep));
 figure; quiver3(pcLIO_ds.Location(:,1), pcLIO_ds.Location(:,2), pcLIO_ds.Location(:,3), ...
@@ -126,21 +169,22 @@ xlabel('Angle (rad)'); ylabel('Count');
 % Compute and apply individual yaw corrections for LIO and TLS clouds
 % (shifting about medTLS so rotation is about the common center)
 
-
+manualLioShift = [0.0, 0.0, 0.0];
 if lockTls
-    yawLIO   = peakT - (peakL + pi/2);
-    tlsOrient = pcTLSraw.Location;
+    yawLIO   = peakT - peakL + pi/2;
+    tlsOrient = pcTLSgrav.Location;
     R_LIO    = [ cos(yawLIO), -sin(yawLIO), 0;
              sin(yawLIO),  cos(yawLIO), 0;
              0,            0,           1 ];
-    lioOrient = (R_LIO * (lioTrans - medTLS)')' + medTLS;
+    lioOrient = (R_LIO * (lioTrans - medTLS)')' + medTLS + manualLioShift;
+
 else
     yawLIO   = -peakL + pi/2;
     yawTLS   = -peakT;
     R_TLS    = [ cos(yawTLS), -sin(yawTLS), 0;
              sin(yawTLS),  cos(yawTLS), 0;
              0,            0,           1 ];
-    tlsOrient = (R_TLS * (pcTLSraw.Location - medTLS)')';
+    tlsOrient = (R_TLS * (pcTLSgrav.Location - medTLS)')';
     R_LIO    = [ cos(yawLIO), -sin(yawLIO), 0;
              sin(yawLIO),  cos(yawLIO), 0;
              0,            0,           1 ];
@@ -176,7 +220,7 @@ fprintf('ICP done in %.2f s.\n\n', toc(startStep));
 %% 8. Save transformation matrices
 fprintf('Saving transforms...\n');
 % Homogeneous: gravity
-Tgrav = eye(4); Tgrav(1:3,1:3)=R_grav;
+Tgrav_lio = eye(4); Tgrav_lio(1:3,1:3)=R_grav_lio;
 Tshift = eye(4); Tshift(1:3,4)=shift';
 % yaw LIO about medTLS
 TyL = eye(4); TyL(1:3,1:3)=R_LIO; 
@@ -188,14 +232,16 @@ if ~lockTls
     TyL(1:3,4)=-R_LIO*medTLS';
     TyT(1:3,1:3)=R_TLS; TyT(1:3,4)=-R_TLS*medTLS';
     Tz(3, 4) = zshift;
+    Tgrav_tls = eye(4); 
+    Tgrav_tls(1:3,1:3)=R_grav_tls;
 else
-    TyL(1:3,4)=(eye(3)-R_LIO)*medTLS';
+    TyL(1:3,4)=(eye(3)-R_LIO)*medTLS' + manualLioShift';
 end
 % ICP
 tfICP = tformICP.A;
 % total LIO
-T_LIO = Tz * tfICP * TyL * Tshift * Tgrav;
-T_TLS = Tz * TyT;
+T_LIO = Tz * tfICP * TyL * Tshift * Tgrav_lio;
+T_TLS = Tz * TyT * Tgrav_tls;
 
 % Save transforms with 15-decimal precision
 fid = fopen(fullfile(outdir,'transform_LIO.txt'),'w');
@@ -228,7 +274,7 @@ T_LIO_loaded = T_from_Pq(pq_LIO_loaded);
 T_TLS_loaded = T_from_Pq(pq_TLS_loaded);
 
 % Reload original clouds
-tmpLIO_orig = pcread(lioPcdFile);
+tmpLIO_orig = pcread(lioFile);
 if tmpLIO_orig.Count > maxPts
     frac = maxPts / tmpLIO_orig.Count;
     tmpLIO_orig = pcdownsample(tmpLIO_orig, 'random', frac);
@@ -241,7 +287,13 @@ pcLIO_tf = pctransform(pointCloud(tmpLIO_orig.Location), tformRigid);
 pcwrite(pcLIO_tf, fullfile(outdir, 'lio_transformed.pcd'));
 
 if ~lockTls
-    tmpTLS_orig = readPointCloud(lasFileReader(tlsLasFile));
+    [p, n, e] = fileparts(tlsFile);
+    if strcmp(e, '.las')
+        tmpTLS_orig = readPointCloud(lasFileReader(tlsFile));
+    else
+        tmpTLS_orig = pcread(tlsFile);
+    end
+    
     R = T_TLS_loaded(1:3,1:3);
     t = T_TLS_loaded(1:3,4);
     tformRigid = rigidtform3d(R, t);
@@ -270,7 +322,12 @@ tmpLIO = pcread(fullfile(outdir, 'lio_transformed.pcd'));
 if ~lockTls
     tmpTLS = pcread(fullfile(outdir, 'tls_transformed.ply'));
 else
-    tmpTLS = readPointCloud(lasFileReader(tlsLasFile));
+    [p, n, e] = fileparts(tlsFile);
+    if strcmp(e, '.las')
+        tmpTLS = readPointCloud(lasFileReader(tlsFile));
+    else
+        tmpTLS = pcread(tlsFile);
+    end
 end
 
 figure; pcshowpair(tmpLIO, tmpTLS);
