@@ -9,6 +9,9 @@ from __future__ import print_function
 import argparse
 import os
 
+from sensor_msgs.msg import CompressedImage
+import numpy as np
+
 import rosbag
 import rospy
 from cv_bridge import CvBridge
@@ -26,12 +29,16 @@ def print_image_info(cv_img):
     print('Image h {} w {} data type {} channels {}'.format(
         h, w, dtype, channels))
 
+def compressed_imgmsg_to_cv2(compressed_msg):
+    np_arr = np.frombuffer(compressed_msg.data, np.uint8)
+    cv_image = cv2.imdecode(np_arr, cv2.IMREAD_UNCHANGED)
+    return cv_image
 
 def main():
     """Extract a folder of images from a rosbag.
     """
     parser = argparse.ArgumentParser(
-        description="Display images in a ROS bag. compressedImage is not supported.")
+        description="Display images in a ROS bag.")
     parser.add_argument("bag_file", help="Input ROS bag.")
     parser.add_argument("--image_topic",
                         help="Display images from which topic.",
@@ -61,7 +68,10 @@ def main():
     time_stream = None
     for _, msg, t in in_bag.read_messages(topics=[args.image_topic], start_time=rospy.Time(startTime + args.time_from_to[0]),
                                           end_time=rospy.Time(startTime + args.time_from_to[1])):
-        cv_img = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
+        if 'compressed' in args.image_topic:
+            cv_img = compressed_imgmsg_to_cv2(msg)
+        else:
+            cv_img = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         if count == 0:
             print('Video frame info:')
             print_image_info(cv_img)
