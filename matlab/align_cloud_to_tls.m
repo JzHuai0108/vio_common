@@ -9,7 +9,7 @@ function align_cloud_to_tls(tlsFile, lioFile, g_tls, g_lio, outdir, lockTls)
 zshift = 0;
 random_ds = false;
 if nargin < 6
-    lioFile = '/media/jhuai/ExtremeSSD/jhuai/livox_phone/results/s22plus_xt32/fastlio2/2025_04_30_11_26_00/aggregated.pcd';
+    lioFile = '/media/jhuai/ExtremeSSD/jhuai/livox_phone/results/s22plus_xt32/fastlio2/2025_04_30_11_26_00/aggregated_cloud.pcd';
     tlsFile = '/media/jhuai/ExtremeSSD/jhuai/livox_phone/results/s22plus_xt32/fastlio2/ref_tls/basement.las';
     g_tls   = [0, 0, -1];
     g_lio   = [-9.767300, -0.086530, -0.899358];  % gravity in world read from the LIO result or the IMU data of the rosbag stationary section
@@ -335,20 +335,3 @@ title('Reloaded ICP Aligned LIO (red) vs TLS (green)');
 view([0, 0]);
 end
 
-function T = T_from_Pq(pq)
-%pq: tx ty tz qx qy qz qw
-T = eye(4);
-T(1:3, 1:3) = quat2rotm([pq(7), pq(4:6)]);
-T(1:3, 4) = pq(1:3)';
-end
-
-
-function c8 = convertcolor(c16)
-    % fprintf('Converting uint16 color to uint8...\n');
-    c8 = uint8(c16);
-    for i=1:3
-        x = max(c16(:, i));
-        n = min(c16(:, i));
-        c8(:, i) = (double(c16(:, i)) - double(n)) * 255 / double(x - n);
-    end
-end

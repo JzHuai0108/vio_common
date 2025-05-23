@@ -7,12 +7,14 @@ if nargin < 2
 end
 if nargin < 1
     pcfile = '/media/jhuai/ExtremeSSD/jhuai/livox_phone/results/s22plus_xt32/fastlio2/ref_tls/tls_transformed.ply'; % basement
-    % pcfile = '/media/jhuai/ExtremeSSD/jhuai/livox_phone/results/s22plus_livox/20241205/wall-distance/2024_12_05_15_55_11/mid360_10_30_rgb.pcd'; % corridor pc of 2024_12_05_15_55_11
+    % pcfile = '/media/jhuai/ExtremeSSD/jhuai/livox_phone/results/s22plus_livox/20241205/wall-distance/2024_12_05_15_22_13/tls_transformed.ply'; % corridor pc of 2024_12_05_15_55_11
 end
 
-scenario = 'awall'; % floors or walls or awall. awall is in corridor.
+scenario = 'floors'; % floors or walls or awall. awall is in corridor.
 % note for awall in corridor, we also edit the line in plane_bbox to
-% ymax = max(y) - xy_trim - 0.8;
+% ymax = max(y) - xy_trim - 0.4;
+% and
+% xy_trim = 0.2;
 
 [folder, baseName, ext] = fileparts(pcfile);
 ext = lower(ext);  % make extension case‐insensitive
@@ -75,28 +77,29 @@ seedPoints = [
     -23.31, 11.90, 3.43;
     0.81, 18.54, 3.43;
     9.96, 18.7, 4.24;
-    16.1, 1.38, 4.0;
+    -23.1, -2.75, 3.9;
     30.6, -1.0, 4.24;
     -11.69, 18.35, 3.70;
     -7.80, 1.0, 3.3;
-    29.7, -5.49, 3.82;];
+    29.7, -5.49, 3.82;
+    ];
 [regionIdxList, planeModels] = segment_plane_by_region_grow(pc, seedPoints);
 elseif strcmp(scenario, 'floors')
 seedPoints = [
-    -6.1, 10.38, 2.14;
-    -20.2, 10.1, 2.14;
-    2.0, 10.6, 2.15;
-    16.2, 11.2, 2.14;
+        0.9561   10.5571    2.15;
+  -13.9707   -4.1405    2.15;
+   -6.9479   -3.7604    2.15;
+    8.9659   -2.9584    2.15;
+    16.6, 11.1, 2.14;
     2.0, 5.6, 2.15;
-    -12.6, -1.12, 2.16;
-    -5.1, -3.2, 2.16;
-    -12.1, -9.14, 2.15;
-    6.5, -3.0, 2.13;
+      -2.7100,   -2.2515,    2.15;
+       18.7234,   -2.7203,   2.15;
+   9.0384,   10.5615,    2.15;
     28.0, -0.32, 3.0;
     ];
 [regionIdxList, planeModels] = segment_plane_by_circle_cover(pc, seedPoints);
 elseif strcmp(scenario, 'awall')
-    seedPoints = [-0.162, -4.633, 1.905];
+    seedPoints = [-4.6, -2.8, -1.5];
     [regionIdxList, planeModels] = segment_plane_by_region_grow(pc, seedPoints);
 else
     fprintf('Unknown scenario %s\n', scenario);
@@ -152,49 +155,11 @@ else
     nbboxes = bboxes;
 end
 
-areas = compute_bbox_areas(nbboxes);
-disp(table((1:numel(areas))', areas, ...
-    'VariableNames',{'Region','Area'}));
-areaMean   = mean(areas);             % arithmetic mean
-areaMedian = median(areas);           % median
-areaStd    = std(areas);              % sample (unbiased) standard deviation
-
-% display results
-fprintf('BBox area: mean = %.4f, median = %.4f, std = %.4f\n', ...
-        areaMean, areaMedian, areaStd);
-
 figure;
 pcshow(cullPc);
 % pcshow(restPc);
-
 hold on;
-allBoxPts   = [];
-allBoxCols  = [];
-% draw each bounding box (green edges)
-for k = 1:numel(nbboxes)
-    C = nbboxes{k};  % 8×3: first 1–4 bottom, 5–8 top
-    idxs = find_points_in_box(pc, C);
-    pts  = pc.Location(idxs, :);        % Nx3 coordinates
-    col  = repmat(colors(k,:), numel(idxs), 1);  % Nx3 RGB
-
-    allBoxPts  = [allBoxPts;  pts];           
-    allBoxCols = [allBoxCols; col];           
-
-    % define the 12 edges of a box
-    E = [1 2; 2 3; 3 4; 4 1; ...    % bottom face
-         5 6; 6 7; 7 8; 8 5; ...    % top face
-         (1:4)' (5:8)'];            % vertical edges
-    for e = 1:size(E,1)
-        p1 = C(E(e,1), :);
-        p2 = C(E(e,2), :);
-        line([p1(1) p2(1)], [p1(2) p2(2)], [p1(3) p2(3)], ...
-             'Color',rgbColor,'LineWidth',1.5);
-    end
-end
-chosenBoxPc = pointCloud(allBoxPts, 'Color', allBoxCols);
-pcshow(chosenBoxPc);
-% pcshow(chosenPc, 'MarkerSize', 50);
-
+show_boxes_on_pc(nbboxes, pc, colors);
 hold off;
 
 xlabel('X (m)');
@@ -211,5 +176,4 @@ view(0, 90);
 %                'BackgroundColor', 'none', ...
 %                'ContentType',    'vector');
 
-check_plane(pc, nbboxes);
-
+end

@@ -1,4 +1,4 @@
-function stats = evaluate_c2c(pc_ref, pc_src, xyz_limits, completion_thresh)
+function stats = evaluate_c2c(pc_ref, pc_src, xyz_limits, completion_thresh, distance_thresh)
 %C2C_ANALYSIS  Compute cloud‐to‐cloud accuracy, completion, and completion ratio.
 %   stats = c2c_analysis(pc_ref, pc_src, xyz_limits) crops both
 %   point clouds pc_ref and pc_src to the axis‐aligned box defined by
@@ -12,11 +12,16 @@ function stats = evaluate_c2c(pc_ref, pc_src, xyz_limits, completion_thresh)
 %     pc_src     - source   pointCloud object
 %     xyz_limits - 3×2 matrix: [xmin xmax; ymin ymax; zmin zmax]
 %     completion_thresh - e.g., 0.05 m
+%     distance_thresh  - distance threshold in meters for ignoring points in accuracy/completion (optional)
 %   Output:
 %     stats - struct with fields: accuracy_cm, completion_cm, completion_ratio_pct
     if nargin < 4
         completion_thresh = 0.05;
     end
+    if nargin < 5
+        distance_thresh = Inf;
+    end
+
     %--- 1) Crop both clouds to the ROI -------------------------------
     loc_ref = pc_ref.Location;
     loc_src = pc_src.Location;
@@ -43,12 +48,17 @@ function stats = evaluate_c2c(pc_ref, pc_src, xyz_limits, completion_thresh)
     % distances from each ref‐point to its nearest src‐point
     [~, d_ref2src] = knnsearch(kd_src, loc_ref_c);
 
-    %--- 3) Convert to cm ---------------------------------------------
-    d_src2ref_cm = d_src2ref * 100;
-    d_ref2src_cm = d_ref2src * 100;
+    % Apply distance threshold filtering
+    valid_src2ref = d_src2ref <= distance_thresh;
+    valid_ref2src = d_ref2src <= distance_thresh;
+
+    accuracy_cm = mean(d_src2ref(valid_src2ref)) * 100;
+    completion_cm = mean(d_ref2src(valid_ref2src)) * 100;
+
+    completion_ratio_pct = 100 * sum(d_ref2src <= completion_thresh) / numel(d_ref2src);
 
     %--- 4) Compute statistics ----------------------------------------
-    stats.accuracy_cm           = mean(d_src2ref_cm);
-    stats.completion_cm         = mean(d_ref2src_cm);
-    stats.completion_ratio_pct  = 100 * sum(d_ref2src_cm <= completion_thresh * 100) / numel(d_ref2src_cm);
+    stats.accuracy_cm           = accuracy_cm;
+    stats.completion_cm         = completion_cm;
+    stats.completion_ratio_pct  = completion_ratio_pct;
 end

@@ -71,7 +71,7 @@ function [stats, poly_pts] = evaluate_plane(pc, verts, dist_thresh_m)
     else
         [~, ia] = unique(round(pts_int,8), 'rows', 'stable');
         pts_int = pts_int(ia, :);
-        K = convhull(pts_int(:,1), pts_int(:,2), pts_int(:,3));
+        K = convhull(pts_int(:,1), pts_int(:,2));
         poly_pts = pts_int(K, :);
     end
 
