@@ -5,7 +5,7 @@ function align_cloud_to_tls(tlsFile, lioFile, g_tls, g_lio, outdir, lockTls)
 
 %% Parameters (override by function arguments if needed)
 % g_tls: gravity in the TLS world frame.
-% lockTls: fix TLS point cloud, if false, a yaw rotation will be applied.
+% lockTls: fix TLS point cloud; if false, a gravity alignment, a yaw rotation and a zshift will be applied.
 zshift = 0;
 random_ds = false;
 if nargin < 6
@@ -34,7 +34,14 @@ if strcmp(e, '.las')
 else
     tlsPtCloud = pcread(tlsFile);
 end
-lioOrig    = pcread(lioFile);
+
+[p, n, e] = fileparts(lioFile);
+if strcmp(e, '.las')
+    dsLAS      = lasFileReader(lioFile);
+    lioOrig = readPointCloud(dsLAS);
+else
+    lioOrig = pcread(lioFile);
+end
 fprintf('Loaded TLS (%.0f pts) and LIO (%.0f pts) clouds.\n', tlsPtCloud.Count, lioOrig.Count);
 
 totalLoadTime = toc(startTotal);
@@ -228,6 +235,7 @@ TyL = eye(4); TyL(1:3,1:3)=R_LIO;
 % yaw TLS
 TyT = eye(4);
 Tz = eye(4);
+Tgrav_tls = eye(4); 
 if ~lockTls
     TyL(1:3,4)=-R_LIO*medTLS';
     TyT(1:3,1:3)=R_TLS; TyT(1:3,4)=-R_TLS*medTLS';
@@ -274,7 +282,13 @@ T_LIO_loaded = T_from_Pq(pq_LIO_loaded);
 T_TLS_loaded = T_from_Pq(pq_TLS_loaded);
 
 % Reload original clouds
-tmpLIO_orig = pcread(lioFile);
+[p, n, e] = fileparts(lioFile);
+if strcmp(e, '.las')
+    dsLAS      = lasFileReader(lioFile);
+    tmpLIO_orig = readPointCloud(dsLAS);
+else
+    tmpLIO_orig = pcread(lioFile);
+end
 if tmpLIO_orig.Count > maxPts
     frac = maxPts / tmpLIO_orig.Count;
     tmpLIO_orig = pcdownsample(tmpLIO_orig, 'random', frac);

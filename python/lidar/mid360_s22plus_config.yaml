@@ -24,6 +24,6 @@ imu:
                   -0.008846508719717, 0.999927840842429, 0.008127262249273,
                   -0.006522982883144, -0.008185113340879, 0.999945225806845]
     topic: /livox/imu
-    td: 0.0 # imu time delay relative to lidar clock, so imu msg time + td = imu msg time in lidar clock
+    td: 0.02
 
 
