@@ -13,6 +13,7 @@ function basement_pc_analysis()
 % 5. Save c2c_stats.csv and plane_stats.csv
 close all;
 %% Configuration
+% on ubuntu
 result_dir        = '/media/jhuai/ExtremeSSD/jhuai/livox_phone/results';
 ref_pc_file       = fullfile(result_dir, 's22plus_xt32', 'fastlio2', 'ref_tls', 'basement.las');
 ref_transform_txt = fullfile(result_dir, 's22plus_xt32', 'fastlio2', 'ref_tls', 'transform_TLS.txt');
@@ -29,13 +30,36 @@ pc_transforms = { ...
     fullfile(result_dir,'k60pro_livox','2025_02_07_10_25_05','front','transform_LIO_refined.txt'), ...
     fullfile(result_dir,'k60pro_livox','2025_02_07_10_28_32','front','transform_LIO_refined.txt') ...
 };
-
-% Axis-aligned crop limits [xmin xmax; ymin ymax; zmin zmax]
-xyz_limits      = [-24, 31; -12.5, 19; 1.5, 9.3];
 surfel_files    = { ...
     fullfile(result_dir,'s22plus_xt32','fastlio2','ref_tls', 'floors.txt'), ...
     fullfile(result_dir,'s22plus_xt32','fastlio2','ref_tls', 'walls.txt') ...
 };
+
+% on windows for c2c plots as remote plot is lousy.
+result_dir        = 'F:\jhuai\lidar-phone-construction\labelcloud\pointclouds';
+ref_pc_file       = fullfile(result_dir, 'rtc360_tls', 'basement.las');
+ref_transform_txt = fullfile(result_dir, 'rtc360_tls', 'transform_TLS.txt');
+surfel_files    = { ...
+    fullfile(result_dir,'rtc360_tls', 'floors.txt'), ...
+    fullfile(result_dir,'rtc360_tls', 'walls.txt') ...
+};
+pc_files = { ...
+    fullfile(result_dir,'2025_04_30_11_26_00','aggregated_cloud.pcd'), ...
+    fullfile(result_dir,'2025_04_30_11_28_58','aggregated_cloud.pcd'), ...
+    fullfile(result_dir,'2025_02_07_10_25_05','aggregated_cloud.pcd'),...
+    fullfile(result_dir,'2025_02_07_10_28_32','aggregated_cloud.pcd')
+};
+pc_transforms = { ...
+    fullfile(result_dir,'2025_04_30_11_26_00','transform_LIO_refined.txt'), ...
+    fullfile(result_dir,'2025_04_30_11_28_58','transform_LIO_refined.txt'), ...
+    fullfile(result_dir,'2025_02_07_10_25_05','transform_LIO_refined.txt'),...
+    fullfile(result_dir,'2025_02_07_10_28_32','transform_LIO_refined.txt')
+};
+
+
+% Axis-aligned crop limits [xmin xmax; ymin ymax; zmin zmax]
+xyz_limits      = [-24, 31; -12.5, 19; 1.5, 9.3];
+
 
 ds_voxel_size      = 0.05;   % downsample grid size (m)
 c2c_distance_thresh = 0.15;
@@ -55,7 +79,7 @@ pq_ref   = readmatrix(ref_transform_txt,'Delimiter',' ');
 T_ref    = T_from_Pq(pq_ref);
 tformRigid = rigidtform3d(T_ref(1:3,1:3), T_ref(1:3,4));
 ref_aligned = pctransform(refCloud, tformRigid);
-pc_ref = pcdownsample(ref_aligned, 'gridNearest', ds_voxel_size);
+pc_ref = pcdownsample(ref_aligned, 'gridAverage', ds_voxel_size);
 loc_ref = pc_ref.Location;
 mask_ref = ...
     loc_ref(:,1) > xyz_limits(1,1) & loc_ref(:,1) < xyz_limits(1,2) & ...
@@ -77,7 +101,7 @@ for k = 1:numel(pc_files)
     T_src  = T_from_Pq(pq_src);
     tformRigid = rigidtform3d(T_src(1:3,1:3), T_src(1:3,4));
     src_aligned = pctransform(srcCloud, tformRigid);
-    pc_src = pcdownsample(src_aligned,'gridNearest',ds_voxel_size);
+    pc_src = pcdownsample(src_aligned,'gridAverage',ds_voxel_size);
     % loc_src = pc_src.Location;
     % mask_src = ...
     %     loc_src(:,1) > xyz_limits(1,1) & loc_src(:,1) < xyz_limits(1,2) & ...
@@ -113,6 +137,9 @@ for k = 1:numel(pc_files)
 
     stats = evaluate_c2c(pc_ref, pc_src_refined, xyz_limits, completion_thresh, c2c_distance_thresh);
 
+    z_thresh = 5.3;
+    plot_c2c(pc_ref, pc_src_refined, xyz_limits, c2c_distance_thresh, z_thresh);
+
     c2c_stats(end+1) = struct( ...
         'filename', src_file, ...
         'accuracy_cm', stats.accuracy_cm, ...
@@ -122,7 +149,7 @@ for k = 1:numel(pc_files)
 end
 % Write C2C results
 c2c_table = struct2table(c2c_stats);
-writetable(c2c_table, fullfile(result_dir,'c2c_stats.csv'));
+writetable(c2c_table, fullfile(result_dir,'c2c_stats_basement.csv'));
 end
 
 %% 3. Plane flatness analysis
@@ -153,7 +180,7 @@ for k = 1:numel(pc_files)
     T_src     = T_from_Pq(pq_src);
     tformRigid = rigidtform3d(T_src(1:3,1:3), T_src(1:3,4));
     src_aligned = pctransform(srcCloud, tformRigid);
-    pc_src_ds = pcdownsample(src_aligned, 'gridNearest', ds_voxel_size);
+    pc_src_ds = pcdownsample(src_aligned, 'gridAverage', ds_voxel_size);
 
     for s = 1:numel(surfel_files)
         file_s = surfel_files{s};
@@ -175,7 +202,7 @@ for k = 1:numel(pc_files)
 end
 % Write plane stats
 plane_table = struct2table(plane_stats);
-writetable(plane_table, fullfile(result_dir,'plane_stats.csv'));
+writetable(plane_table, fullfile(result_dir,'plane_stats_basement.csv'));
 
 fprintf('Analysis complete. Results saved under %s\n', result_dir);
 end

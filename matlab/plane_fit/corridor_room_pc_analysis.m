@@ -83,11 +83,11 @@ if ~isempty(tls_tform_txt)
 end
 
 % 2. Downsample & crop TLS
-tls_ds = pcdownsample(tls,'gridNearest',ds_voxel_size);
+tls_ds = pcdownsample(tls,'gridAverage',ds_voxel_size);
 tls_ds = mask_pc_by_range(tls_ds, z_limits);
 tls_ds = crop_pc_by_polygon(tls_ds, polygon3d(:,1), polygon3d(:,2));
 
-if 1
+if 0
 figure;
 pcshow(tls_ds);
 axis equal;
@@ -96,7 +96,6 @@ set(gcf, 'Color', 'white');
 axis off;
 view([-93, 65]);
 end
-return;
 
 % 3. Load LIO (assumed roughly aligned)
 lio = pcread(lio_pcd);
@@ -106,7 +105,7 @@ if ~isempty(lio_tform_txt)
     tform= rigidtform3d(T(1:3,1:3), T(1:3,4)');
     lio = pctransform(lio, tform);
 end
-lio_ds = pcdownsample(lio,'gridNearest',ds_voxel_size);
+lio_ds = pcdownsample(lio,'gridAverage',ds_voxel_size);
 lio_ds = mask_pc_by_range(lio_ds, z_limits);
 lio_ds = crop_pc_by_polygon(lio_ds, polygon3d(:,1), polygon3d(:,2));
 
@@ -136,34 +135,6 @@ fprintf('C2C: accuracy=%.2fcm, completion=%.2fcm, ratio=%.1f%%\n', ...
     stats.accuracy_cm, stats.completion_cm, stats.completion_ratio_pct);
 
 % 5. Visualize error colormap on LIO
-[~, d_src2ref] = knnsearch(tls_ds.Location, lio_refined.Location);
-err_pc = pointCloud(lio_refined.Location, 'Intensity', d_src2ref);
-
-mask = d_src2ref <= c2c_distance_thresh;
-idx  = find(mask);
-pc_inThresh = select(err_pc, idx);
-
-figure;
-pcshow(pc_inThresh.Location, pc_inThresh.Intensity, 'MarkerSize', 50);
-colormap parula;
-colorbar;
-xlabel('X (m)', 'Color', 'k');
-ylabel('Y (m)', 'Color', 'k');
-zlabel('Z (m)', 'Color', 'k');
-
-% Configure colorbar
-cb = colorbar;
-cb.Color = [0 0 0];  % black tick labels for visibility
-cb.Label.String = 'Distance to TLS (m)';
-
-% Set white background
-ax = gca;
-ax.Color = 'w';       % axes background
-ax.XColor = 'k';      % axis lines in black
-ax.YColor = 'k';
-ax.ZColor = 'k';
-ax.GridColor = 'k';   % optional grid color
-
-set(gcf, 'Color', 'w'); % figure background
+plot_c2c(tls_ds, lio_refined, xyz_limits, c2c_distance_thresh);
 
 end
