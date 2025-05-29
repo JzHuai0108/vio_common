@@ -1,0 +1,9 @@
+function pcOut = mask_pc_by_cube(pcIn, xyz_limits)
+    loc = pcIn.Location;
+    mask = ...
+        loc(:,1) > xyz_limits(1,1) & loc(:,1) < xyz_limits(1,2) & ...
+        loc(:,2) > xyz_limits(2,1) & loc(:,2) < xyz_limits(2,2) & ...
+        loc(:,3) > xyz_limits(3,1) & loc(:,3) < xyz_limits(3,2);
+    idx  = find(mask);
+    pcOut = select(pcIn, idx);
+end

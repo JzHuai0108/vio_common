@@ -1,5 +1,8 @@
 function corridor_room_pc_analysis()
-las_dir = '/media/jhuai/ExtremeSSD/jhuai/livox_phone/tls/北京建筑大学TLS图';
+las_dir = 'F:\jhuai\lidar-phone-construction\labelcloud\pointclouds';
+% The resulting pictures are saved by first rotating the error point cloud
+% interactively in the matlab figure, and then saving the plot using the
+% save button on the top right corner of the plot.
 
 if 0
 % Sadly, we have to convert las to ply because the remote desktop matlab does not
@@ -12,10 +15,10 @@ las2ply(room_tls_las);
 las2ply(corridor_tls_las);
 end
 
-room_tls_ply = fullfile(las_dir, '会议室整体模型/las/436.ply');
-corridor_tls_ply = fullfile(las_dir, '整体0105/las/New Model_New Cloud.ply');
+room_tls_ply = fullfile(las_dir, '436.ply');
+corridor_tls_ply = fullfile(las_dir, 'New Model_New Cloud.ply');
 
-lio_dir = '/media/jhuai/ExtremeSSD/jhuai/livox_phone/results/s22plus_livox/20241205';
+lio_dir = 'F:\jhuai\lidar-phone-construction\labelcloud\pointclouds';
 room_lio_pcd = fullfile(lio_dir, '2024_12_05_16_33_55/original_aligned.pcd');
 corridor_lio_pcd = fullfile(lio_dir, '2024_12_05_16_11_23/original_aligned.pcd');
 room_tls_tform_txt = fullfile(lio_dir, '2024_12_05_16_33_55/transform_TLS.txt');
@@ -43,8 +46,8 @@ corridor_polygon3d = [ 9.7083   0.3576    1.9722;
     1.0285   -6.1198   -4.3397;
     9.8127   -5.7070   -3.0677];
 
-statsr = c2c_analysis(room_tls_ply, room_lio_pcd, room_tls_tform_txt, room_lio_tform_txt, room_z_limits, room_polygon3d);
 c2c_stats   = struct('filename',{},'accuracy_cm',{},'completion_cm',{},'completion_ratio_pct',{});
+statsr = c2c_analysis(room_tls_ply, room_lio_pcd, room_tls_tform_txt, room_lio_tform_txt, room_z_limits, room_polygon3d);
 c2c_stats(end+1) = struct( ...
     'filename', room_lio_pcd, ...
     'accuracy_cm', statsr.accuracy_cm, ...
@@ -72,11 +75,10 @@ c2c_distance_thresh   = 0.15;
 
 % 1. Load & transform TLS
 % tls = readPointCloud(lasFileReader(tls_las));
-tls = pcread(tls_ply)
+tls = pcread(tls_ply);
 if ~isempty(tls_tform_txt)
     pq   = readmatrix(tls_tform_txt, 'Delimiter',' ');
-    T    = T_from_Pq(pq);
-    tform= rigidtform3d(T(1:3,1:3), T(1:3,4)');
+    tform= rigidtform3d(quat2rotm([pq(7), pq(4:6)]), pq(1:3));
     tls = pctransform(tls, tform);
 end
 
@@ -84,6 +86,17 @@ end
 tls_ds = pcdownsample(tls,'gridNearest',ds_voxel_size);
 tls_ds = mask_pc_by_range(tls_ds, z_limits);
 tls_ds = crop_pc_by_polygon(tls_ds, polygon3d(:,1), polygon3d(:,2));
+
+if 1
+figure;
+pcshow(tls_ds);
+axis equal;
+set(gca, 'Color', 'white');
+set(gcf, 'Color', 'white');
+axis off;
+view([-93, 65]);
+end
+return;
 
 % 3. Load LIO (assumed roughly aligned)
 lio = pcread(lio_pcd);
@@ -124,14 +137,33 @@ fprintf('C2C: accuracy=%.2fcm, completion=%.2fcm, ratio=%.1f%%\n', ...
 
 % 5. Visualize error colormap on LIO
 [~, d_src2ref] = knnsearch(tls_ds.Location, lio_refined.Location);
+err_pc = pointCloud(lio_refined.Location, 'Intensity', d_src2ref);
 
-err_pc =  pointCloud(lio_refined.Location, 'Intensity', d_src2ref);
+mask = d_src2ref <= c2c_distance_thresh;
+idx  = find(mask);
+pc_inThresh = select(err_pc, idx);
+
 figure;
-pcshow(err_pc, ColorSource='Intensity')
-xlabel("X")
-ylabel("Y")
-zlabel("Z")
-colorbar(Color=[1 1 1])
-colormap(hot)
+pcshow(pc_inThresh.Location, pc_inThresh.Intensity, 'MarkerSize', 50);
+colormap parula;
+colorbar;
+xlabel('X (m)', 'Color', 'k');
+ylabel('Y (m)', 'Color', 'k');
+zlabel('Z (m)', 'Color', 'k');
+
+% Configure colorbar
+cb = colorbar;
+cb.Color = [0 0 0];  % black tick labels for visibility
+cb.Label.String = 'Distance to TLS (m)';
+
+% Set white background
+ax = gca;
+ax.Color = 'w';       % axes background
+ax.XColor = 'k';      % axis lines in black
+ax.YColor = 'k';
+ax.ZColor = 'k';
+ax.GridColor = 'k';   % optional grid color
+
+set(gcf, 'Color', 'w'); % figure background
 
 end
