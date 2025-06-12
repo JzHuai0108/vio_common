@@ -27,7 +27,7 @@ room_lio_tform_txt = fullfile(lio_dir, '2024_12_05_16_33_55/transform_LIO.txt');
 corridor_tls_tform_txt = fullfile(lio_dir, '2024_12_05_16_11_23/transform_TLS.txt');
 corridor_lio_tform_txt = fullfile(lio_dir, '2024_12_05_16_11_23/transform_LIO.txt');
 
-c2ccsv = fullfile(lio_dir, 'c2c_stats.csv'); % output c2c stats
+c2ccsv = fullfile(lio_dir, 'c2c_stats_bjjzu.csv'); % output c2c stats
 close all;
 
 room_z_limits = [-2, 3;];
@@ -70,8 +70,12 @@ end
 
 function stats = c2c_analysis(tls_ply, lio_pcd, tls_tform_txt, lio_tform_txt, z_limits, polygon3d) 
 ds_voxel_size         = 0.05;   % downsample gridNearest
+c2c_distance_thresh   = 0.15;
+
+ds_voxel_size         = 0.01;   % downsample gridNearest
+c2c_distance_thresh   = 0.05;
+
 completion_thresh     = 0.05;   % for completion ratio
-c2c_distance_thresh   = 0.15;   
 
 % 1. Load & transform TLS
 % tls = readPointCloud(lasFileReader(tls_las));

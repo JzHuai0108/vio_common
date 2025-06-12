@@ -63,6 +63,9 @@ xyz_limits      = [-24, 31; -12.5, 19; 1.5, 9.3];
 
 ds_voxel_size      = 0.05;   % downsample grid size (m)
 c2c_distance_thresh = 0.15;
+
+ds_voxel_size      = 0.01;   % downsample grid size (m)
+c2c_distance_thresh = 0.05;
 completion_thresh = 0.05;   % m for completion ratio
 p2p_dist_thresh   = 0.01;   % 1 cm point-to-plane
 
@@ -87,6 +90,7 @@ mask_ref = ...
     loc_ref(:,3) > xyz_limits(3,1) & loc_ref(:,3) < xyz_limits(3,2);
 idx = find(mask_ref);
 pc_ref = select(pc_ref, idx);
+
 %% 2. Loop over source point clouds for C2C
 if 1
 fprintf('Starting C2C analysis...\n');
