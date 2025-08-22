@@ -8,7 +8,7 @@ sudo apt -y install python-pybind11 # ubnntu 18
 # build TimestampCorrector
 ```
 mkdir build && cd build
-cmake ..
+cmake .. -DCMAKE_POLICY_VERSION_MINIMUM=3.5  -DPYTHON_EXECUTABLE=$(which python3.8)
 # cmake -DPYTHON_EXECUTABLE=$(which python3.8) .. # for systems with multiple python3
 make
 ```
