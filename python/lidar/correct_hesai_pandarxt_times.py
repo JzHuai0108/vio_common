@@ -44,6 +44,7 @@ def read_csv_sensor_vec3(csv_path):
       vecs:     [(x,y,z), ...]
     """
     times_ns, vecs = [], []
+    first_row = True
     with open(csv_path, 'r', newline='') as f:
         reader = csv.reader(f)
         # skip header lines starting with '#'
@@ -52,9 +53,19 @@ def read_csv_sensor_vec3(csv_path):
                 continue
             if row[0].strip().startswith('#'):
                 continue
-            # host_time = row[0] (ignored)
             x = float(row[1]); y = float(row[2]); z = float(row[3])
-            t_ns = to_time_ns(row[4])
+            if first_row:
+                if len(row) < 5:
+                    print(f'We will use the first column time for {csv_path}')
+                else:
+                    print(f'We will use the fifth column time for {csv_path}')
+                first_row = False
+
+            if len(row) < 5:
+                t_ns = to_time_ns(row[0])
+            else:
+                t_ns = to_time_ns(row[4])
+
             times_ns.append(t_ns)
             vecs.append((x, y, z))
     # ensure sorted by time (just in case)
