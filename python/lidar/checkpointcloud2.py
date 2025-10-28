@@ -1,80 +1,73 @@
+#!/usr/bin/env python3
+import sys
+import rosbag
 import sensor_msgs.point_cloud2 as pc2
 
-import rosbag
+USAGE = f"Usage: {sys.argv[0]} <bagname> <topic> [sensor(velodyne|hesai|hesai_sync|ouster|points_raw)]"
 
-import sys
+# Map sensor -> PointCloud2 field tuple
+SCHEMAS = {
+    "velodyne":   dict(fields=("x", "y", "z", "intensity", "ring", "time"),          time_mode="relative"),
+    "hesai":      dict(fields=("x", "y", "z", "intensity", "timestamp", "ring"),     time_mode="absolute"),
+    "hesai_sync":      dict(fields=("x", "y", "z", "intensity", "timestamp", "timestamp_sync", "ring"),     time_mode="absolute"),
+    "ouster":     dict(fields=("x", "y", "z", "intensity", "t", "reflectivity", "ring", "noise", "range")),
+    "points_raw": dict(fields=("x", "y", "z", "time", "ring")),  # some stacks publish like this
+}
 
-if len(sys.argv) < 3:
-    print('Usage: {} <bagname> <topic> [sensor(velodyne, hesai, ouster)]'.format(sys.argv[0]))
-    exit(1)
+def infer_sensor(topic: str) -> str:
+    t = topic.lower()
+    if "velodyne" in t: return "velodyne"
+    if "hesai" in t:    return "hesai"
+    if "os1" in t or "ouster" in t: return "ouster"
+    return "points_raw"  # fallback guess
 
-# pcl datatypes
-bagname = sys.argv[1]
-pointcloudtopic = sys.argv[2]
-sensor = ''
-if len(sys.argv) >= 4:
-    sensor = sys.argv[3]
-else:
-    if 'velodyne' in pointcloudtopic:
-        sensor = 'velodyne'
-    elif 'hesai' in pointcloudtopic:
-        sensor = 'hesai'
-    elif 'os1' in pointcloudtopic:
-        sensor = 'ouster'
-    else:
-        sensor = sys.argv[2]
+def format_field(name, val):
+    if isinstance(val, float):
+        # show higher precision for timestamps
+        return f"{name}: {val:.9f}" if "time" in name or "timestamp" in name else f"{name}: {val:.6f}"
+    return f"{name}: {val}"
 
-bag = rosbag.Bag(bagname)
-i = 0
-for topic, msg, t in bag.read_messages(topics=[pointcloudtopic]):
-    if i == 0:
-        print('Pointcloud2 fields: {}'.format(msg.fields))
+def read_and_print_points(msg, fields, sample_every=100, head=5, tail=5):
+    """Single generic reader/pretty-printer for any schema."""
+    # pass 1: count (generator is one-pass)
+    count = 0
+    for _ in pc2.read_points(msg, field_names=fields, skip_nans=True):
+        count += 1
 
-    print('{}, header time: {}, ros time: {}'.format(i, msg.header.stamp, t))
-    j = 0
-    if sensor == 'velodyne':
-        velodyne_gen = pc2.read_points(msg, field_names=("x", "y", "z", "intensity", "ring", "time"), skip_nans=True)
-        a = 0
-        for p in velodyne_gen:
-            a += 1
-        velodyne_gen = pc2.read_points(msg, field_names=("x", "y", "z", "intensity", "ring", "time"), skip_nans=True)
-        # For every point in velodyne pointcloud2, its timestamp in seconds + message header timestamp is its firing time..
-        for p in velodyne_gen:
-            if j % 100 == 0 or j < 5 or j > a - 6:
-                print("%d, x : %f  y: %f  z: %f intensity: %f ring: %d time %f sec" % (j, p[0], p[1], p[2], p[3], p[4], p[5]))
-            j += 1
-    elif sensor == 'hesai':
-        hesai_gen = pc2.read_points(msg, field_names=("x", "y", "z", "intensity", "timestamp", "ring"), skip_nans=True)
-        # For every point in hesai pointcloud2, its timestamp in seconds is its actual firing time.
-        a = 0
-        for p in hesai_gen:
-            a += 1
-        hesai_gen = pc2.read_points(msg, field_names=("x", "y", "z", "intensity", "timestamp", "ring"), skip_nans=True)
-        for p in hesai_gen:
-            if j % 100 == 0 or j < 5 or j > a - 6:
-                print("%d, msg time: %d.%09d, x : %f  y: %f  z: %f intensity: %f ring: %d time %.9f sec" % (
-                    j, msg.header.stamp.secs, msg.header.stamp.nsecs, p[0], p[1], p[2], p[3], p[5], p[4]))
-            j += 1
-    elif sensor == "ouster": # coloradar 64beam ouster
-        ouster64_coloradar_gen = pc2.read_points(msg, field_names=
-            ("x", "y", "z", "intensity", "t", "reflectivity", "ring", "noise", "range"), skip_nans=True)
-        for p in ouster64_coloradar_gen:
-            print("x: %f y: %f z: %f intensity: %f t: %f reflectivity: %f ring: %d noise: %f range: %f" % (
-                p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8]))
-            j += 1
-            if j > 5:
+    # pass 2: print sampled rows
+    gen = pc2.read_points(msg, field_names=fields, skip_nans=True)
+    for j, p in enumerate(gen):
+        if (j % sample_every == 0) or (j < head) or (j >= count - tail):
+            kv = "  ".join(format_field(name, p[idx]) for idx, name in enumerate(fields))
+            print(f"{j}, msg time: {msg.header.stamp.secs}.{msg.header.stamp.nsecs:09d}, {kv}")
+
+def main():
+    if len(sys.argv) < 3:
+        print(USAGE); sys.exit(1)
+
+    bagname = sys.argv[1]
+    topic = sys.argv[2]
+    sensor = sys.argv[3].lower() if len(sys.argv) >= 4 else infer_sensor(topic)
+
+    if sensor not in SCHEMAS:
+        print(f"[WARN] Unknown sensor '{sensor}'. Known: {list(SCHEMAS)}. Falling back to 'points_raw'.")
+        sensor = "points_raw"
+
+    fields = SCHEMAS[sensor]["fields"]
+    print(f"[INFO] Using sensor='{sensor}', fields={fields}")
+
+    i = 0
+    with rosbag.Bag(bagname) as bag:
+        for topic_name, msg, t in bag.read_messages(topics=[topic]):
+            if i == 0:
+                print(f"PointCloud2 fields in message: {msg.fields}")
+            print(f"\nFrame {i}, header: {msg.header.stamp}, ros time: {t}")
+
+            read_and_print_points(msg, fields, sample_every=100, head=5, tail=5)
+
+            i += 1
+            if i > 5:  # limit for demo; remove to process all
                 break
-    elif sensor == 'points_raw':
-        velodyne_raw_gen = pc2.read_points(msg, field_names=("x", "y", "z", "time", "ring"), skip_nans=True)
-        for p in velodyne_raw_gen:
-            print(" x : %f  y: %f  z: %f ring: %d time %f us" % (p[0], p[1], p[2], p[4], p[3]))
-            j += 1
-            if j > 5:
-                break
-    # livox lidar uses a custom message type http://docs.ros.org/en/kinetic/api/livox_ros_driver/html/msg/CustomMsg.html
-    # its fields are demoed here https://github.com/hku-mars/FAST_LIO/blob/cd49bd8af90253cd0fe64edce07d1eaa72354b41/src/preprocess.cpp
-    i += 1
-    if i > 5:
-        break
 
-bag.close()
+if __name__ == "__main__":
+    main()

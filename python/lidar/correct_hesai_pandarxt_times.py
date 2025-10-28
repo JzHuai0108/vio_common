@@ -14,7 +14,6 @@ from sensor_msgs.msg import Imu
 MYMOD_PATH = os.path.abspath('../timestamp_corrector/build')
 if MYMOD_PATH not in sys.path:
     sys.path.append(MYMOD_PATH)
-import TimestampCorrector as TC  # provides TimestampCorrector()
 
 def header_time_ns(msg):
     """Return msg.header.stamp as int nanoseconds, or None if missing."""
@@ -231,6 +230,7 @@ def main():
     if not run_time_correction:
         corrected_ns = sensor_ns
     else:
+        import TimestampCorrector as TC  # provides TimestampCorrector()
         host_ref_ns = host_ns[0] - int(args.ref_offset_sec * 1e9)
         sens_f = [s / 1e9 for s in sensor_ns]                 # seconds
         host_f = [(h - host_ref_ns) / 1e9 for h in host_ns]   # seconds relative to host_ref
