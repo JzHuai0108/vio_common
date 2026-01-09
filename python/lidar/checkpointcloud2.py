@@ -101,14 +101,18 @@ def read_and_print_points_livox_custommsg(msg, time_unit="ns", sample_every=100,
         if not should_print(j):
             continue
         # p has: offset_time, x, y, z, reflectivity, tag, line
-        ot = int(p.offset_time)
-        t_point = (timebase + ot) * scale  # seconds (float)
-        kv = (
+        ot_ns = int(p.offset_time)
+        t_ns = timebase + ot_ns               # exact int ns
+        t_sec = t_ns // 1_000_000_000
+        t_nsec = t_ns % 1_000_000_000
+
+        print(
+            f"{j}, msg time: {header_stamp.secs}.{header_stamp.nsecs:09d}, "
             f"x: {float(p.x):.6f}  y: {float(p.y):.6f}  z: {float(p.z):.6f}  "
             f"reflectivity: {int(p.reflectivity)}  tag: {int(p.tag)}  line: {int(p.line)}  "
-            f"offset_time: {ot}  t_point(sec): {t_point:.9f}"
+            f"offset_time: {ot_ns}  "
+            f"t_point: {t_sec}.{t_nsec:09d})"
         )
-        print(f"{j}, msg time: {header_stamp.secs}.{header_stamp.nsecs:09d}, {kv}")
 
 def main():
     if len(sys.argv) < 3:
