@@ -9,6 +9,25 @@ import rospy
 import sensor_msgs.point_cloud2 as pc2
 import numpy as np
 
+def write_xyzi_pcd(output_filename, xyzi):
+    num_points = xyzi.shape[0]
+    header = (
+        "# .PCD v0.7 - Point Cloud Data file format\n"
+        "VERSION 0.7\n"
+        "FIELDS x y z intensity\n"
+        "SIZE 4 4 4 4\n"
+        "TYPE F F F F\n"
+        "COUNT 1 1 1 1\n"
+        f"WIDTH {num_points}\n"
+        "HEIGHT 1\n"
+        "VIEWPOINT 0 0 0 1 0 0 0\n"
+        f"POINTS {num_points}\n"
+        "DATA binary\n"
+    )
+    with open(output_filename, "wb") as stream:
+        stream.write(header.encode("ascii"))
+        np.ascontiguousarray(xyzi, dtype=np.float32).tofile(stream)
+
 def extract_pcd(bagfile, topic, starttime, endtime, pcddir, split=1):
     """
     extract a pointcloud2 message from rosbag and save as a pcd file
@@ -17,29 +36,39 @@ def extract_pcd(bagfile, topic, starttime, endtime, pcddir, split=1):
     bagstarttime = rospy.Time(bag.get_start_time())
     msgstarttime = starttime + bagstarttime
     msgendtime = endtime + bagstarttime
-    import open3d as o3d
     for topic, msg, t in bag.read_messages(topics=[topic]):
         if t >= msgstarttime and t <= msgendtime:
-            gen = pc2.read_points(msg, skip_nans=True)
-            int_data = list(gen)
-            xyz = np.array([[0, 0, 0]])
-            for x in int_data:
-                xyz = np.append(xyz, [[x[0], x[1], x[2]]], axis=0)
+            msg_fields = {f.name for f in msg.fields}
+            if "intensity" in msg_fields:
+                point_iter = pc2.read_points(
+                    msg, field_names=("x", "y", "z", "intensity"), skip_nans=True
+                )
+                xyzi = np.asarray(list(point_iter), dtype=np.float32)
+            else:
+                point_iter = pc2.read_points(msg, field_names=("x", "y", "z"), skip_nans=True)
+                xyz = np.asarray(list(point_iter), dtype=np.float32)
+                xyzi = np.zeros((xyz.shape[0], 4), dtype=np.float32)
+                if xyz.size > 0:
+                    xyzi[:, :3] = xyz
+
+            if xyzi.size == 0:
+                continue
+            if xyzi.ndim == 1:
+                xyzi = xyzi.reshape(1, -1)
+
             start = 0
-            partsize = xyz.shape[0] // split
+            partsize = xyzi.shape[0] // split
             for i in range(1, split + 1):
                 if split == 1:
-                    output_filename = os.path.join(pcddir, str(t) + ".pcd")
+                    output_filename = os.path.join(pcddir, "%d.%09d.pcd" % (t.secs, t.nsecs))
                 else:
-                    output_filename = os.path.join(pcddir, str(t) + "_{}.pcd".format(i))
+                    output_filename = os.path.join(pcddir, "%d.%09d_%d.pcd" % (t.secs, t.nsecs, i))
                 if i == split:
-                    end = xyz.shape[0]
+                    end = xyzi.shape[0]
                 else:
                     end = start + partsize
-                out_pcd = o3d.geometry.PointCloud()
-                out_pcd.points = o3d.utility.Vector3dVector(xyz[start:end, :])
+                write_xyzi_pcd(output_filename, xyzi[start:end, :])
                 start = end
-                o3d.io.write_point_cloud(output_filename, out_pcd)
                 print("saved pcd file: {}".format(output_filename))
 
 
