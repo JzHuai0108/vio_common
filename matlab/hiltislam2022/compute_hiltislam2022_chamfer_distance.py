@@ -161,7 +161,12 @@ def main():
     col_headers = ['method', 'sequence', 'accuracy_cm', 'completion_cm',
                    'chamfer_cm', 'precision_pct', 'recall_pct', 'fscore_pct',
                    'completion_ratio_pct']
-    result_rows = []
+
+    out_csv = os.path.join(BASE_DIR, 'chamfer_results.csv')
+    csv_file = open(out_csv, 'w', newline='')
+    csv_writer = csv.writer(csv_file)
+    csv_writer.writerow(col_headers)
+    csv_file.flush()
 
     # Outer loop: sequence  (so each reference cloud is loaded once, then all
     # methods are evaluated against it before moving on)
@@ -281,18 +286,11 @@ def main():
                   f'fscore={m["fscore_pct"]:.1f}%  '
                   f'comp_ratio={m["completion_ratio_pct"]:.1f}%')
 
-            result_rows.append([method, seq,
-                                 m['accuracy_cm'], m['completion_cm'], m['chamfer_cm'],
-                                 m['precision_pct'], m['recall_pct'], m['fscore_pct'],
-                                 m['completion_ratio_pct']])
+            csv_writer.writerow([method, seq] + [f'{m[k]:.4f}' for k in col_headers[2:]])
+            csv_file.flush()
+            print(f'[{method}/{seq}] Row written to CSV.')
 
-    # -- save CSV -------------------------------------------------------------
-    out_csv = os.path.join(BASE_DIR, 'chamfer_results.csv')
-    with open(out_csv, 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(col_headers)
-        for r in result_rows:
-            writer.writerow([r[0], r[1]] + [f'{v:.4f}' for v in r[2:]])
+    csv_file.close()
     print(f'\nResults saved to: {out_csv}')
 
 
