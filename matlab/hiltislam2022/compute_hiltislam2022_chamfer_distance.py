@@ -107,35 +107,43 @@ def compute_metrics(pts_est: np.ndarray, pts_ref: np.ndarray,
                     truncation_acc: float, truncation_com: float,
                     fscore_thr: float) -> dict:
     """
-    Chamfer distance metrics between two equal-sized point sets.
-
-    Mirrors PIN_SLAM eval_mesh_utils.py (nn_correspondance / eval_mesh).
-    Points beyond truncation_acc / truncation_com are excluded from the
-    accuracy / completion means respectively.  Precision and recall are
-    computed at fscore_thr.
+    Chamfer L1/L2 metrics matching PIN_SLAM eval_mesh_utils.py exactly:
+      - accuracy  (pred→GT):  outliers beyond truncation_acc are excluded
+                              (nn_correspondance ignore_outlier=True)
+      - completion (GT→pred): outliers beyond truncation_com are clamped
+                              (nn_correspondance ignore_outlier=False)
+      chamfer_l1 = 0.5 * (mean(d_p_inliers)      + mean(d_r_clamped))
+      chamfer_l2 = sqrt(0.5 * (mean(d_p²_inliers) + mean(d_r²_clamped)))
 
     Args:
         pts_est       : (N, 3) estimated / predicted points
-        pts_ref       : (N, 3) reference / ground-truth points
-        truncation_acc: outlier cutoff for accuracy  direction (m)
+        pts_ref       : (M, 3) reference / ground-truth points
+        truncation_acc: outlier cutoff for accuracy   direction (m)
         truncation_com: outlier cutoff for completion direction (m)
         fscore_thr    : threshold for precision & recall (m)
 
     Returns:
         dict with keys:
-          accuracy_cm, completion_cm, chamfer_cm  (inlier-mean distances in cm)
-          precision_pct, recall_pct, fscore_pct   (%)
-          completion_ratio_pct                    (fraction of ref inliers, %)
+          mae_acc_cm, mae_com_cm          (mean absolute error in cm)
+          chamfer_l1_cm, chamfer_l2_cm  (Chamfer L1 / L2 in cm)
+          precision_pct, recall_pct, fscore_pct  (%)
     """
     d_est2ref = nn_distances(pts_est, pts_ref)   # accuracy direction
     d_ref2est = nn_distances(pts_ref, pts_est)   # completion direction
 
-    # inlier-masked means (outliers beyond truncation thresholds are excluded)
-    mask_acc = d_est2ref <= truncation_acc
-    mask_com = d_ref2est <= truncation_com
-    accuracy_cm   = float(np.mean(d_est2ref[mask_acc])) * 100.0 if mask_acc.any() else float('nan')
-    completion_cm = float(np.mean(d_ref2est[mask_com])) * 100.0 if mask_com.any() else float('nan')
-    chamfer_cm    = 0.5 * (accuracy_cm + completion_cm)
+    # accuracy: exclude outliers (ignore_outlier=True)
+    d_p = d_est2ref[d_est2ref < truncation_acc]
+    # completion: clamp outliers to truncation_com (ignore_outlier=False)
+    d_r = np.minimum(d_ref2est, truncation_com)
+
+    mae_acc = float(np.mean(d_p)) * 100.0 if len(d_p) > 0 else float('nan')
+    mae_com = float(np.mean(d_r)) * 100.0
+
+    chamfer_l1 = 0.5 * (mae_acc + mae_com)
+
+    var_p = float(np.mean(d_p ** 2)) if len(d_p) > 0 else float('nan')
+    var_r = float(np.mean(d_r ** 2))
+    chamfer_l2 = float(np.sqrt(0.5 * (var_p + var_r))) * 100.0 if not np.isnan(var_p) else float('nan')
 
     # precision / recall / F-score at fscore_thr
     precision = float(np.mean(d_est2ref < fscore_thr)) * 100.0
@@ -143,12 +151,9 @@ def compute_metrics(pts_est: np.ndarray, pts_ref: np.ndarray,
     fscore    = (2.0 * precision * recall / (precision + recall)
                  if (precision + recall) > 0.0 else 0.0)
 
-    completion_ratio = float(np.mean(d_ref2est <= truncation_com)) * 100.0
-
-    return dict(accuracy_cm=accuracy_cm, completion_cm=completion_cm,
-                chamfer_cm=chamfer_cm, precision_pct=precision,
-                recall_pct=recall, fscore_pct=fscore,
-                completion_ratio_pct=completion_ratio)
+    return dict(mae_acc_cm=mae_acc, mae_com_cm=mae_com,
+                chamfer_l1_cm=chamfer_l1, chamfer_l2_cm=chamfer_l2,
+                precision_pct=precision, recall_pct=recall, fscore_pct=fscore)
 
 
 # ---------------------------------------------------------------------------
@@ -158,9 +163,9 @@ def compute_metrics(pts_est: np.ndarray, pts_ref: np.ndarray,
 def main():
     ref_cache: dict[str, o3d.geometry.PointCloud] = {}
 
-    col_headers = ['method', 'sequence', 'accuracy_cm', 'completion_cm',
-                   'chamfer_cm', 'precision_pct', 'recall_pct', 'fscore_pct',
-                   'completion_ratio_pct']
+    col_headers = ['method', 'sequence', 'mae_acc_cm', 'mae_com_cm',
+                   'chamfer_l1_cm', 'chamfer_l2_cm',
+                   'precision_pct', 'recall_pct', 'fscore_pct']
 
     out_csv = os.path.join(BASE_DIR, 'chamfer_results.csv')
     csv_file = open(out_csv, 'w', newline='')
@@ -278,13 +283,13 @@ def main():
             print(f'done ({time.time() - t0:.1f} s)')
 
             print(f'[{method}/{seq}] '
-                  f'accuracy={m["accuracy_cm"]:.2f} cm  '
-                  f'completion={m["completion_cm"]:.2f} cm  '
-                  f'chamfer={m["chamfer_cm"]:.2f} cm  '
+                  f'MAE_acc={m["mae_acc_cm"]:.2f} cm  '
+                  f'MAE_com={m["mae_com_cm"]:.2f} cm  '
+                  f'chamfer_L1={m["chamfer_l1_cm"]:.2f} cm  '
+                  f'chamfer_L2={m["chamfer_l2_cm"]:.2f} cm  '
                   f'precision={m["precision_pct"]:.1f}%  '
                   f'recall={m["recall_pct"]:.1f}%  '
-                  f'fscore={m["fscore_pct"]:.1f}%  '
-                  f'comp_ratio={m["completion_ratio_pct"]:.1f}%')
+                  f'fscore={m["fscore_pct"]:.1f}%')
 
             csv_writer.writerow([method, seq] + [f'{m[k]:.4f}' for k in col_headers[2:]])
             csv_file.flush()
