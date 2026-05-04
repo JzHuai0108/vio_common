@@ -103,6 +103,14 @@ def voxel_downsample(pts: np.ndarray, voxel_size: float) -> np.ndarray:
     return np.asarray(pcd_ds.points)
 
 
+def save_points_pcd(pts: np.ndarray, path: str):
+    """Save points as a PCD file."""
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(pts.astype(np.float64))
+    if not o3d.io.write_point_cloud(path, pcd):
+        raise RuntimeError(f'Failed to write cropped point cloud: {path}')
+
+
 def compute_metrics(pts_est: np.ndarray, pts_ref: np.ndarray,
                     truncation_acc: float, truncation_com: float,
                     fscore_thr: float) -> dict:
@@ -263,6 +271,12 @@ def main():
             print(f'[{method}/{seq}] Cropped est: {len(pts_est):,} -> '
                   f'{len(pts_est_cropped):,} pts '
                   f'(ref bbox + {BBOX_BUFFER:.0f} m buffer)')
+
+            cropped_pcd = os.path.join(
+                os.path.dirname(result_las),
+                f'{os.path.splitext(os.path.basename(result_las))[0]}_cropped.pcd')
+            # save_points_pcd(pts_est_cropped, cropped_pcd)
+            print(f'[{method}/{seq}] Cropped est saved: {cropped_pcd}')
 
             # -- uniform voxel downsample est cloud --------------------------
             pts_est_ds = voxel_downsample(pts_est_cropped, VOXEL_SIZE)

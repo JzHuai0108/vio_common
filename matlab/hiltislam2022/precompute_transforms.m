@@ -8,7 +8,7 @@ function precompute_transforms()
 %
 % Output: one *_precomputed.txt per pose file, written to the same folder.
 
-poses_dir = '/media/jhuai/T5EVO/jhuai/results/hiltislam2022_rss26/initial_poses';
+poses_dir = '/media/jhuai/T5EVO/jhuai/results/rss26/hiltislam2022/initial_poses';
 
 pose_files = dir(fullfile(poses_dir, '*_est.txt'));
 if isempty(pose_files)

@@ -8,11 +8,11 @@
 
 set -e
 
-CC=cloudcompare.CloudCompare
+CC=(flatpak run org.cloudcompare.CloudCompare)
 BASE_DIR=/media/jhuai/T5EVO/jhuai/results/hiltislam2022_rss26
-
 METHODS=(balm2 balm3 base nolc)
 SEQS=(exp04 exp05 exp06 exp14 exp16 exp18)
+
 
 echo "=== Step 1a: Downsample result.las to 2 cm ==="
 for method in "${METHODS[@]}"; do
@@ -26,7 +26,7 @@ for method in "${METHODS[@]}"; do
             continue
         fi
 
-        "$CC" -SILENT -AUTO_SAVE OFF -O "$input" -SS SPATIAL 0.02 -C_EXPORT_FMT LAS -SAVE_CLOUDS FILE "$output_las"
+        "${CC[@]}" -SILENT -AUTO_SAVE OFF -O "$input" -SS SPATIAL 0.02 -C_EXPORT_FMT LAS -SAVE_CLOUDS FILE "$output_las"
 
     done
 done
@@ -41,7 +41,7 @@ for ref_e57 in \
 do
     ref_las="${ref_e57%.e57}.las"
     echo "  Converting $(basename "$ref_e57") -> .las ..."
-    "$CC" -SILENT -AUTO_SAVE OFF -O "$ref_e57" -SS SPATIAL 0.02 -REMOVE_ALL_SFS -C_EXPORT_FMT LAS -SAVE_CLOUDS FILE "$ref_las"
+    "${CC[@]}" -SILENT -AUTO_SAVE OFF -O "$ref_e57" -SS SPATIAL 0.02 -REMOVE_ALL_SFS -C_EXPORT_FMT LAS -SAVE_CLOUDS FILE "$ref_las"
 done
 
 echo ""
