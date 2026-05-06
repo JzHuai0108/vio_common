@@ -41,10 +41,11 @@ except ImportError:
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-BASE_DIR         = '/media/jhuai/T5EVO/jhuai/results/hiltislam2022_rss26'
+BASE_DIR         = '/media/jhuai/T5EVO/jhuai/results/rss26/hiltislam2022'
 METHODS          = ['balm2', 'balm3', 'base', 'nolc', 'lio']
-# Per-method result filename (default: 'result_spatialsub_2cm.las')
-METHOD_FILENAME  = {'lio': 'original_spatialsub_2cm.las'}
+
+# Per-method result filename (default: 'result.las')
+METHOD_FILENAME  = {'lio': 'original.las'}
 TRUNCATION_ACC   = 0.50   # outlier truncation for accuracy  direction (m) – PIN_SLAM default
 TRUNCATION_COM   = 0.50   # outlier truncation for completion direction (m) – PIN_SLAM default
 FSCORE_THRESHOLD = 0.05   # precision / recall / F-score threshold (m = 5 cm) – PIN_SLAM default
@@ -54,6 +55,9 @@ ICP_INLIER_DIST  = 1.0    # ICP max correspondence distance (m)
 ICP_MAX_ITER     = 50
 NORMAL_RADIUS    = 0.1    # normal estimation search radius (m)
 NORMAL_MAX_NN    = 30     # normal estimation max neighbours
+
+TRUNCATION_ACC   = 0.20   # outlier truncation for accuracy  direction (m) – PIN_SLAM default
+TRUNCATION_COM   = 0.20  
 
 # {seq_dir, ref_key, pose_file_seq_id}
 SEQ_CONFIG = [
@@ -206,7 +210,7 @@ def main():
         for method in METHODS:
             print(f'\n=== [{method}/{seq}] ===')
 
-            filename   = METHOD_FILENAME.get(method, 'result_spatialsub_2cm.las')
+            filename   = METHOD_FILENAME.get(method, 'result.las')
             result_las = os.path.join(BASE_DIR, method, seq, filename)
             if not os.path.isfile(result_las):
                 print(f'  [SKIP] Missing: {result_las}')
@@ -216,6 +220,13 @@ def main():
             print(f'[{method}/{seq}] Loading est cloud ... ', end='', flush=True)
             est_pcd, t_load = load_las(result_las)
             print(f'done ({t_load:.1f} s, {len(est_pcd.points):,} pts)')
+
+            # -- uniform 1 cm downsample immediately after load ---------------
+            pts_loaded = np.asarray(est_pcd.points)
+            pts_ds1cm  = voxel_downsample(pts_loaded, 0.01)
+            print(f'[{method}/{seq}] 1 cm downsample: '
+                  f'{len(pts_loaded):,} -> {len(pts_ds1cm):,} pts')
+            est_pcd.points = o3d.utility.Vector3dVector(pts_ds1cm)
 
             # -- initial alignment -------------------------------------------
             pose_file = os.path.join(
@@ -272,18 +283,16 @@ def main():
                   f'{len(pts_est_cropped):,} pts '
                   f'(ref bbox + {BBOX_BUFFER:.0f} m buffer)')
 
-            cropped_pcd = os.path.join(
-                os.path.dirname(result_las),
-                f'{os.path.splitext(os.path.basename(result_las))[0]}_cropped.pcd')
-            # save_points_pcd(pts_est_cropped, cropped_pcd)
-            print(f'[{method}/{seq}] Cropped est saved: {cropped_pcd}')
-
             # -- uniform voxel downsample est cloud --------------------------
             pts_est_ds = voxel_downsample(pts_est_cropped, VOXEL_SIZE)
             print(f'[{method}/{seq}] Voxel downsample est '
                   f'(voxel={VOXEL_SIZE * 100:.0f} cm): '
                   f'{len(pts_est_cropped):,} -> {len(pts_est_ds):,} pts  '
                   f'ref: {len(pts_ref_full):,} pts')
+
+            ds_pcd_path = os.path.join(os.path.dirname(result_las), 'result_cropped_ds2cm.pcd')
+            save_points_pcd(pts_est_ds, ds_pcd_path)
+            print(f'[{method}/{seq}] Saved downsampled cloud: {ds_pcd_path}')
 
             # -- Chamfer distance metrics ------------------------------------
             print(f'[{method}/{seq}] Computing Chamfer distance '

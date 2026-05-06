@@ -9,7 +9,7 @@
 set -e
 
 CC=(flatpak run org.cloudcompare.CloudCompare)
-BASE_DIR=/media/jhuai/T5EVO/jhuai/results/hiltislam2022_rss26
+BASE_DIR=/media/jhuai/T5EVO/jhuai/results/rss26/hiltislam2022
 METHODS=(balm2 balm3 base nolc)
 SEQS=(exp04 exp05 exp06 exp14 exp16 exp18)
 
