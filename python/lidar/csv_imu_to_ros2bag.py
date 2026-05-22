@@ -217,6 +217,15 @@ def create_topic_metadata(rosbag2_py, topic):
     }
 
     try:
+        return rosbag2_py.TopicMetadata(
+            **kwargs,
+            id=0,
+            offered_qos_profiles=[],
+        )
+    except TypeError:
+        pass
+
+    try:
         return rosbag2_py.TopicMetadata(**kwargs, offered_qos_profiles='')
     except TypeError:
         return rosbag2_py.TopicMetadata(**kwargs)
@@ -318,6 +327,7 @@ def main():
     parser.add_argument('--frame-id', default='imu_link', help='IMU frame_id')
     parser.add_argument(
         '--gps-date',
+        required=True,
         type=str,
         help=('Interpret CSV time_ms as GPS time-of-week milliseconds in the '
               'GPS week containing this UTC date (YYYYMMDD, e.g. 20260513), '
