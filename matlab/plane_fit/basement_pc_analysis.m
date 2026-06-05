@@ -142,7 +142,7 @@ for k = 1:numel(pc_files)
     stats = evaluate_c2c(pc_ref, pc_src_refined, xyz_limits, completion_thresh, c2c_distance_thresh);
 
     z_thresh = 5.3;
-    plot_c2c(pc_ref, pc_src_refined, xyz_limits, c2c_distance_thresh, z_thresh);
+    plot_c2c(pc_ref, pc_src_refined, xyz_limits, 0.08, z_thresh);
 
     c2c_stats(end+1) = struct( ...
         'filename', src_file, ...

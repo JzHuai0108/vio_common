@@ -139,6 +139,12 @@ fprintf('C2C: accuracy=%.2fcm, completion=%.2fcm, ratio=%.1f%%\n', ...
     stats.accuracy_cm, stats.completion_cm, stats.completion_ratio_pct);
 
 % 5. Visualize error colormap on LIO
-plot_c2c(tls_ds, lio_refined, xyz_limits, c2c_distance_thresh);
+% Uncomment one of the two below lines to draw sectional c2c views.
+% section view, room z = [0, default]
+% xyz_limits(3, 1) = 0;
+% section view, corridor z = [default, 0]
+% xyz_limits(3, 2) = 0;
+
+plot_c2c(tls_ds, lio_refined, xyz_limits, 0.08);
 
 end
