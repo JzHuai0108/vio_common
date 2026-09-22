@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Shift trajectory timestamps from a selected epoch onward.
+"""Apply a linearly varying timestamp shift from a selected epoch onward.
 
-Given input rows ``(t_i, p_i)``, an epoch, integer step shift ``k``, and
-fractional shift ``f``, this script writes
+Given input rows ``(t_i, p_i)``, an epoch, a starting shift ``s_0``, and an
+ending shift ``s_1``, this script writes
 
 ``(t_i, p_i)`` for rows before the epoch, and
-``(t_{i+k} + f, p_i)`` from the epoch row onward.
+``(t_i + s(t_i), p_i)`` from the epoch row onward, where ``s(t)`` varies
+linearly from ``s_0`` at the selected epoch row to ``s_1`` at the final row.
 
 An epoch of zero selects every trajectory row. Any other epoch is matched to
 the closest input timestamp within 1 ms by default.
-Indices outside the input range are extrapolated at a configurable interval.
 Pose and all other non-timestamp fields are copied without modification.
 """
 
@@ -103,37 +103,37 @@ def shifted_timestamp_tokens(
     timestamps: Sequence[Decimal],
     original_tokens: Sequence[str],
     start_row: int,
-    step_shift: int,
-    fractional_shift: Decimal,
-    extrapolation_dt: Decimal,
+    start_shift: Decimal,
+    end_shift: Decimal,
 ) -> List[str]:
-    """Shift times at and after start_row while retaining their pose rows."""
-    if extrapolation_dt <= 0:
-        raise ValueError("extrapolation_dt must be positive")
+    """Linearly shift times at and after start_row, retaining pose rows."""
     if not 0 <= start_row < len(timestamps):
         raise ValueError("start_row is outside the trajectory")
     precision = max(
         max(decimal_places(token) for token in original_tokens),
-        max(0, -fractional_shift.as_tuple().exponent),
-        max(0, -extrapolation_dt.as_tuple().exponent),
+        max(0, -start_shift.as_tuple().exponent),
+        max(0, -end_shift.as_tuple().exponent),
     )
-    last_index = len(timestamps) - 1
     output: List[str] = list(original_tokens[:start_row])
-    for row_index in range(len(timestamps)):
-        if row_index < start_row:
-            continue
-        source_index = row_index + step_shift
-        if source_index < 0:
-            shifted = timestamps[0] + extrapolation_dt * source_index
-        elif source_index > last_index:
-            shifted = (
-                timestamps[-1]
-                + extrapolation_dt * (source_index - last_index)
-            )
+    shift_duration = timestamps[-1] - timestamps[start_row]
+    for row_index in range(start_row, len(timestamps)):
+        if shift_duration == 0:
+            shift = start_shift
         else:
-            shifted = timestamps[source_index]
-        shifted += fractional_shift
+            fraction = (
+                timestamps[row_index] - timestamps[start_row]
+            ) / shift_duration
+            shift = start_shift + fraction * (end_shift - start_shift)
+        shifted = timestamps[row_index] + shift
         output.append(f"{shifted:.{precision}f}")
+
+    shifted_timestamps = [Decimal(token) for token in output]
+    for row_index in range(1, len(shifted_timestamps)):
+        if shifted_timestamps[row_index] <= shifted_timestamps[row_index - 1]:
+            raise ValueError(
+                "Shifted timestamps must be strictly increasing; "
+                f"rows {row_index - 1} and {row_index} would violate this"
+            )
     return output
 
 
@@ -183,8 +183,8 @@ def default_output_path(input_path: Path, output_dir: Path) -> Path:
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
-            "From the trajectory row nearest EPOCH onward, replace t_i with "
-            "t_(i+STEP_SHIFT) + FRACTIONAL_SHIFT while retaining pose fields."
+            "From the trajectory row nearest EPOCH onward, add a shift that "
+            "varies linearly from START_SHIFT to END_SHIFT."
         )
     )
     parser.add_argument("input", type=Path, help="input trajectory text file")
@@ -197,22 +197,14 @@ def main() -> None:
         ),
     )
     parser.add_argument(
-        "step_shift",
-        type=int,
-        help="signed timestamp-index increment, e.g. 10 selects t_(i+10)",
+        "start_shift",
+        type=Decimal,
+        help="seconds added at the selected epoch row",
     )
     parser.add_argument(
-        "fractional_shift",
+        "end_shift",
         type=Decimal,
-        help="signed seconds added after applying the integer step shift",
-    )
-    parser.add_argument(
-        "--extrapolation-dt",
-        "--prefix-dt",
-        dest="extrapolation_dt",
-        type=Decimal,
-        default=Decimal("0.1"),
-        help="seconds between extrapolated head/tail timestamps (default: 0.1)",
+        help="seconds added at the final trajectory row",
     )
     parser.add_argument(
         "--epoch-tolerance",
@@ -240,8 +232,6 @@ def main() -> None:
     input_path = args.input.expanduser().resolve()
     if not input_path.is_file():
         parser.error(f"input trajectory does not exist: {input_path}")
-    if args.extrapolation_dt <= 0:
-        parser.error("--extrapolation-dt must be positive")
     if args.epoch_tolerance < 0:
         parser.error("--epoch-tolerance must be nonnegative")
 
@@ -276,9 +266,8 @@ def main() -> None:
         timestamps,
         original_tokens,
         start_row,
-        args.step_shift,
-        args.fractional_shift,
-        args.extrapolation_dt,
+        args.start_shift,
+        args.end_shift,
     )
     write_shifted_trajectory(
         input_path,
@@ -297,9 +286,8 @@ def main() -> None:
         )
     print(
         f"Wrote {len(records)} rows to {output_path}; rows before "
-        f"{start_row} unchanged, rows from {start_row} use index shift "
-        f"{args.step_shift:+d} then fractional shift "
-        f"{args.fractional_shift:+} s"
+        f"{start_row} unchanged, shift from row {start_row} varies linearly "
+        f"from {args.start_shift:+} s to {args.end_shift:+} s"
     )
 
 
