@@ -3,10 +3,13 @@ cam:
     id: 0
     distortion: [0.019442915619071716, -0.012026334544560754, -0.0003783904135957078, 0.0005456090834102392, 0.0]
     intrinsics: [519.4588780362625, 519.032899533456, 644.395939609842, 362.381470420058]
+    # intrinsics from /media/jhuai/OldWin8OS1/jhuai/rolling_shutter_calibration/results/intrinsics_calib/s22plus_livox/2024_10_30_17_21_22/camchain.yaml
     model: "radtan"
     resolution: [1190, 720] # hack: mask those pixels on the right border of the image as they are on the device.
     # Note do not change 720 as it is used to compute line delay.
     name: "s22plus_rear"
+    # extrinsics from /mnt/ExtremeSSD/jhuai/livox_phone/results/direct_visual_lidar_calibration/calib_mid360_s22plus.json
+    # which was obtained by Yuxin with 2024_11_22_16_59_42 and 2024_11_22_17_02_51
     p_lidar_cam: [0.09165818567908458, 0.024371359183858687,-0.07761523102914086]
     q_lidar_cam: [-0.006557708581064656, -0.5943650948131397, 0.8041392764010252, 0.006866926180545729] # xyzw
     # camera time delay relative to lidar clock, so cam msg time + td = cam msg time in lidar clock

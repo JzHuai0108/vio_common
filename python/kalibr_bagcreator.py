@@ -32,7 +32,6 @@ mypath = os.path.abspath('../timestamp_corrector/build')  # Make it an absolute 
 if mypath not in sys.path:
     sys.path.append(mypath)
 
-import TimestampCorrector as TC
 
 
 def parse_args():
@@ -116,6 +115,8 @@ def parse_args():
 
     parser.add_argument("--sync_to_unix", action="store_true",
                         help="Sync to Unix host time? If not, sensor times will be used by default.")
+    parser.add_argument("--no_preview", action="store_true",
+                        help="Write video frames without opening a display window.")
 
     if len(sys.argv) < 2:
         msg = 'Example usage 1: {} --folder kalibr/format/dataset ' \
@@ -298,7 +299,7 @@ def write_video_to_rosbag(bag,
                           downscalefactor=1,
                           shift_in_time=0.0,
                           topic="/cam0/image_raw",
-                          ratio=1.0, gray=False):
+                          ratio=1.0, gray=False, preview=True):
     """
     :param bag: opened bag stream writing to
     :param video_filename:
@@ -386,9 +387,10 @@ def write_video_to_rosbag(bag,
         h, w = image_np.shape[:2]
         if w < h:
             image_np = cv2.rotate(image_np, cv2.ROTATE_90_COUNTERCLOCKWISE)
-        cv2.imshow('frame', image_np)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        if preview:
+            cv2.imshow('frame', image_np)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
 
         if frame_timestamps:  # external
             local_time = frame_timestamps[video_frame_id]
@@ -416,7 +418,8 @@ def write_video_to_rosbag(bag,
         current_id += 1
 
     cap.release()
-    cv2.destroyAllWindows()
+    if preview:
+        cv2.destroyAllWindows()
     print('Saved {} out of {} video frames as image messages to the rosbag'.
           format(framecount, framesinvideo))
     return image_time_range_in_bag
@@ -467,6 +470,8 @@ def correct_times(fn, known_interval_ms=100):
     :param known_interval_ms:
     :return:smooth host times
     """
+    import TimestampCorrector as TC
+
     local_remote_times = load_local_and_remote_times(fn)
     host_times = [v[0] for v in local_remote_times]
     sensor_times = [v[1] for v in local_remote_times]
@@ -639,7 +644,8 @@ def main():
             frame_remote_timestamps=None,
             downscalefactor=parsed.downscalefactor,
             shift_in_time=parsed.shift_secs,
-            topic="/cam0/image_raw")
+            topic="/cam0/image_raw",
+            preview=not parsed.no_preview)
 
     elif parsed.folder is not None:
         # write images
