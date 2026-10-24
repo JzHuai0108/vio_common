@@ -2,6 +2,7 @@ function plot_plane_heatmaps(csv_file)
 % Plot RMSE and inlier ratio heatmaps for wall and floor separately
 if nargin < 1
     csv_file = 'F:\jhuai\lidar-phone-construction\labelcloud\plane_stats.csv';
+    csv_file = '/mnt/MyPassport/jhuai/lidar-phone-construction/labelcloud/plane_stats.csv';
 end
 close all;
 
@@ -87,17 +88,20 @@ mean_table.Inlier_Floor  = round(mean_table.Inlier_Floor, 1);
 disp(mean_table);
 
 % Plotting
-plot_heatmap(rmse_wall, 'RMSE (cm) - Wall', false, 'rmse_wall.png');
+plot_heatmap(rmse_wall, 'RMSE (cm) - Wall', false, 'rmse_wall.png', [0, 4]);
 plot_heatmap(ratio_wall, 'Inlier Ratio (%) - Wall', true, 'inlier_wall.png');
-plot_heatmap(rmse_floor, 'RMSE (cm) - Floor', false, 'rmse_floor.png');
+plot_heatmap(rmse_floor, 'RMSE (cm) - Floor', false, 'rmse_floor.png', [0, 4]);
 plot_heatmap(ratio_floor, 'Inlier Ratio (%) - Floor', true, 'inlier_floor.png');
 
 end
 
-function plot_heatmap(data, titleStr, is_inverted, filename)
+function plot_heatmap(data, titleStr, is_inverted, filename, color_limits)
     figure;
     imagesc(data);
     colorbar;
+    if nargin >= 5 && ~isempty(color_limits)
+        caxis(color_limits);
+    end
     if is_inverted
         colormap(flipud(hot));  % Invert colormap for "lower is better"
     else

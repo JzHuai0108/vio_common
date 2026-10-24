@@ -1,4 +1,4 @@
-function basement_pc_analysis()
+function basement_pc_analysis(ubuntu)
 % Whole analysis pipeline
 % Preparation
 % 1. LIO and GBA to get undistorted lidar pc and poses
@@ -13,8 +13,12 @@ function basement_pc_analysis()
 % 5. Save c2c_stats.csv and plane_stats.csv
 close all;
 %% Configuration
+if nargin < 1
+    ubuntu = 1;
+end
 % on ubuntu
-result_dir        = '/media/jhuai/ExtremeSSD/jhuai/livox_phone/results';
+if ubuntu
+result_dir        = '/mnt/ExtremeSSD/jhuai/livox_phone/results';
 ref_pc_file       = fullfile(result_dir, 's22plus_xt32', 'fastlio2', 'ref_tls', 'basement.las');
 ref_transform_txt = fullfile(result_dir, 's22plus_xt32', 'fastlio2', 'ref_tls', 'transform_TLS.txt');
 
@@ -34,9 +38,9 @@ surfel_files    = { ...
     fullfile(result_dir,'s22plus_xt32','fastlio2','ref_tls', 'floors.txt'), ...
     fullfile(result_dir,'s22plus_xt32','fastlio2','ref_tls', 'walls.txt') ...
 };
-
+else
 % on windows for c2c plots as remote plot is lousy.
-result_dir        = 'F:\jhuai\lidar-phone-construction\labelcloud\pointclouds';
+result_dir        = '/mnt/MyPassport/jhuai/lidar-phone-construction/labelcloud/pointclouds';
 ref_pc_file       = fullfile(result_dir, 'rtc360_tls', 'basement.las');
 ref_transform_txt = fullfile(result_dir, 'rtc360_tls', 'transform_TLS.txt');
 surfel_files    = { ...
@@ -55,7 +59,7 @@ pc_transforms = { ...
     fullfile(result_dir,'2025_02_07_10_25_05','transform_LIO_refined.txt'),...
     fullfile(result_dir,'2025_02_07_10_28_32','transform_LIO_refined.txt')
 };
-
+end
 
 % Axis-aligned crop limits [xmin xmax; ymin ymax; zmin zmax]
 xyz_limits      = [-24, 31; -12.5, 19; 1.5, 9.3];
@@ -92,7 +96,7 @@ idx = find(mask_ref);
 pc_ref = select(pc_ref, idx);
 
 %% 2. Loop over source point clouds for C2C
-if 1
+if ubuntu
 fprintf('Starting C2C analysis...\n');
 for k = 1:numel(pc_files)
     src_file = pc_files{k};

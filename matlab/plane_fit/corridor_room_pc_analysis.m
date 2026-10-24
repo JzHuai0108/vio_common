@@ -1,5 +1,5 @@
-function corridor_room_pc_analysis()
-las_dir = 'F:\jhuai\lidar-phone-construction\labelcloud\pointclouds';
+function corridor_room_pc_analysis(ubuntu)
+las_dir = '/mnt/MyPassport/jhuai/lidar-phone-construction/labelcloud/pointclouds';
 % The resulting pictures are saved by first rotating the error point cloud
 % interactively in the matlab figure, and then saving the plot using the
 % save button on the top right corner of the plot.
@@ -18,7 +18,7 @@ end
 room_tls_ply = fullfile(las_dir, '436.ply');
 corridor_tls_ply = fullfile(las_dir, 'New Model_New Cloud.ply');
 
-lio_dir = 'F:\jhuai\lidar-phone-construction\labelcloud\pointclouds';
+lio_dir = '/mnt/MyPassport/jhuai/lidar-phone-construction/labelcloud/pointclouds';
 room_lio_pcd = fullfile(lio_dir, '2024_12_05_16_33_55/original_aligned.pcd');
 corridor_lio_pcd = fullfile(lio_dir, '2024_12_05_16_11_23/original_aligned.pcd');
 room_tls_tform_txt = fullfile(lio_dir, '2024_12_05_16_33_55/transform_TLS.txt');
